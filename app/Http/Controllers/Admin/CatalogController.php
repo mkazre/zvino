@@ -84,11 +84,14 @@ class CatalogController extends AdminController
             'special_price_zig' => ['nullable', 'numeric', 'min:0', 'lt:price_zig'],
             'is_available' => ['boolean'],
             'is_special' => ['boolean'],
-            'image' => ['nullable', 'image', 'max:4096'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'variants' => ['nullable', 'array'],
             'variants.*.name' => ['required', 'string'],
             'variants.*.price_delta_zig' => ['required', 'numeric'],
             'modifiers' => ['nullable', 'array'],
+        ], [
+            'image.max' => 'Photo must be 8 MB or smaller.',
+            'image.uploaded' => 'Photo could not be uploaded. It may be larger than the server allows (8 MB).',
         ]);
 
         if ($request->hasFile('image')) {
