@@ -1,13 +1,16 @@
-import AppLogoIcon from './app-logo-icon';
+import { type SharedData } from '@/types';
+import { usePage } from '@inertiajs/react';
 
 export default function AppLogo() {
+    const { auth } = usePage<SharedData>().props;
+
     return (
         <>
-            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-md">
-                <AppLogoIcon className="size-5 fill-current text-white dark:text-black" />
-            </div>
+            {/* TODO: swap for the real Zvino logo once supplied */}
+            <div className="bg-brand flex aspect-square size-8 items-center justify-center rounded-lg text-base font-extrabold text-white">z</div>
             <div className="ml-1 grid flex-1 text-left text-sm">
-                <span className="mb-0.5 truncate leading-none font-semibold">Laravel Starter Kit</span>
+                <span className="truncate leading-none font-bold">Zvino</span>
+                <span className="text-muted-foreground mt-0.5 truncate text-xs">{auth.user?.vendor?.name ?? 'Admin'}</span>
             </div>
         </>
     );

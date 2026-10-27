@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PromoCode extends Model
 {
@@ -11,6 +12,8 @@ class PromoCode extends Model
         'starts_at' => 'datetime', 'ends_at' => 'datetime', 'is_active' => 'boolean',
         'value' => 'float', 'min_order_zig' => 'float',
     ];
+
+    public function vendor(): BelongsTo { return $this->belongsTo(Vendor::class); }
 
     public function isUsableFor(float $subtotal, ?int $vendorId): bool
     {
