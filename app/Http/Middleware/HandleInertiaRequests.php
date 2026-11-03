@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user()?->load('vendor:id,name'),
             ],
-            'can' => fn () => $request->user() ? \App\Support\Permissions::for($request->user()->role) : [],
+            'can' => fn () => $request->user() ? \App\Support\Permissions::for($request->user()->role ?? 'customer') : [],
             'badges' => fn () => $request->user()?->isStaff() ? $this->badges($request) : [],
             'brand' => fn () => ['name' => Setting::get('general.business_name'), 'logo' => Setting::get('branding.logo')],
             'platformMode' => fn () => Setting::platformMode(),

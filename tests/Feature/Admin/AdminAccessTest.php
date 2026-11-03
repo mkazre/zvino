@@ -87,7 +87,7 @@ class AdminAccessTest extends TestCase
         $admin = $this->staff('super_admin');
         $vendor = Vendor::first();
 
-        $this->actingAs($admin)->post('/admin/settings/platform-mode', ['mode' => 'single', 'single_vendor_id' => $vendor->id])->assertSessionHas('success');
+        $this->actingAs($admin)->post('/admin/settings-platform-mode', ['mode' => 'single', 'single_vendor_id' => $vendor->id])->assertSessionHas('success');
         $this->getJson('/api/config')->assertJsonPath('platform_mode', 'single')->assertJsonPath('single_vendor_id', $vendor->id);
         $this->actingAs($admin)->get('/admin/vendors')->assertRedirect(route('dashboard'));
 
