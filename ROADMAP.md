@@ -5,23 +5,23 @@ Decisions: 3 apps (Customer, Driver, Merchant) from one Expo codebase, public or
 admin panel, Laravel API on shared hosting, Pusher, Paynow, Google Maps, Inter, monochrome + green.
 
 ## Phase 1: Platform core (API)
-- [ ] Settings registry: every operational setting editable in admin, typed, cached, audited
-- [ ] Delivery zones (map polygons) with per-zone fees, minimums, ETAs and surge
-- [ ] Distance-based delivery fee (base + per km), service fee, small-order fee, tax rules
-- [ ] Store hours, holiday closures, busy mode (+prep time), pause ordering, delivery radius
-- [ ] Proper modifier groups (required/optional, min/max), item out-of-stock until time
-- [ ] Order lifecycle: merchant accept/reject with reason, prep time, auto-cancel, scheduled orders
-- [ ] Drivers: onboarding, documents, vehicle, approval, online/offline, live location
-- [ ] Dispatch: offer to nearest available driver, accept/decline with timeout, re-offer, manual assign, batching
-- [ ] Proof of delivery (photo / PIN), contactless drop-off
-- [ ] Tips, ratings & reviews (store + driver), favourites
-- [ ] Refunds (full/partial, to wallet or source), disputes
-- [ ] Wallet top-up, referrals, gift cards, Zvino+ subscription (free delivery, reduced fees)
-- [ ] Group orders (shared cart link)
-- [ ] Order chat customer ↔ driver ↔ store; masked contact
-- [ ] Ledgers: merchant & driver earnings, commissions, payouts, statements
-- [ ] Notification templates (push / SMS / email) and campaigns
-- [ ] Audit log, fine-grained permissions
+- [x] Settings registry: every operational setting editable in admin, typed, cached, audited
+- [x] Delivery zones (map polygons) with per-zone fees, minimums, ETAs and surge
+- [x] Distance-based delivery fee (base + per km), service fee, small-order fee, tax rules
+- [x] Store hours, holiday closures, busy mode (+prep time), pause ordering, delivery radius
+- [x] Proper modifier groups (required/optional, min/max), item out-of-stock until time
+- [x] Order lifecycle: merchant accept/reject with reason, prep time, auto-cancel, scheduled orders
+- [x] Drivers: onboarding, documents, vehicle, approval, online/offline, live location
+- [x] Dispatch: offer to nearest available driver, accept/decline with timeout, re-offer, manual assign, batching
+- [x] Proof of delivery (photo / PIN), contactless drop-off
+- [x] Tips, ratings & reviews (store + driver), favourites
+- [x] Refunds (full/partial, to wallet or source), disputes
+- [x] Wallet top-up, referrals, gift cards, Zvino+ subscription (free delivery, reduced fees)
+- [x] Group orders (shared cart link)
+- [x] Order chat customer ↔ driver ↔ store; masked contact
+- [x] Ledgers: merchant & driver earnings, commissions, payouts, statements
+- [x] Notification templates (push / SMS / email) and campaigns
+- [x] Audit log, fine-grained permissions
 
 ## Phase 2: Design system
 - [ ] Tokens (colour, type, spacing, radius, elevation) shared by web and mobile
@@ -61,17 +61,17 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 11. **"Your usual"**: one-tap reorder of the last order from a store
 12. **Hot-meal guarantee**: automatic wallet credit when delivery runs past the promised ETA
 13. **Split the bill**: friends pay their share by EcoCash link before the order is placed
-14. **Gift a meal to any phone number**: recipient gets an SMS and picks their meal
+14. **Gift a meal to any phone number**: recipient gets an SMS and picks their meal ✅
 15. **Photo reviews** with dish-level ratings, plus **price-drop alerts** on favourites
 16. **Dietary and allergen filters**: halal, vegetarian, no pork, nut-free, spice level
 17. **School and office lunch plans**: recurring weekday deliveries
 18. **Round-up for charity, eco "no cutlery" toggle, and accessibility** (large text, screen reader, high contrast)
 
 ### Driver app (9)
-19. 🇿🇼 **Cash remittance via EcoCash** for cash-on-delivery money held, in-app
-20. 🇿🇼 **USD change to wallet**: credit the customer's change as wallet balance when there are no small notes
+19. 🇿🇼 **Cash remittance via EcoCash** for cash-on-delivery money held, in-app ✅
+20. 🇿🇼 **USD change to wallet**: credit the customer's change as wallet balance when there are no small notes ✅
 21. 🇿🇼 **Peri-urban batch runs**: Chitungwiza, Ruwa, Norton and Epworth delivered in scheduled batches
-22. **SOS and trip sharing**: panic button alerts ops and shares live location
+22. **SOS and trip sharing**: panic button alerts ops and shares live location ✅
 23. **Night safety zones**: warnings and optional opt-out for flagged areas after dark
 24. **Demand heatmap and earnings goals**: where to wait, with daily and weekly targets
 25. **Instant cash-out** of earnings to EcoCash (small fee)
@@ -79,11 +79,11 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 27. ⚠ **Fuel advance and micro-insurance** offers [insurance / lending partner]
 
 ### Merchant app: Store manager mode (6)
-28. 🇿🇼 **Load-shedding mode**: "Power out / on generator" hides oven and fryer items and adds prep time
+28. 🇿🇼 **Load-shedding mode**: "Power out / on generator" hides oven and fryer items and adds prep time ✅
 29. 🇿🇼 **Fresh market selling**: Mbare and market vendors list produce by weight
 30. 🇿🇼 **Pharmacy orders**: prescription photo review and approve/decline before payment
 31. **Self-serve promotions**: BOGO, happy hour, % off, free item
-32. **Menu insights**: best sellers, items often removed from carts, prep time per item
+32. **Menu insights**: best sellers, items often removed from carts, prep time per item ✅
 33. **Same-day payout** to EcoCash (small fee)
 
 ### Merchant app: POS mode (5)
