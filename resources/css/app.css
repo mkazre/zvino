@@ -6,21 +6,36 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Zvino design tokens
+ * Monochrome surfaces + ink; Zvino green only for primary actions and positive state.
+ * Gold = attention / rewards, Red = destructive / alerts. Inter throughout.
+ */
 @theme {
-    --font-sans:
-        'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    --color-gold: #d9a520;
-    --color-zred: #c8102e;
     --color-brand: #0b6e4f;
+    --color-brand-600: #095c42;
+    --color-brand-50: #e8f3ee;
     --color-brand-dark: #073e2c;
+    --color-gold: #c99412;
+    --color-gold-50: #fdf6e3;
+    --color-zred: #c8102e;
+    --color-zred-50: #fdecee;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    --shadow-card: 0 1px 2px rgb(16 24 20 / 0.04), 0 1px 1px rgb(16 24 20 / 0.03);
+    --shadow-pop: 0 12px 32px -8px rgb(16 24 20 / 0.18), 0 2px 6px rgb(16 24 20 / 0.06);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
+    --color-surface: var(--surface);
+    --color-subtle: var(--subtle);
 
     --color-card: var(--card);
     --color-card-foreground: var(--card-foreground);
@@ -43,6 +58,10 @@
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
 
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-info: var(--info);
+
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
@@ -63,14 +82,6 @@
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
     *,
     ::after,
@@ -82,74 +93,84 @@
 }
 
 :root {
-    --background: hsl(45, 30%, 97%);
-    --foreground: hsl(0, 0%, 3.9%);
-    --card: hsl(0, 0%, 100%);
-    --card-foreground: hsl(0, 0%, 3.9%);
-    --popover: hsl(0, 0%, 100%);
-    --popover-foreground: hsl(0, 0%, 3.9%);
-    --primary: hsl(162, 82%, 24%);
-    --primary-foreground: hsl(0, 0%, 98%);
-    --secondary: hsl(0, 0%, 96.1%);
-    --secondary-foreground: hsl(0, 0%, 9%);
-    --muted: hsl(0, 0%, 96.1%);
-    --muted-foreground: hsl(0, 0%, 45.1%);
-    --accent: hsl(150, 35%, 93%);
-    --accent-foreground: hsl(162, 82%, 20%);
-    --destructive: hsl(0, 84.2%, 60.2%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 92.8%);
-    --input: hsl(0, 0%, 89.8%);
-    --ring: hsl(162, 82%, 24%);
-    --chart-1: hsl(162, 82%, 24%);
-    --chart-2: hsl(173, 58%, 39%);
-    --chart-3: hsl(197, 37%, 24%);
-    --chart-4: hsl(43, 74%, 49%);
-    --chart-5: hsl(27, 87%, 67%);
-    --radius: 0.75rem;
-    --sidebar-background: hsl(0, 0%, 100%);
-    --sidebar-foreground: hsl(240, 5.3%, 30%);
-    --sidebar-primary: hsl(162, 82%, 24%);
-    --sidebar-primary-foreground: hsl(0, 0%, 98%);
-    --sidebar-accent: hsl(150, 35%, 93%);
-    --sidebar-accent-foreground: hsl(162, 82%, 20%);
-    --sidebar-border: hsl(0, 0%, 91%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    --background: #f6f6f4;          /* app canvas */
+    --surface: #ffffff;             /* cards, tables */
+    --subtle: #fafaf9;              /* table headers, wells */
+    --foreground: #111412;          /* ink */
+    --card: #ffffff;
+    --card-foreground: #111412;
+    --popover: #ffffff;
+    --popover-foreground: #111412;
+    --primary: #0b6e4f;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f1ef;
+    --secondary-foreground: #111412;
+    --muted: #f1f1ef;
+    --muted-foreground: #6b716d;
+    --accent: #f1f1ef;
+    --accent-foreground: #111412;
+    --destructive: #c8102e;
+    --destructive-foreground: #ffffff;
+    --success: #0b6e4f;
+    --warning: #c99412;
+    --info: #2563eb;
+    --border: #e7e7e4;
+    --input: #dededa;
+    --ring: #0b6e4f;
+    --chart-1: #0b6e4f;
+    --chart-2: #111412;
+    --chart-3: #c99412;
+    --chart-4: #7a8a82;
+    --chart-5: #c8102e;
+    --radius: 0.625rem;
+    --sidebar-background: #ffffff;
+    --sidebar-foreground: #3b403d;
+    --sidebar-primary: #111412;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f1f1ef;
+    --sidebar-accent-foreground: #111412;
+    --sidebar-border: #ececea;
+    --sidebar-ring: #0b6e4f;
 }
 
 .dark {
-    --background: hsl(0, 0%, 3.9%);
-    --foreground: hsl(0, 0%, 98%);
-    --card: hsl(0, 0%, 3.9%);
-    --card-foreground: hsl(0, 0%, 98%);
-    --popover: hsl(0, 0%, 3.9%);
-    --popover-foreground: hsl(0, 0%, 98%);
-    --primary: hsl(158, 60%, 45%);
-    --primary-foreground: hsl(0, 0%, 9%);
-    --secondary: hsl(0, 0%, 14.9%);
-    --secondary-foreground: hsl(0, 0%, 98%);
-    --muted: hsl(0, 0%, 6.9%);
-    --muted-foreground: hsl(0, 0%, 63.9%);
-    --accent: hsl(0, 0%, 14.9%);
-    --accent-foreground: hsl(0, 0%, 98%);
-    --destructive: hsl(0, 84%, 60%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 14.9%);
-    --input: hsl(0, 0%, 14.9%);
-    --ring: hsl(0, 0%, 83.1%);
-    --chart-1: hsl(220, 70%, 50%);
-    --chart-2: hsl(160, 60%, 45%);
-    --chart-3: hsl(30, 80%, 55%);
-    --chart-4: hsl(280, 65%, 60%);
-    --chart-5: hsl(340, 75%, 55%);
-    --sidebar-background: hsl(0, 0%, 7%);
-    --sidebar-foreground: hsl(0, 0%, 80%);
-    --sidebar-primary: hsl(158, 60%, 45%);
-    --sidebar-primary-foreground: hsl(0, 0%, 100%);
-    --sidebar-accent: hsl(0, 0%, 15.9%);
-    --sidebar-accent-foreground: hsl(240, 4.8%, 95.9%);
-    --sidebar-border: hsl(0, 0%, 15.9%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    --background: #0c0e0d;
+    --surface: #141716;
+    --subtle: #181b1a;
+    --foreground: #eef0ef;
+    --card: #141716;
+    --card-foreground: #eef0ef;
+    --popover: #181b1a;
+    --popover-foreground: #eef0ef;
+    --primary: #22a27a;
+    --primary-foreground: #04130d;
+    --secondary: #1f2321;
+    --secondary-foreground: #eef0ef;
+    --muted: #1f2321;
+    --muted-foreground: #959c98;
+    --accent: #1f2321;
+    --accent-foreground: #eef0ef;
+    --destructive: #ef4459;
+    --destructive-foreground: #ffffff;
+    --success: #22a27a;
+    --warning: #e0b23a;
+    --info: #60a5fa;
+    --border: #262a28;
+    --input: #2e3330;
+    --ring: #22a27a;
+    --chart-1: #22a27a;
+    --chart-2: #eef0ef;
+    --chart-3: #e0b23a;
+    --chart-4: #6b766f;
+    --chart-5: #ef4459;
+    --sidebar-background: #101211;
+    --sidebar-foreground: #c4c9c6;
+    --sidebar-primary: #eef0ef;
+    --sidebar-primary-foreground: #0c0e0d;
+    --sidebar-accent: #1c1f1e;
+    --sidebar-accent-foreground: #eef0ef;
+    --sidebar-border: #1f2321;
+    --sidebar-ring: #22a27a;
 }
 
 @layer base {
@@ -157,7 +178,25 @@
         @apply border-border;
     }
 
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-feature-settings: 'cv11', 'ss01', 'ss03';
+    }
+
     body {
         @apply bg-background text-foreground;
+    }
+
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@layer components {
+    /* Thin, quiet scrollbars for dense admin screens */
+    .scroll-quiet {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
     }
 }

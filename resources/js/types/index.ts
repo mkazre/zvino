@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type Role = 'customer' | 'super_admin' | 'vendor_manager' | 'cashier' | 'kitchen';
+export type Role = 'customer' | 'driver' | 'super_admin' | 'admin' | 'support' | 'vendor_manager' | 'cashier' | 'kitchen';
 
 export interface Auth {
     user: User;
@@ -30,6 +30,9 @@ export interface SharedData {
     zigPerUsd: number;
     pusher: { key: string | null; cluster: string | null };
     flash: { success: string | null; error: string | null };
+    can: string[];
+    badges: { orders?: number; incoming?: number; unassigned?: number; refunds?: number; drivers?: number; support?: number };
+    brand: { name: string; logo: string | null };
     [key: string]: unknown;
 }
 

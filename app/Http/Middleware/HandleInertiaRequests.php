@@ -43,6 +43,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user()?->load('vendor:id,name'),
             ],
+            'can' => fn () => $request->user() ? \App\Support\Permissions::for($request->user()->role) : [],
+            'badges' => fn () => $request->user()?->isStaff() ? $this->badges($request) : [],
+            'brand' => fn () => ['name' => Setting::get('general.business_name'), 'logo' => Setting::get('branding.logo')],
             'platformMode' => fn () => Setting::platformMode(),
             'zigPerUsd' => fn () => ExchangeRate::current(),
             'pusher' => [
@@ -54,5 +57,21 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
         ]);
+    }
+
+    /** Sidebar counters: things waiting on a human. */
+    private function badges(Request $request): array
+    {
+        $vendorId = $request->user()->scopedVendorId();
+        $orders = \App\Models\Order::query()->when($vendorId, fn ($q) => $q->where('vendor_id', $vendorId));
+
+        return [
+            'orders' => (clone $orders)->whereIn('status', \App\Models\Order::LIVE)->count(),
+            'incoming' => (clone $orders)->where('status', 'placed')->count(),
+            'unassigned' => $vendorId ? 0 : (clone $orders)->where('fulfilment', 'delivery')->whereNull('driver_id')->whereIn('status', ['accepted', 'preparing', 'ready'])->count(),
+            'refunds' => $vendorId ? 0 : \App\Models\Refund::where('status', 'requested')->count(),
+            'drivers' => $vendorId ? 0 : \App\Models\Driver::where('status', 'applied')->count(),
+            'support' => $vendorId ? 0 : \App\Models\SupportTicket::where('status', 'open')->count(),
+        ];
     }
 }
