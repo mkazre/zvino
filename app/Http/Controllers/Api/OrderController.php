@@ -32,9 +32,16 @@ class OrderController extends Controller
             'payment_method' => ['required', Rule::in(OrderService::METHODS)],
             'phone' => ['required_if:payment_method,ecocash,onemoney,innbucks', 'nullable', 'string'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'tip' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'scheduled_for' => ['nullable', 'date'],
+            'dropoff' => ['nullable', 'in:hand_to_me,leave_at_door'],
+            'group_order_id' => ['nullable', Rule::exists('group_orders', 'id')->where('host_id', $request->user()->id)],
         ]);
 
         [$order, $payment] = $this->orders->placeFromCart($request->user(), $data);
+        if (! empty($data['group_order_id'])) {
+            \App\Models\GroupOrder::whereKey($data['group_order_id'])->update(['status' => 'ordered']);
+        }
 
         return response()->json([
             'order' => new OrderResource($order),
@@ -51,7 +58,35 @@ class OrderController extends Controller
     {
         abort_unless($order->user_id === $request->user()->id, 404);
 
-        return new OrderResource($order->load('vendor', 'items', 'address'));
+        return (new OrderResource($order->load('vendor', 'items', 'address', 'driver.user', 'review')))
+            ->additional(['delivery_pin' => $order->delivery_pin]);
+    }
+
+    /** Live price for the checkout screen: fees for the chosen address, tip and time. */
+    public function quote(Request $request, CartService $carts)
+    {
+        $data = $request->validate([
+            'fulfilment' => ['required', 'in:delivery,pickup'],
+            'address_id' => ['nullable', Rule::exists('addresses', 'id')->where('user_id', $request->user()->id)],
+            'lat' => ['nullable', 'numeric'], 'lng' => ['nullable', 'numeric'],
+            'tip' => ['nullable', 'numeric', 'min:0'],
+        ]);
+        $address = isset($data['address_id']) ? \App\Models\Address::find($data['address_id']) : null;
+        $dest = $address ? ['lat' => $address->lat, 'lng' => $address->lng] : array_filter(['lat' => $data['lat'] ?? null, 'lng' => $data['lng'] ?? null]);
+
+        $cart = $carts->for($request->user());
+        $t = $carts->totals($cart, $data['fulfilment'], $dest, (float) ($data['tip'] ?? 0));
+        $money = ['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'vat', 'total', 'member_savings'];
+
+        return response()->json([
+            'totals' => collect($t)->only($money)->map(fn ($v) => \App\Support\Money::both($v)),
+            'surge' => $t['surge'],
+            'distance_km' => $t['distance_km'],
+            'eta_minutes' => $t['eta_minutes'],
+            'tip_presets_pct' => \App\Models\Setting::get('orders.tip_presets_pct'),
+            'payment_methods' => collect(OrderService::METHODS)->filter(fn ($m) => \App\Models\Setting::get("payments.$m"))->values(),
+            'wallet_balance' => \App\Support\Money::both($request->user()->walletBalance()),
+        ]);
     }
 
     /** Polling fallback for OrderTracking; live updates arrive on private-order.{id}. */

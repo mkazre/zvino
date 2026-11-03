@@ -31,6 +31,9 @@ class Order extends Model
     {
         static::creating(function (Order $order) {
             $order->reference ??= 'ZV-'.strtoupper(Str::random(6));
+            $order->status ??= 'pending_payment';
+            $order->payment_status ??= 'unpaid';
+            $order->kitchen_stage ??= 'new';
             $order->status_history ??= [['status' => $order->status ?? 'pending_payment', 'at' => now()->toIso8601String()]];
         });
     }

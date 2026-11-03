@@ -22,6 +22,7 @@ class CustomerFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Carbon::setTestNow('2026-11-04 12:00:00'); // inside seeded store hours
         Cache::flush();
         $this->seed();
         Http::fake(); // Expo push

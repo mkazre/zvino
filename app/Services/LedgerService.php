@@ -14,8 +14,9 @@ class LedgerService
 {
     public function settleDelivered(Order $order): void
     {
-        if (LedgerEntry::where('order_id', $order->id)->exists()) {
-            return; // idempotent
+        // Idempotent: the store's sales entry marks the order as settled.
+        if (LedgerEntry::where('order_id', $order->id)->where('account_type', $order->vendor->getMorphClass())->where('type', 'earning')->exists()) {
+            return;
         }
 
         DB::transaction(function () use ($order) {

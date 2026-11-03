@@ -18,7 +18,7 @@ class StoreAvailability
 
         $reason = match (true) {
             $vendor->status !== 'active' => 'inactive',
-            $vendor->paused_until?->isFuture() ?? false => 'paused',
+            $vendor->paused_until && $vendor->paused_until->gt($at) => 'paused',
             $this->closedOn($vendor, $at) => 'holiday',
             ! $this->withinHours($vendor, $at) => 'closed',
             default => null,

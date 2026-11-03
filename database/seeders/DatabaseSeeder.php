@@ -3,6 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\Driver;
+use App\Models\Item;
+use App\Models\NotificationTemplate;
+use App\Models\Page;
+use App\Models\SubscriptionPlan;
+use App\Models\Zone;
 use App\Models\ExchangeRate;
 use App\Models\HomeBlock;
 use App\Models\LoyaltyRule;
@@ -101,5 +107,58 @@ class DatabaseSeeder extends Seeder
         Reward::create(['name' => 'ZiG 20 wallet credit', 'points_cost' => 200, 'type' => 'wallet_credit', 'config' => ['amount_zig' => 20]]);
         Reward::create(['name' => 'Free delivery', 'points_cost' => 150, 'type' => 'free_delivery']);
         Reward::create(['name' => 'Free Maheu', 'points_cost' => 100, 'type' => 'free_item']);
+
+        $this->seedPlatform();
+    }
+
+    /** Zones, hours, drivers, Zvino+, templates and legal pages. */
+    private function seedPlatform(): void
+    {
+        $harare = Zone::create([
+            'name' => 'Harare CBD & Avenues', 'city' => 'Harare',
+            'polygon' => [[-17.76, 30.98], [-17.76, 31.12], [-17.88, 31.12], [-17.88, 30.98]],
+            'base_delivery_fee_zig' => 15, 'per_km_fee_zig' => 4, 'free_km' => 2, 'max_delivery_km' => 12,
+        ]);
+        $byo = Zone::create([
+            'name' => 'Bulawayo City', 'city' => 'Bulawayo',
+            'polygon' => [[-20.10, 28.52], [-20.10, 28.65], [-20.20, 28.65], [-20.20, 28.52]],
+            'base_delivery_fee_zig' => 12, 'per_km_fee_zig' => 3.5, 'free_km' => 2, 'max_delivery_km' => 10,
+        ]);
+
+        foreach (Vendor::all() as $v) {
+            $v->update(['zone_id' => $v->city === 'Harare' ? $harare->id : $byo->id, 'phone' => '+263242700'.str_pad($v->id, 3, '0', STR_PAD_LEFT)]);
+            foreach (range(0, 6) as $day) {
+                $v->hours()->create(['weekday' => $day, 'opens_at' => '07:00:00', 'closes_at' => $day === 5 || $day === 6 ? '02:00:00' : '23:00:00']);
+            }
+        }
+        // Grills and pizza need electricity: hidden during load-shedding.
+        Item::whereHas('vendor', fn ($q) => $q->whereIn('cuisine', ['Grills', 'Pizza']))->update(['needs_power' => true]);
+
+        $driverUser = User::create(['name' => 'Farai Moyo', 'phone' => '+263772000001', 'role' => 'driver']);
+        Driver::create([
+            'user_id' => $driverUser->id, 'zone_id' => $harare->id, 'status' => 'approved', 'approved_at' => now(),
+            'vehicle_type' => 'motorbike', 'vehicle_make' => 'Honda Ace 125', 'vehicle_plate' => 'AEZ 1234',
+            'national_id' => '63-123456-A-42', 'licence_number' => 'DL998877',
+        ]);
+
+        SubscriptionPlan::create([
+            'name' => 'Zvino+', 'price_zig' => 99, 'interval' => 'month', 'min_order_for_free_delivery_zig' => 80,
+            'service_fee_discount_pct' => 50, 'perks' => ['Free delivery on orders over ZiG 80', '50% off service fees', 'No small-order fees', 'Member-only deals'],
+        ]);
+
+        $templates = [
+            ['order.accepted', 'push', 'Order confirmed', '{{store}} is preparing your order. Ready in about {{prep}} min.'],
+            ['order.picked_up', 'push', 'On the way', '{{driver}} is on the way with your order.'],
+            ['order.picked_up', 'sms', null, 'Zvino: {{driver}} is on the way with order {{order_ref}}. Track: {{link}}'],
+            ['order.delivered', 'push', 'Delivered', 'Enjoy your meal! Tap to rate {{store}}.'],
+            ['auth.otp', 'sms', null, 'Your Zvino code is {{code}}. It expires in 5 minutes. Never share it.'],
+        ];
+        foreach ($templates as [$event, $channel, $title, $body]) {
+            NotificationTemplate::create(compact('event', 'channel', 'title', 'body'));
+        }
+
+        foreach (['terms' => 'Terms of Service', 'privacy' => 'Privacy Policy', 'about' => 'About Zvino', 'faq' => 'Help & FAQ', 'drivers' => 'Drive with Zvino', 'partners' => 'Partner with Zvino'] as $slug => $title) {
+            Page::create(['slug' => $slug, 'title' => $title, 'body' => "<p>{$title}: content to be supplied by Zvino.</p>"]);
+        }
     }
 }

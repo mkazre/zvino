@@ -34,6 +34,8 @@ class AuthController extends Controller
         }
 
         $user = User::firstOrCreate(['phone' => $phone], ['name' => '', 'role' => 'customer']);
+        abort_if($user->banned_at, 403, 'This account has been disabled. Contact support.');
+        $user->update(['last_seen_at' => now()]);
         $token = $user->createToken($data['device_name'] ?? 'mobile')->plainTextToken;
 
         return response()->json([
@@ -54,10 +56,31 @@ class AuthController extends Controller
             'name' => ['sometimes', 'string', 'max:120'],
             'email' => ['sometimes', 'nullable', 'email', 'unique:users,email,'.$request->user()->id],
             'preferred_currency' => ['sometimes', 'in:ZIG,USD'],
+            'locale' => ['sometimes', 'in:en,sn,nd'],
+            'marketing_opt_in' => ['sometimes', 'boolean'],
         ]);
         $request->user()->update($data);
 
         return response()->json($this->present($request->user()->fresh()));
+    }
+
+    /** Merchant app (store manager / cashier / kitchen) signs in with email + password. */
+    public function staffLogin(Request $request)
+    {
+        $data = $request->validate(['email' => ['required', 'email'], 'password' => ['required', 'string'], 'device_name' => ['nullable', 'string', 'max:100']]);
+        $user = User::where('email', $data['email'])->first();
+
+        if (! $user || ! $user->password || ! \Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages(['email' => 'Incorrect email or password.']);
+        }
+        abort_unless(in_array($user->role, User::STORE_ROLES, true), 403, 'This app is for store staff.');
+        abort_if($user->banned_at, 403, 'This account is disabled.');
+
+        return response()->json([
+            'token' => $user->createToken($data['device_name'] ?? 'merchant')->plainTextToken,
+            'user' => $user->only('id', 'name', 'email', 'role', 'vendor_id'),
+            'mode' => ['vendor_manager' => 'manager', 'cashier' => 'pos', 'kitchen' => 'kitchen'][$user->role],
+        ]);
     }
 
     public function logout(Request $request)
@@ -71,10 +94,13 @@ class AuthController extends Controller
     {
         $loyalty = $user->loyalty;
 
-        return $user->only('id', 'name', 'email', 'phone', 'preferred_currency') + [
+        return $user->only('id', 'name', 'email', 'phone', 'preferred_currency', 'locale', 'marketing_opt_in', 'role') + [
+            'avatar' => $user->avatar_path,
             'wallet_balance_zig' => $user->walletBalance(),
             'points' => $loyalty?->points ?? 0,
             'tier' => $loyalty?->tier ?? 'Bronze',
+            'zvino_plus' => $user->activeSubscription()?->only('status', 'current_period_end'),
+            'is_driver' => (bool) $user->driver,
         ];
     }
 

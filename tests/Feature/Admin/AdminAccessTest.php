@@ -21,6 +21,7 @@ class AdminAccessTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Carbon::setTestNow('2026-11-04 12:00:00');
         Cache::flush();
         $this->seed();
         Http::fake();
