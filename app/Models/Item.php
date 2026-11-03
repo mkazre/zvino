@@ -4,18 +4,28 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Item extends Model
 {
     protected $guarded = [];
     protected $casts = [
-        'is_available' => 'boolean', 'is_special' => 'boolean',
-        'variants' => 'array', 'modifiers' => 'array',
-        'price_zig' => 'float', 'special_price_zig' => 'float',
+        'is_available' => 'boolean', 'is_special' => 'boolean', 'is_popular' => 'boolean', 'needs_power' => 'boolean',
+        'variants' => 'array', 'modifiers' => 'array', 'dietary' => 'array',
+        'price_zig' => 'float', 'special_price_zig' => 'float', 'unavailable_until' => 'datetime',
     ];
 
     public function vendor(): BelongsTo { return $this->belongsTo(Vendor::class); }
     public function category(): BelongsTo { return $this->belongsTo(Category::class); }
+    public function modifierGroups(): BelongsToMany { return $this->belongsToMany(ModifierGroup::class)->withPivot('sort_order')->orderByPivot('sort_order'); }
+
+    /** Orderable right now, taking stock timers and load-shedding into account. */
+    public function isOrderable(): bool
+    {
+        return $this->is_available
+            && ! $this->unavailable_until?->isFuture()
+            && ! ($this->needs_power && $this->vendor?->power_out);
+    }
 
     public function effectivePrice(): float
     {

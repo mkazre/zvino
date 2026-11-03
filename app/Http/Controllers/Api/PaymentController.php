@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\GrowthService;
 use App\Services\OrderService;
 use App\Services\Payments\PaynowGateway;
 use Illuminate\Http\Request;
@@ -41,7 +42,8 @@ class PaymentController extends Controller
     /** App polls this while the customer approves the USSD prompt. */
     public function status(Request $request, Payment $payment)
     {
-        abort_unless($payment->order->user_id === $request->user()->id, 404);
+        $owner = $payment->order?->user_id ?? ($payment->raw['user_id'] ?? null);
+        abort_unless($owner === $request->user()->id, 404);
 
         if ($payment->status === 'pending' && ($status = $this->paynow->poll($payment))) {
             $this->apply($payment, $status);
@@ -62,11 +64,16 @@ class PaymentController extends Controller
             return response('invalid hash', 400);
         }
 
-        $payment = Payment::whereHas('order', fn ($q) => $q->where('reference', $payload['reference'] ?? null))
-            ->where('provider', 'paynow')->latest()->first();
+        $ref = $payload['reference'] ?? null;
+        $payment = Payment::where('provider', 'paynow')
+            ->where(fn ($q) => $q->whereHas('order', fn ($o) => $o->where('reference', $ref))->orWhere('raw->reference', $ref))
+            ->latest()->first();
 
         if ($payment) {
-            $payment->update(['provider_reference' => $payload['paynowreference'] ?? $payment->provider_reference, 'raw' => $payload]);
+            $payment->update([
+                'provider_reference' => $payload['paynowreference'] ?? $payment->provider_reference,
+                'raw' => array_merge($payment->raw ?? [], ['webhook' => $payload]),
+            ]);
             $this->apply($payment, $status);
         }
 
@@ -75,6 +82,17 @@ class PaymentController extends Controller
 
     private function apply(Payment $payment, string $status): void
     {
+        if (! $payment->order_id) {
+            if ($status === 'paid' && $payment->status !== 'paid') {
+                $payment->update(['status' => 'paid']);
+                app(GrowthService::class)->onPaymentPaid($payment);
+            } elseif (in_array($status, ['failed', 'cancelled'], true)) {
+                $payment->update(['status' => $status]);
+            }
+
+            return;
+        }
+
         match ($status) {
             'paid' => $this->orders->markPaid($payment),
             'failed', 'cancelled' => $this->orders->markFailed($payment, $status),

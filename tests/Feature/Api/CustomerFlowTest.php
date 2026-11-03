@@ -92,6 +92,8 @@ class CustomerFlowTest extends TestCase
         $svc = app(OrderService::class);
         $svc->advanceKitchen($order);
         $this->assertSame('cooking', $order->fresh()->kitchen_stage);
+        $svc->advanceKitchen($order->fresh());
+        $svc->setStatus($order->fresh(), 'picked_up');
         $svc->setStatus($order->fresh(), 'delivered');
 
         $this->getJson('/api/loyalty/me', $h)->assertOk()->assertJsonPath('points', (int) floor($order->total_zig * 0.1));

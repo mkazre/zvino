@@ -28,15 +28,15 @@ class PaynowGateway
             return $payment;
         }
 
-        $order = $payment->order;
+        $ref = $payment->reference();
         $fields = [
             'id' => config('zvino.paynow.integration_id'),
-            'reference' => $order->reference,
+            'reference' => $ref,
             'amount' => number_format($payment->amount_zig, 2, '.', ''),
-            'additionalinfo' => 'Zvino order '.$order->reference,
+            'additionalinfo' => 'Zvino '.$ref,
             'returnurl' => config('zvino.paynow.return_url') ?: url('/'),
             'resulturl' => config('zvino.paynow.result_url') ?: url('/api/payments/webhook/paynow'),
-            'authemail' => $order->user?->email ?: config('zvino.paynow.merchant_email'),
+            'authemail' => $payment->order?->user?->email ?: config('zvino.paynow.merchant_email'),
             'status' => 'Message',
         ];
 
