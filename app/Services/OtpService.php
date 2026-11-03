@@ -22,8 +22,11 @@ class OtpService
             'expires_at' => now()->addMinutes(config('zvino.otp.ttl_minutes')),
         ]);
 
-        // TODO: plug in SMS provider (e.g. Twilio, Africa's Talking, BulkSMS Zimbabwe).
-        Log::info("OTP for $phone: $code");
+        if (app()->isProduction()) {
+            app(SmsService::class)->sendTemplate('auth.otp', $phone, ['code' => $code], 'Your Zvino code is {{code}}. Never share it.');
+        } else {
+            Log::info("OTP for $phone: $code");
+        }
     }
 
     public function verify(string $phone, string $code): bool

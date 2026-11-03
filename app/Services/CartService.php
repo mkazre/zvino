@@ -24,6 +24,8 @@ class CartService
         if (! $item->isOrderable()) {
             throw ValidationException::withMessages(['item_id' => 'This item is currently unavailable.']);
         }
+        $item->loadMissing('modifierGroups.options');
+        $item->validateSelection($variant, $modifiers);
 
         $cart = $this->for($user);
 

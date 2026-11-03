@@ -48,7 +48,35 @@ class Item extends Model
                 }
             }
         }
+        foreach ($this->modifierGroups as $group) {
+            foreach ($group->options as $opt) {
+                if (in_array($opt->name, $modifiers, true)) {
+                    $price += $opt->price_delta_zig;
+                }
+            }
+        }
 
         return round($price, 2);
+    }
+
+    /** Enforce required add-on groups and min/max picks ("Choose 1 side", "Up to 3 extras"). */
+    public function validateSelection(?string $variant, array $modifiers): void
+    {
+        if ($this->variants && $variant && ! collect($this->variants)->contains('name', $variant)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['variant' => "Pick a valid size for {$this->name}."]);
+        }
+
+        foreach ($this->modifierGroups as $group) {
+            $picked = $group->options->filter(fn ($o) => in_array($o->name, $modifiers, true));
+            if ($picked->contains(fn ($o) => ! $o->is_available)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['modifiers' => "{$picked->first(fn ($o) => ! $o->is_available)->name} is sold out."]);
+            }
+            if ($picked->count() < $group->min_select) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['modifiers' => "Choose at least {$group->min_select} for “{$group->name}”."]);
+            }
+            if ($picked->count() > $group->max_select) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['modifiers' => "Choose up to {$group->max_select} for “{$group->name}”."]);
+            }
+        }
     }
 }

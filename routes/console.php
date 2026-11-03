@@ -2,7 +2,9 @@
 
 use App\Models\DriverLocation;
 use App\Models\OtpCode;
+use App\Services\CampaignService;
 use App\Services\DispatchService;
+use App\Services\PayoutService;
 use App\Services\OrderService;
 use Illuminate\Support\Facades\Schedule;
 
@@ -18,6 +20,15 @@ Schedule::call(function () {
     $orders->expireUnpaid();
     app(DispatchService::class)->sweep();
 })->everyMinute()->name('order-engine')->withoutOverlapping();
+
+Schedule::call(fn () => app(CampaignService::class)->sendDue())->everyFiveMinutes()->name('campaigns')->withoutOverlapping();
+
+Schedule::call(function () {
+    $payouts = app(PayoutService::class);
+    if ($payouts->isDue()) {
+        $payouts->generate(now()->startOfDay());
+    }
+})->dailyAt('06:00')->name('payouts');
 
 Schedule::call(fn () => OtpCode::where('expires_at', '<', now()->subDay())->delete())->daily();
 Schedule::call(fn () => DriverLocation::where('recorded_at', '<', now()->subDays(30))->delete())->daily();

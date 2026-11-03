@@ -63,14 +63,14 @@ class CatalogController extends Controller
     public function menu(Vendor $vendor)
     {
         abort_unless($vendor->status === 'active', 404);
-        $vendor->load(['categories.items' => fn ($q) => $q->orderBy('sort_order')]);
+        $vendor->load(['categories.items' => fn ($q) => $q->orderBy('sort_order'), 'categories.items.modifierGroups.options', 'categories.items.vendor']);
 
         return new VendorResource($vendor);
     }
 
     public function item(Item $item)
     {
-        return new ItemResource($item->load('vendor'));
+        return new ItemResource($item->load('vendor', 'modifierGroups.options'));
     }
 
     public function categories()

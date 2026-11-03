@@ -28,6 +28,26 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    'africastalking' => [
+        'username' => env('AFRICASTALKING_USERNAME'),
+        'key' => env('AFRICASTALKING_KEY'),
+    ],
+
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_TOKEN'),
+        'from' => env('TWILIO_FROM'),
+    ],
+
+    'bulksmsweb' => [
+        'user' => env('BULKSMSWEB_USER'),
+        'token' => env('BULKSMSWEB_TOKEN'),
+    ],
+
+    'google_maps' => [
+        'key' => env('GOOGLE_MAPS_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

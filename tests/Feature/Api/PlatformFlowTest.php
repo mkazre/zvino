@@ -358,6 +358,46 @@ class PlatformFlowTest extends TestCase
         $this->postJson('/api/orders', ['fulfilment' => 'pickup', 'payment_method' => 'ecocash', 'phone' => '0771234567', 'group_order_id' => $res->json('group_order_id')], $this->h)->assertCreated();
     }
 
+    // ── Add-on groups, payouts, permissions ──────────────────────────
+
+    public function test_required_modifier_groups_are_enforced_and_priced()
+    {
+        $item = $this->vendor->items()->whereNull('variants')->first() ?? $this->vendor->items()->first();
+        $group = $this->vendor->modifierGroups()->create(['name' => 'Choose a side', 'min_select' => 1, 'max_select' => 1]);
+        $group->options()->createMany([['name' => 'Chips', 'price_delta_zig' => 10], ['name' => 'Sadza', 'price_delta_zig' => 0]]);
+        $item->modifierGroups()->attach($group->id);
+
+        $this->postJson('/api/cart/items', ['item_id' => $item->id, 'quantity' => 1], $this->h)->assertStatus(422);
+        $this->postJson('/api/cart/items', ['item_id' => $item->id, 'quantity' => 1, 'modifiers' => ['Chips', 'Sadza']], $this->h)->assertStatus(422);
+        $res = $this->postJson('/api/cart/items', ['item_id' => $item->id, 'quantity' => 1, 'modifiers' => ['Chips']], $this->h)->assertCreated();
+        $this->assertEquals($item->effectivePrice() + 10, $res->json('items.0.unit_price.zig'));
+
+        $this->getJson("/api/items/{$item->id}")->assertJsonPath('data.modifier_groups.0.required', true);
+    }
+
+    public function test_payouts_batch_store_and_driver_earnings()
+    {
+        Setting::put('payments.min_payout_zig', 1);
+        $this->test_full_delivery_with_auto_dispatch_pin_and_ledger();
+
+        $created = app(\App\Services\PayoutService::class)->generate(now()->addMinute());
+        $this->assertSame(2, $created); // one store, one driver
+        $payout = \App\Models\Payout::where('account_type', 'driver')->first();
+        app(\App\Services\PayoutService::class)->markPaid($payout, User::where('role', 'super_admin')->first(), 'ECO-123');
+        $this->assertEquals(0, Driver::first()->balance());
+    }
+
+    public function test_role_permissions_defaults_and_overrides()
+    {
+        $manager = User::where('role', 'vendor_manager')->first();
+        $this->assertTrue($manager->can('catalog.manage'));
+        $this->assertFalse($manager->can('settings.manage'));
+
+        \App\Support\Permissions::set('vendor_manager', ['orders.view']);
+        $this->assertFalse($manager->fresh()->can('catalog.manage'));
+        $this->assertTrue(User::where('role', 'super_admin')->first()->can('settings.manage'));
+    }
+
     // ── Merchant controls ────────────────────────────────────────────
 
     public function test_merchant_busy_pause_and_stock_controls()
