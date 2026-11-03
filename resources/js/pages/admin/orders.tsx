@@ -1,177 +1,132 @@
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Empty, PageHeader, Panel, StatusBadge, Tabs, fieldClass } from '@/components/zvino';
-import AppLayout from '@/layouts/app-layout';
-import { label, timeAgo, usd, zig } from '@/lib/money';
+import { Avatar, Badge, Card, DataTable, Money, Page, PageHeader, SearchInput, Select, StatusPill, TabBar, Toolbar, type Column } from '@/components/z';
+import { useLiveOrders } from '@/hooks/use-live-orders';
+import AdminLayout from '@/layouts/admin-layout';
+import { label, timeAgo, zig } from '@/lib/money';
 import { type Order, type PageLink, type SharedData } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
+import { Bike, CalendarClock, Download, Footprints, ReceiptText, Store } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
-    orders: { data: Order[]; meta: { links: PageLink[]; total: number } };
+    orders: { data: (Order & { driver?: { name: string } | null; scheduled_for?: string })[]; meta: { links: PageLink[]; total: number; from: number; to: number } };
     counts: Record<string, number>;
-    filters: { status: string; q: string | null; source: string | null };
-    statuses: string[];
+    filters: { status: string; q?: string; source?: string; payment?: string; vendor_id?: string; from?: string; to?: string };
+    vendors: { id: number; name: string }[];
+    today: { orders: number; gmv: number };
 }
 
-const NEXT: Record<string, string> = { placed: 'accepted', accepted: 'preparing', preparing: 'ready', ready: 'picked_up', picked_up: 'delivered' };
+const TABS = ['all', 'active', 'placed', 'preparing', 'ready', 'picked_up', 'scheduled', 'delivered', 'cancelled'];
 
-export default function Orders({ orders, counts, filters, statuses }: Props) {
-    const { auth } = usePage<SharedData>().props;
-    const canManage = auth.user.role !== 'cashier';
+export default function Orders({ orders, counts, filters, vendors, today }: Props) {
+    const { auth, platformMode } = usePage<SharedData>().props;
     const [q, setQ] = useState(filters.q ?? '');
-    const [open, setOpen] = useState<Order | null>(null);
+    useLiveOrders(auth.user.vendor_id ?? vendors[0]?.id, ['orders', 'counts']);
 
-    const go = (params: Partial<Props['filters']>) => router.get('/admin/orders', { ...filters, ...params }, { preserveState: true, replace: true });
-    const tabs = ['all', 'active', ...statuses].map((s) => ({ value: s, label: label(s), count: counts[s] ?? 0 }));
+    const go = (p: Partial<Props['filters']>) => router.get('/admin/orders', { ...filters, ...p }, { preserveState: true, preserveScroll: true, replace: true });
 
-    return (
-        <AppLayout breadcrumbs={[{ title: 'Orders', href: '/admin/orders' }]}>
-            <Head title="Orders" />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <PageHeader title="Orders" subtitle={`${orders.meta.total} orders`} />
-
-                <div className="flex flex-wrap items-center gap-3">
-                    <Tabs value={filters.status} options={tabs} onChange={(status) => go({ status })} />
-                    <form onSubmit={(e) => { e.preventDefault(); go({ q }); }} className="ml-auto flex gap-2">
-                        <input className={fieldClass} placeholder="Ref, name or phone" value={q} onChange={(e) => setQ(e.target.value)} />
-                        <select className={`${fieldClass} w-28`} value={filters.source ?? ''} onChange={(e) => go({ source: e.target.value || null })}>
-                            <option value="">All sources</option>
-                            <option value="app">App</option>
-                            <option value="pos">POS</option>
-                        </select>
-                    </form>
-                </div>
-
-                <Panel>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="text-muted-foreground border-b text-left text-xs uppercase">
-                                <tr>
-                                    {['Order', 'Customer', 'Vendor', 'Placed', 'Payment', 'Total', 'Status', ''].map((h) => (
-                                        <th key={h} className="px-4 py-2.5 font-medium">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {orders.data.map((o) => (
-                                    <tr key={o.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => setOpen(o)}>
-                                        <td className="px-4 py-3 font-mono font-semibold">
-                                            {o.reference}
-                                            <div className="text-muted-foreground font-sans text-xs font-normal">{label(o.source)} · {label(o.fulfilment)}</div>
-                                        </td>
-                                        <td className="px-4 py-3">{o.customer?.name || <span className="text-muted-foreground">Walk-in</span>}</td>
-                                        <td className="px-4 py-3">{o.vendor?.name}</td>
-                                        <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">{timeAgo(o.created_at)}</td>
-                                        <td className="px-4 py-3">
-                                            <div>{label(o.payment_method)}</div>
-                                            <StatusBadge status={o.payment_status} />
-                                        </td>
-                                        <td className="px-4 py-3 font-semibold whitespace-nowrap tabular-nums">
-                                            {zig(o.totals.total.zig)}
-                                            <div className="text-muted-foreground text-xs font-normal">{usd(o.totals.total.usd)}</div>
-                                        </td>
-                                        <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
-                                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                                            {canManage && NEXT[o.status] && (
-                                                <Button size="sm" variant="outline" onClick={() => router.patch(`/admin/orders/${o.id}/status`, { status: NEXT[o.status] }, { preserveScroll: true })}>
-                                                    → {label(NEXT[o.status])}
-                                                </Button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {orders.data.length === 0 && <Empty>No orders match these filters.</Empty>}
+    const columns: Column<Props['orders']['data'][number]>[] = [
+        {
+            key: 'ref',
+            header: 'Order',
+            sort: (o) => o.id,
+            cell: (o) => (
+                <div>
+                    <div className="font-mono text-[13px] font-semibold">{o.reference}</div>
+                    <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
+                        {o.fulfilment === 'delivery' ? <Bike className="size-3" /> : o.fulfilment === 'pickup' ? <Footprints className="size-3" /> : <Store className="size-3" />}
+                        {label(o.fulfilment)}
+                        {o.source === 'pos' && <Badge className="ml-1 h-4 px-1.5 text-[10px]">POS</Badge>}
                     </div>
-                    <Pagination links={orders.meta.links} />
-                </Panel>
-            </div>
+                </div>
+            ),
+        },
+        {
+            key: 'customer',
+            header: 'Customer',
+            cell: (o) => (
+                <div className="flex items-center gap-2.5">
+                    <Avatar name={o.customer?.name || 'Walk in'} size={28} />
+                    <div className="min-w-0">
+                        <div className="truncate font-medium">{o.customer?.name || 'Walk-in'}</div>
+                        <div className="text-muted-foreground truncate text-xs">{o.customer?.phone}</div>
+                    </div>
+                </div>
+            ),
+        },
+        ...(platformMode === 'marketplace' && !auth.user.vendor_id ? [{ key: 'store', header: 'Store', hideOnMobile: true, cell: (o: Order) => <span className="font-medium">{o.vendor?.name}</span> }] : []),
+        {
+            key: 'placed',
+            header: 'Placed',
+            sort: (o) => o.created_at,
+            hideOnMobile: true,
+            cell: (o) => (
+                <div className="text-[13px]">
+                    <div>{timeAgo(o.created_at)}</div>
+                    {o.scheduled_for && (
+                        <div className="text-info mt-0.5 flex items-center gap-1 text-xs">
+                            <CalendarClock className="size-3" /> {new Date(o.scheduled_for).toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        { key: 'driver', header: 'Driver', hideOnMobile: true, cell: (o) => (o.fulfilment !== 'delivery' ? <span className="text-muted-foreground">–</span> : o.driver ? <span className="text-[13px]">{o.driver.name}</span> : ['accepted', 'preparing', 'ready'].includes(o.status) ? <Badge tone="danger">Unassigned</Badge> : <span className="text-muted-foreground">–</span>) },
+        { key: 'payment', header: 'Payment', hideOnMobile: true, cell: (o) => <div className="text-[13px]"><div>{label(o.payment_method)}</div><StatusPill status={o.payment_status} /></div> },
+        { key: 'total', header: 'Total', align: 'right', sort: (o) => o.totals.total.zig, cell: (o) => <Money zig={o.totals.total.zig} usd={o.totals.total.usd} size="sm" /> },
+        { key: 'status', header: 'Status', cell: (o) => <StatusPill status={o.status} /> },
+    ];
 
-            <OrderDialog order={open} onClose={() => setOpen(null)} canManage={canManage} statuses={statuses} />
-        </AppLayout>
-    );
-}
-
-export function Pagination({ links }: { links: PageLink[] }) {
-    if (links.length <= 3) return null;
     return (
-        <div className="flex flex-wrap justify-end gap-1 border-t p-3">
-            {links.map((l, i) => (
-                <Link
-                    key={i}
-                    href={l.url ?? '#'}
-                    preserveState
-                    className={`rounded px-2.5 py-1 text-sm ${l.active ? 'bg-primary text-primary-foreground' : l.url ? 'hover:bg-muted' : 'text-muted-foreground pointer-events-none'}`}
-                    dangerouslySetInnerHTML={{ __html: l.label }}
+        <AdminLayout title="Orders">
+            <Page wide>
+                <PageHeader
+                    title="Orders"
+                    description={`${today.orders} orders today · ${zig(today.gmv)} paid`}
+                    actions={
+                        <Button variant="outline" size="sm" asChild>
+                            <a href={`/admin/orders/export?${new URLSearchParams(Object.entries(filters).filter(([, v]) => v) as [string, string][]).toString()}`}>
+                                <Download /> Export CSV
+                            </a>
+                        </Button>
+                    }
                 />
-            ))}
-        </div>
-    );
-}
 
-function OrderDialog({ order, onClose, canManage, statuses }: { order: Order | null; onClose: () => void; canManage: boolean; statuses: string[] }) {
-    const [rider, setRider] = useState({ name: '', phone: '' });
-    if (!order) return null;
+                <TabBar value={filters.status ?? 'all'} onChange={(status) => go({ status })} options={TABS.map((t) => ({ value: t, label: t === 'picked_up' ? 'On the way' : label(t), count: counts[t] ?? 0 }))} />
 
-    return (
-        <Dialog open onOpenChange={(v) => !v && onClose()}>
-            <DialogContent className="max-w-lg">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <span className="font-mono">{order.reference}</span> <StatusBadge status={order.status} />
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 text-sm">
-                    <div className="text-muted-foreground">
-                        {order.customer?.name || 'Walk-in'} {order.customer?.phone && `· ${order.customer.phone}`} · {order.vendor?.name}
-                    </div>
-                    <ul className="divide-y rounded-lg border">
-                        {order.items?.map((i, idx) => (
-                            <li key={idx} className="flex justify-between gap-3 px-3 py-2">
-                                <div>
-                                    <span className="font-semibold">{i.quantity}×</span> {i.name}
-                                    {(i.options?.variant || i.options?.modifiers?.length) && (
-                                        <div className="text-muted-foreground text-xs">{[i.options?.variant, ...(i.options?.modifiers ?? [])].filter(Boolean).join(', ')}</div>
-                                    )}
-                                </div>
-                                <span className="tabular-nums">{zig(i.line_total.zig)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                    <dl className="grid grid-cols-2 gap-y-1">
-                        {(['subtotal', 'delivery', 'service', 'discount', 'total'] as const).map((k) => (
-                            <div key={k} className={`contents ${k === 'total' ? 'font-bold' : ''}`}>
-                                <dt>{label(k)}</dt>
-                                <dd className="text-right tabular-nums">
-                                    {k === 'discount' && order.totals[k].zig > 0 ? '−' : ''}
-                                    {zig(order.totals[k].zig)} <span className="text-muted-foreground text-xs font-normal">{usd(order.totals[k].usd)}</span>
-                                </dd>
-                            </div>
-                        ))}
-                    </dl>
-                    {canManage && order.fulfilment === 'delivery' && !order.rider && (
-                        <div className="flex gap-2">
-                            <input className={fieldClass} placeholder="Rider name" value={rider.name} onChange={(e) => setRider({ ...rider, name: e.target.value })} />
-                            <input className={fieldClass} placeholder="Rider phone" value={rider.phone} onChange={(e) => setRider({ ...rider, phone: e.target.value })} />
-                            <Button size="sm" disabled={!rider.name} onClick={() => router.patch(`/admin/orders/${order.id}/status`, { status: 'picked_up', rider_name: rider.name, rider_phone: rider.phone }, { onSuccess: onClose })}>
-                                Dispatch
-                            </Button>
-                        </div>
-                    )}
-                    {order.rider && <div>🛵 {order.rider.name} {order.rider.phone}</div>}
-                    {canManage && (
-                        <div className="flex flex-wrap gap-2 border-t pt-3">
-                            {statuses.filter((s) => s !== order.status).map((s) => (
-                                <Button key={s} size="sm" variant={s === 'cancelled' ? 'destructive' : 'outline'} onClick={() => router.patch(`/admin/orders/${order.id}/status`, { status: s }, { onSuccess: onClose })}>
-                                    {label(s)}
-                                </Button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
+                <Card>
+                    <Toolbar>
+                        <SearchInput value={q} onChange={setQ} onSubmit={() => go({ q })} placeholder="Reference, customer or phone" className="w-full sm:w-72" />
+                        {vendors.length > 1 && (
+                            <Select value={filters.vendor_id ?? ''} onChange={(e) => go({ vendor_id: e.target.value || undefined })} className="h-9 w-auto">
+                                <option value="">All stores</option>
+                                {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            </Select>
+                        )}
+                        <Select value={filters.source ?? ''} onChange={(e) => go({ source: e.target.value || undefined })} className="h-9 w-auto">
+                            <option value="">All channels</option>
+                            <option value="app">App</option>
+                            <option value="web">Website</option>
+                            <option value="pos">POS</option>
+                        </Select>
+                        <Select value={filters.payment ?? ''} onChange={(e) => go({ payment: e.target.value || undefined })} className="h-9 w-auto">
+                            <option value="">All payments</option>
+                            {['ecocash', 'onemoney', 'innbucks', 'card', 'wallet', 'cash'].map((m) => <option key={m} value={m}>{label(m)}</option>)}
+                        </Select>
+                        <input type="date" value={filters.from ?? ''} onChange={(e) => go({ from: e.target.value || undefined })} className="border-input bg-surface h-9 rounded-lg border px-2.5 text-sm" aria-label="From" />
+                        <input type="date" value={filters.to ?? ''} onChange={(e) => go({ to: e.target.value || undefined })} className="border-input bg-surface h-9 rounded-lg border px-2.5 text-sm" aria-label="To" />
+                    </Toolbar>
+                    <DataTable
+                        rows={orders.data}
+                        columns={columns}
+                        onRowClick={(o) => router.visit(`/admin/orders/${o.id}`)}
+                        links={orders.meta.links}
+                        footer={orders.meta.total ? `Showing ${orders.meta.from}–${orders.meta.to} of ${orders.meta.total}` : undefined}
+                        rowClassName={(o) => (o.status === 'placed' ? 'bg-info/[0.04]' : undefined)}
+                        empty={<div className="text-muted-foreground flex flex-col items-center gap-2 py-16 text-sm"><ReceiptText className="size-6" />No orders match these filters.</div>}
+                    />
+                </Card>
+            </Page>
+        </AdminLayout>
     );
 }

@@ -18,10 +18,34 @@ class RewardsPromosController extends AdminController
             'rules' => LoyaltyRule::orderBy('id')->get(),
             'rewards' => Reward::orderBy('points_cost')->get(),
             'promos' => PromoCode::with('vendor:id,name')->latest()->get(),
-            'tiers' => config('zvino.loyalty.tiers'),
-            'pointsPerZig' => config('zvino.loyalty.points_per_zig'),
+            'tiers' => \App\Models\Setting::get('loyalty.tiers'),
+            'pointsPerZig' => \App\Models\Setting::get('loyalty.points_per_zig'),
             'members' => LoyaltyAccount::selectRaw('tier, COUNT(*) as c')->groupBy('tier')->pluck('c', 'tier'),
+            'plans' => \App\Models\SubscriptionPlan::withCount(['subscriptions as active_members' => fn ($q) => $q->where('current_period_end', '>', now())])->get(),
+            'giftCards' => [
+                'sold' => \App\Models\GiftCard::where('status', '!=', 'pending_payment')->count(),
+                'value_zig' => (float) \App\Models\GiftCard::where('status', '!=', 'pending_payment')->sum('amount_zig'),
+                'outstanding_zig' => (float) \App\Models\GiftCard::where('status', 'active')->sum('amount_zig'),
+            ],
+            'referrals' => ['total' => \App\Models\Referral::count(), 'rewarded' => \App\Models\Referral::where('status', 'rewarded')->count()],
+            'vendors' => \App\Models\Vendor::orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    public function savePlan(Request $request, ?\App\Models\SubscriptionPlan $plan = null)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:60'],
+            'price_zig' => ['required', 'numeric', 'min:1'],
+            'interval' => ['required', 'in:month,year'],
+            'min_order_for_free_delivery_zig' => ['required', 'numeric', 'min:0'],
+            'service_fee_discount_pct' => ['required', 'numeric', 'between:0,100'],
+            'perks' => ['nullable', 'array'],
+            'is_active' => ['boolean'],
+        ]);
+        $plan?->exists ? $plan->update($data) : \App\Models\SubscriptionPlan::create($data);
+
+        return back()->with('success', 'Zvino+ plan saved.');
     }
 
     public function saveReward(Request $request, ?Reward $reward = null)
