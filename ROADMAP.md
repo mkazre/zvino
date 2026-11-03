@@ -24,13 +24,13 @@ admin panel, Laravel API on shared hosting, Pusher, Paynow, Google Maps, Inter, 
 - [x] Audit log, fine-grained permissions
 
 ## Phase 2: Design system
-- [ ] Tokens (colour, type, spacing, radius, elevation) shared by web and mobile
-- [ ] Component library: buttons, inputs, sheets, tables, cards, empty/loading/error states
+- [x] Tokens (colour, type, spacing, radius, elevation) shared by web and mobile
+- [x] Component library: buttons, inputs, sheets, tables, cards, empty/loading/error states
 
 ## Phase 3: Admin panel rebuild
-- [ ] All existing screens redesigned + live dispatch map, drivers, zones, payouts, refunds,
+- [x] All existing screens redesigned + live dispatch map, drivers, zones, payouts, refunds,
       reviews, support console, campaigns, reports & exports, audit log
-- [ ] Full settings: business, branding, fees & taxes, zones, payments, notifications,
+- [x] Full settings: business, branding, fees & taxes, zones, payments, notifications,
       legal pages, app versions & force-update, maintenance mode, roles & permissions
 
 ## Phase 4: Customer website

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Empty, PageHeader, Panel, StatCard, Switch, fieldClass } from '@/components/zvino';
-import AppLayout from '@/layouts/app-layout';
+import AdminLayout from '@/layouts/admin-layout';
 import { label, zig } from '@/lib/money';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
@@ -23,8 +23,8 @@ export default function RewardsPromos({ rewards, promos, tiers, pointsPerZig, me
     const [promo, setPromo] = useState<Promo | 'new' | null>(null);
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Rewards & promos', href: '/admin/rewards-promos' }]}>
-            <Head title="Rewards & promos" />
+        <AdminLayout title="Rewards & promos">
+            
             <div className="flex flex-col gap-5 p-4 md:p-6">
                 <PageHeader title="Rewards & promos" subtitle={`Customers earn ${pointsPerZig} points per ZiG spent (${Math.round(1 / pointsPerZig)} ZiG = 1 point).`} />
 
@@ -79,7 +79,7 @@ export default function RewardsPromos({ rewards, promos, tiers, pointsPerZig, me
 
             {reward && <RewardDialog reward={reward === 'new' ? null : reward} onClose={() => setReward(null)} />}
             {promo && <PromoDialog promo={promo === 'new' ? null : promo} onClose={() => setPromo(null)} />}
-        </AppLayout>
+        </AdminLayout>
     );
 }
 

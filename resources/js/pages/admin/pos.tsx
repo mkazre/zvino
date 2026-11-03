@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Empty, StatusBadge, VendorSwitcher, fieldClass } from '@/components/zvino';
-import AppLayout from '@/layouts/app-layout';
+import AdminLayout from '@/layouts/admin-layout';
 import { label, usd, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Item } from '@/types';
@@ -62,8 +62,8 @@ export default function Pos({ vendor, vendors, categories, items, zigPerUsd, vat
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'POS', href: '/admin/pos' }]}>
-            <Head title="POS" />
+        <AdminLayout title="POS">
+            
             <div className="grid flex-1 gap-4 p-4 lg:grid-cols-[1fr_380px] md:p-6">
                 <div className="flex min-w-0 flex-col gap-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -154,6 +154,6 @@ export default function Pos({ vendor, vendors, categories, items, zigPerUsd, vat
                     )}
                 </aside>
             </div>
-        </AppLayout>
+        </AdminLayout>
     );
 }

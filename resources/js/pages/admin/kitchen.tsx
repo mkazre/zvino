@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { VendorSwitcher } from '@/components/zvino';
 import { useLiveOrders } from '@/hooks/use-live-orders';
-import AppLayout from '@/layouts/app-layout';
+import AdminLayout from '@/layouts/admin-layout';
 import { label } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
@@ -36,8 +36,8 @@ export default function Kitchen({ vendor, vendors, tickets }: { vendor: { id: nu
     const advance = (id: number) => router.patch(`/admin/api/orders/${id}/stage`, {}, { preserveScroll: true, only: ['tickets'] });
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Kitchen display', href: '/admin/kitchen' }]}>
-            <Head title="Kitchen" />
+        <AdminLayout title="Kitchen display">
+            
             <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
                 <div className="flex flex-wrap items-center gap-3">
                     <h1 className="mr-auto text-2xl font-bold">Kitchen · {vendor?.name}</h1>
@@ -93,6 +93,6 @@ export default function Kitchen({ vendor, vendors, tickets }: { vendor: { id: nu
                     })}
                 </div>
             </div>
-        </AppLayout>
+        </AdminLayout>
     );
 }
