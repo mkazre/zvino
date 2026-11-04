@@ -1,0 +1,17 @@
+# EAS Build uploads the git root. Only mobile/ is needed for the apps; skip the Laravel API,
+# design files and anything local. (When this file exists EAS ignores .gitignore, so repeat those rules.)
+api/
+design/
+brand/source-*.jpg
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
+**/.env
+**/.env.*
+!**/.env.example
+*.log
+.DS_Store
+Thumbs.db
+mobile/ios/
+mobile/android/
