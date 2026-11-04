@@ -7,5 +7,6 @@ export default function Index() {
     const { me } = useSession();
     if (VARIANT === 'customer') return <Redirect href="/home" />;
     if (VARIANT === 'driver') return <Redirect href={me ? '/shift' : '/sign-in'} />;
-    return <Redirect href={me ? '/board' : '/staff-login'} />;
+    if (!me) return <Redirect href="/staff-login" />;
+    return <Redirect href={me.role === 'cashier' ? '/pos' : '/board'} />;
 }

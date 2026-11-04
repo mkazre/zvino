@@ -21,7 +21,7 @@ export default function StaffLogin() {
         try {
             const res = await api.post<{ token: string }>('/auth/staff/login', { email: email.trim(), password, device_name: Device.modelName ?? 'merchant' });
             await signIn(res.token);
-            router.replace('/board');
+            router.replace('/');
         } catch (e) {
             setError(e instanceof ApiError ? e.friendly : 'Could not sign in.');
         } finally {
