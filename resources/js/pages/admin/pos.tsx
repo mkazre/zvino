@@ -1,12 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Badge, Drawer, Field, Input, Modal, SearchInput, Segmented, StatusPill, Thumb } from '@/components/z';
+import { QrCode } from '@/components/qr';
 import AdminLayout from '@/layouts/admin-layout';
 import { label, timeAgo, usd, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Item, type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import { Banknote, BarChart3, CreditCard, Minus, Plus, Printer, Smartphone, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Banknote, BarChart3, CreditCard, Loader2, Minus, Plus, Printer, QrCode as QrCodeIcon, Smartphone, Trash2, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { useEffect, useMemo, useState } from 'react';
 
 type PosItem = Item & { modifier_groups?: { id: number; name: string; min: number; max: number; required: boolean; options: { id: number; name: string; price_delta: { zig: number } }[] }[] };
 interface Props {
@@ -29,6 +31,7 @@ const METHODS = [
     { value: 'ecocash', label: 'EcoCash', icon: Smartphone },
     { value: 'innbucks', label: 'InnBucks', icon: Smartphone },
     { value: 'onemoney', label: 'OneMoney', icon: Smartphone },
+    { value: 'qr', label: 'QR pay', icon: QrCodeIcon },
 ] as const;
 
 export default function Pos(p: Props) {
@@ -55,8 +58,42 @@ export default function Pos(p: Props) {
     const tap = (item: PosItem) => (item.variants.length || item.modifier_groups?.length ? setPicking(item) : add(item));
     const qty = (key: string, d: number) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, quantity: l.quantity + d } : l)).filter((l) => l.quantity > 0));
 
+    const [qr, setQr] = useState<{ url: string; paymentId: number; total: number; reference: string; snapshot: { lines: Line[]; total: number; method: string } } | null>(null);
+
+    // Poll the payment while the customer scans and pays on their phone.
+    useEffect(() => {
+        if (!qr) return;
+        const timer = setInterval(async () => {
+            const r = await fetch(`/admin/pos/payments/${qr.paymentId}`, { headers: { Accept: 'application/json' } }).then((x) => x.json()).catch(() => null);
+            if (r?.status === 'paid') {
+                clearInterval(timer);
+                setReceipt(qr.snapshot);
+                setQr(null);
+                setLines([]);
+                toast.success(`Paid ✓ ${qr.reference}`);
+                router.reload({ only: ['shift', 'recent'] });
+            } else if (r && ['failed', 'cancelled'].includes(r.status)) {
+                clearInterval(timer);
+                toast.error('Payment was declined. Try again or take cash.');
+                setQr(null);
+            }
+        }, 2500);
+        return () => clearInterval(timer);
+    }, [qr]);
+
+    const chargeQr = async () => {
+        if (!p.vendor) return;
+        const xsrf = decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
+        const res = await fetch('/admin/pos/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf }, body: JSON.stringify({ vendor_id: p.vendor.id, method: 'qr', lines: lines.map((l) => ({ item_id: l.item.id, quantity: l.quantity, variant: l.variant, modifiers: l.modifiers })) }) });
+        const d = await res.json();
+        if (!res.ok || !d.qr_url) return toast.error(d.message ?? 'Couldn’t start a QR payment. Is Paynow configured?');
+        setCharging(null);
+        setQr({ url: d.qr_url, paymentId: d.payment_id, total: d.total_zig, reference: d.reference, snapshot: { lines, total, method: 'qr' } });
+    };
+
     const charge = (method: string, extra: { phone?: string; tendered?: number; tendered_currency?: string }) => {
         if (!p.vendor) return;
+        if (method === 'qr') return void chargeQr();
         const snapshot = { lines, total, method, tendered: extra.tendered, currency: extra.tendered_currency, change: extra.tendered !== undefined ? Math.max(0, (extra.tendered_currency === 'USD' ? extra.tendered * p.zigPerUsd : extra.tendered) - total) : undefined };
         router.post('/admin/pos/sales', { vendor_id: p.vendor.id, method, ...extra, lines: lines.map((l) => ({ item_id: l.item.id, quantity: l.quantity, variant: l.variant, modifiers: l.modifiers })) }, {
             preserveScroll: true,
@@ -139,7 +176,7 @@ export default function Pos(p: Props) {
                     </div>
                     <div className="grid grid-cols-3 gap-2 border-t p-4">
                         {METHODS.map((m, idx) => (
-                            <Button key={m.value} variant={idx === 0 ? 'default' : 'outline'} disabled={!lines.length} onClick={() => setCharging(m.value)} className={cn('h-14 flex-col gap-1 text-xs', idx === 0 && 'col-span-3 h-14 flex-row text-base')}>
+                            <Button key={m.value} variant={idx === 0 ? 'default' : 'outline'} disabled={!lines.length} onClick={() => (m.value === 'qr' ? void chargeQr() : setCharging(m.value))} className={cn('h-14 flex-col gap-1 text-xs', idx === 0 && 'col-span-3 h-14 flex-row text-base')}>
                                 <m.icon className={idx === 0 ? 'size-5' : 'size-4'} />{idx === 0 ? `Charge ${zig(total)} cash` : m.label}
                             </Button>
                         ))}
@@ -148,6 +185,16 @@ export default function Pos(p: Props) {
             </div>
 
             {picking && <OptionPicker item={picking} onClose={() => setPicking(null)} onAdd={(v, m) => { add(picking, v, m); setPicking(null); }} />}
+            {qr && (
+                <Modal open onClose={() => setQr(null)} title="Scan to pay" description={<span className="tabular">Total <b className="text-foreground">{zig(qr.total)}</b> · {qr.reference}</span>}
+                    footer={<Button variant="outline" onClick={() => setQr(null)}><X /> Cancel</Button>}>
+                    <div className="grid place-items-center gap-3 py-2">
+                        <QrCode value={qr.url} size={260} />
+                        <p className="text-muted-foreground text-center text-sm">Customer scans with their phone camera and pays with EcoCash, InnBucks, OneMoney or card. This closes by itself once paid.</p>
+                        <Loader2 className="text-muted-foreground size-5 animate-spin" />
+                    </div>
+                </Modal>
+            )}
             {charging && <ChargeModal method={charging} total={total} rate={p.zigPerUsd} onClose={() => setCharging(null)} onCharge={(extra) => charge(charging, extra)} />}
             {receipt && <Receipt r={receipt} p={p} cashier={auth.user.name} onClose={() => setReceipt(null)} />}
             <Drawer open={shiftOpen} onClose={() => setShiftOpen(false)} title="Today’s shift" description={`${p.shift.sales} paid sales`}>

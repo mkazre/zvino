@@ -42,6 +42,8 @@ class CheckoutController extends Controller
             'codLimit' => Setting::get('delivery.cash_on_delivery_limit_zig'),
             'phone' => $user->phone,
             'splitTender' => (bool) (Setting::get('payments.split_tender') && Setting::get('payments.wallet')),
+            'needsPrescription' => Setting::get('orders.prescriptions_required') && $cart->items->contains(fn ($ci) => $ci->item?->requires_prescription),
+            'splitBill' => Setting::get('orders.split_bill') ? (int) Setting::get('orders.split_bill_max_people') : 0,
             'charity' => Setting::get('orders.charity_round_up') ? ['name' => Setting::get('orders.charity_name'), 'step' => (int) Setting::get('orders.charity_round_to_zig')] : null,
         ]);
     }
@@ -114,12 +116,20 @@ class CheckoutController extends Controller
             'dropoff' => ['nullable', 'in:hand_to_me,leave_at_door'],
             'use_wallet' => ['nullable', 'boolean'],
             'cash_part' => ['nullable', 'numeric', 'min:0'],
+            'split_with' => ['nullable', 'array', 'max:10'],
+            'split_with.*.phone' => ['required', 'string', 'max:20'],
+            'split_with.*.name' => ['nullable', 'string', 'max:40'],
+            'split_with.*.amount' => ['required', 'numeric', 'min:1'],
+            'prescription' => ['nullable', 'string'],
             'round_up' => ['nullable', 'boolean'],
             'no_cutlery' => ['nullable', 'boolean'],
         ]);
         $data['source'] = 'web';
         if (! empty($data['phone'])) {
             $data['phone'] = SignInController::normalise($data['phone']);
+        }
+        foreach ($data['split_with'] ?? [] as $i => $s) {
+            $data['split_with'][$i]['phone'] = SignInController::normalise($s['phone']);
         }
 
         [$order, $payment] = $this->orders->placeFromCart($request->user(), $data);

@@ -17,6 +17,7 @@ class VendorResource extends JsonResource
             'cuisine' => $this->cuisine,
             'description' => $this->description,
             'logo' => $this->logo_path,
+            'kind' => $this->kind ?? 'restaurant',
             'cover' => $this->cover_path,
             'city' => $this->city,
             'address' => $this->address,

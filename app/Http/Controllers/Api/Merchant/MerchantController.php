@@ -232,7 +232,7 @@ class MerchantController extends Controller
         $vendor = $this->store($request);
         abort_unless(in_array($request->user()->role, ['vendor_manager', 'cashier'], true), 403, 'POS is for managers and cashiers.');
         $data = $request->validate([
-            'method' => ['required', 'in:cash,card,ecocash,onemoney,innbucks'],
+            'method' => ['required', 'in:cash,card,ecocash,onemoney,innbucks,qr'],
             'phone' => ['required_if:method,ecocash,onemoney,innbucks', 'nullable', 'string'],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.item_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('items', 'id')->where('vendor_id', $vendor->id)],
@@ -241,12 +241,17 @@ class MerchantController extends Controller
             'lines.*.modifiers' => ['nullable', 'array'],
         ]);
 
+        abort_if($data['method'] === 'qr' && ! \App\Models\Setting::get('payments.counter_qr'), 422, 'Counter QR payments are switched off.');
         [$order, $payment] = $this->orders->placePos($request->user(), $vendor, $data['lines'], $data['method'], $data['phone'] ?? null);
-        if ($payment && $paynow->fake()) {
+        if ($payment && $paynow->fake() && $data['method'] !== 'qr') {
             $this->orders->markPaid($payment);
         }
 
-        return response()->json(['reference' => $order->reference, 'total' => Money::both($order->total_zig), 'payment_status' => $order->fresh()->payment_status], 201);
+        return response()->json([
+            'reference' => $order->reference, 'total' => Money::both($order->total_zig), 'payment_status' => $order->fresh()->payment_status,
+            'payment_id' => $payment?->id,
+            'qr_url' => $data['method'] === 'qr' ? $payment?->fresh()->redirect_url : null,
+        ], 201);
     }
 
     // ── Money & feedback ─────────────────────────────────────────────
@@ -264,7 +269,37 @@ class MerchantController extends Controller
             'net' => Money::both($entries->sum('amount_zig')),
             'balance' => Money::both($v->balance()),
             'payouts' => \App\Models\Payout::where('account_type', $v->getMorphClass())->where('account_id', $v->id)->latest()->limit(12)->get(),
+            'available_now' => Money::both(max(0, (float) $v->ledger()->whereNull('payout_id')->sum('amount_zig'))),
+            'instant_payout' => \App\Models\Setting::get('payments.merchant_instant_payout') ? ['fee_pct' => (float) \App\Models\Setting::get('payments.instant_cashout_fee_pct'), 'min' => Money::both((float) \App\Models\Setting::get('payments.instant_cashout_min_zig'))] : null,
         ]);
+    }
+
+    /** Same-day payout (#33): sweep the store's unpaid balance into a payout ops sends today. */
+    public function payoutNow(Request $request, \App\Services\PayoutService $payouts)
+    {
+        $payout = $payouts->instantCashOut($this->managerOnly($request));
+
+        return response()->json(['payout_id' => $payout->id, 'amount' => Money::both($payout->amount_zig), 'fee' => Money::both($payout->fee_zig), 'message' => 'Payout requested. It will be sent today.'], 201);
+    }
+
+    /** Store staff view the prescription photo before accepting a pharmacy order. */
+    public function prescription(Request $request, Order $order)
+    {
+        $this->own($request, $order);
+        abort_unless($order->prescription_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($order->prescription_path), 404);
+
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($order->prescription_path);
+    }
+
+    /** Counter QR payments: the till polls until the customer has paid on their phone. */
+    public function paymentStatus(Request $request, \App\Models\Payment $payment, \App\Services\Payments\PaynowGateway $paynow)
+    {
+        abort_unless($payment->order && $payment->order->vendor_id === $this->store($request)->id, 404);
+        if ($payment->status === 'pending' && ! $paynow->fake() && ($status = $paynow->poll($payment))) {
+            $status === 'paid' ? $this->orders->markPaid($payment) : ($status !== 'pending' ? $this->orders->markFailed($payment, $status) : null);
+        }
+
+        return response()->json($payment->fresh()->only('id', 'status', 'method', 'amount_zig'));
     }
 
     // ── Self-serve promotions (#33) ──────────────────────────────────

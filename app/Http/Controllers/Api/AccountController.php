@@ -43,6 +43,28 @@ class AccountController extends Controller
         return response()->json($address);
     }
 
+    /** Gate photo and voice-note directions (#5) for the driver, in any language. */
+    public function addressMedia(Request $request, Address $address)
+    {
+        abort_unless($address->user_id === $request->user()->id, 404);
+        $request->validate([
+            'gate_photo' => ['nullable', 'image', 'max:8192'],
+            'voice_note' => ['nullable', 'file', 'mimetypes:audio/mp4,audio/x-m4a,audio/m4a,audio/aac,audio/mpeg,audio/ogg,audio/webm,audio/wav,audio/3gpp,video/mp4', 'max:3072'],
+            'remove' => ['nullable', 'in:gate_photo,voice_note'],
+        ], ['voice_note.max' => 'Keep the voice note under a minute (3 MB).']);
+
+        if ($request->input('remove')) {
+            $address->update([$request->input('remove').'_path' => null]);
+        }
+        foreach (['gate_photo' => 'gates', 'voice_note' => 'voice-notes'] as $field => $dir) {
+            if ($request->hasFile($field)) {
+                $address->update([$field.'_path' => '/storage/'.$request->file($field)->store("$dir/{$address->user_id}", 'public')]);
+            }
+        }
+
+        return response()->json($address->fresh());
+    }
+
     public function destroyAddress(Request $request, Address $address)
     {
         abort_unless($address->user_id === $request->user()->id, 404);

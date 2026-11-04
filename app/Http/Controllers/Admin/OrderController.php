@@ -51,6 +51,14 @@ class OrderController extends AdminController
         ]);
     }
 
+    public function prescription(Request $request, Order $order)
+    {
+        $this->authorizeVendor($request, $order->vendor_id);
+        abort_unless($order->prescription_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($order->prescription_path), 404);
+
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($order->prescription_path);
+    }
+
     public function show(Request $request, Order $order)
     {
         $this->authorizeVendor($request, $order->vendor_id);
@@ -74,6 +82,7 @@ class OrderController extends AdminController
                 'wallet_applied_zig' => $order->wallet_applied_zig,
                 'cash_part_zig' => $order->cash_part_zig,
                 'donation_zig' => $order->donation_zig,
+                'has_prescription' => (bool) $order->prescription_path,
                 'refunded_zig' => $order->refunded_zig,
                 'commission_zig' => $order->commission_zig,
                 'driver_pay_zig' => $order->driver_pay_zig,

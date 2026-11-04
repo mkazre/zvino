@@ -49,23 +49,23 @@ admin panel, Laravel API on shared hosting, Pusher, Paynow, Google Maps, Inter, 
 Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an external account or approval (in brackets).
 
 ### Customer app & website (18)
-1. 🇿🇼 **Data-light mode**: compressed images and lean screens for users on expensive bundles
+1. 🇿🇼 **Data-light mode**: compressed images and lean screens for users on expensive bundles ✅ (app)
 2. 🇿🇼 **Split tender**: pay part in USD cash and part in ZiG by EcoCash on one order (also wallet + any method) ✅
 3. 🇿🇼 **Live ZiG/USD rate banner** at checkout so totals are never a surprise ✅
 4. 🇿🇼 **Landmark addresses**: "opposite OK Mart, blue gate" plus a pin plus a gate photo ✅
-5. 🇿🇼 **Voice-note directions** for the driver, in Shona, Ndebele or English
+5. 🇿🇼 **Voice-note directions** for the driver, in Shona, Ndebele or English ✅
 6. 🇿🇼 **Shona and Ndebele** languages (also in the driver and merchant apps) ✅ (draft translations: native-speaker review needed)
 7. 🇿🇼 **Diaspora "Send a meal home"**: pay from the UK/SA/US by card for family in Zimbabwe ✅
 8. 🇿🇼 **Diaspora grocery hampers**: monthly hamper subscription delivered to family
 9. 🇿🇼 **Funeral and gathering catering**: bulk orders with deposit, headcount and event date
-10. 🇿🇼 **Month-end shop planner**: scheduled big grocery order with payday reminders
+10. 🇿🇼 **Month-end shop planner**: scheduled big grocery order with payday reminders ✅
 11. **"Your usual"**: one-tap reorder of the last order from a store ✅
 12. **Hot-meal guarantee**: automatic wallet credit when delivery runs past the promised ETA ✅
-13. **Split the bill**: friends pay their share by EcoCash link before the order is placed
+13. **Split the bill**: friends pay their share by EcoCash link before the order is placed ✅ (EcoCash/OneMoney/InnBucks prompts)
 14. **Gift a meal to any phone number**: recipient gets an SMS and picks their meal ✅
 15. **Photo reviews** with dish-level ratings, plus **price-drop alerts** on favourites (reviews ✅)
 16. **Dietary and allergen filters**: halal, vegetarian, no pork, nut-free, spice level (vegetarian, vegan, halal, spicy ✅; allergens to do)
-17. **School and office lunch plans**: recurring weekday deliveries
+17. **School and office lunch plans**: recurring weekday deliveries ✅
 18. **Round-up for charity, eco "no cutlery" toggle, and accessibility** (large text, screen reader, high contrast) (round-up and no-cutlery ✅)
 
 ### Driver app (9)
@@ -82,14 +82,14 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 ### Merchant app: Store manager mode (6)
 28. 🇿🇼 **Load-shedding mode**: "Power out / on generator" hides oven and fryer items and adds prep time ✅
 29. 🇿🇼 **Fresh market selling**: Mbare and market vendors list produce by weight ✅
-30. 🇿🇼 **Pharmacy orders**: prescription photo review and approve/decline before payment
+30. 🇿🇼 **Pharmacy orders**: prescription photo review and approve/decline before payment ✅ (reviewed when accepting; declined = full refund)
 31. **Self-serve promotions**: BOGO, happy hour, % off, free item (% off, ZiG off, free delivery with results ✅; BOGO/happy hour to do)
 32. **Menu insights**: best sellers, items often removed from carts, prep time per item ✅
-33. **Same-day payout** to EcoCash (small fee)
+33. **Same-day payout** to EcoCash (small fee) ✅
 
 ### Merchant app: POS mode (5)
 34. 🇿🇼 ⚠ **ZIMRA fiscal export**: daily sales and VAT report for fiscalisation [ZIMRA FDMS / fiscal device]
-35. 🇿🇼 **EcoCash / InnBucks QR at the counter**: customer scans and pays, the sale closes automatically
+35. 🇿🇼 **EcoCash / InnBucks QR at the counter**: customer scans and pays, the sale closes automatically ✅
 36. 🇿🇼 **Multi-currency till**: take USD and ZiG cash, with change calculated in either ✅
 37. **Offline sales**: keep selling when the network drops; syncs when it's back
 38. **Bluetooth receipt printer** and cash drawer support

@@ -46,6 +46,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
 
     Route::get('addresses', [AccountController::class, 'addresses']);
+    Route::post('addresses/{address}/media', [AccountController::class, 'addressMedia']);
+    Route::post('prescriptions', fn (\Illuminate\Http\Request $r) => response()->json(['token' => \App\Support\PrescriptionStore::put($r)], 201))->middleware('throttle:10,1');
+    Route::get('plans', [\App\Http\Controllers\Api\PlanController::class, 'index']);
+    Route::post('plans', [\App\Http\Controllers\Api\PlanController::class, 'store']);
+    Route::patch('plans/{plan}', [\App\Http\Controllers\Api\PlanController::class, 'update']);
+    Route::delete('plans/{plan}', [\App\Http\Controllers\Api\PlanController::class, 'destroy']);
+    Route::post('plans/{plan}/skip', [\App\Http\Controllers\Api\PlanController::class, 'skip']);
+    Route::post('orders/{order}/split/{payment}/resend', [OrderController::class, 'resendShare']);
     Route::post('addresses', [AccountController::class, 'storeAddress']);
     Route::patch('addresses/{address}', [AccountController::class, 'updateAddress']);
     Route::delete('addresses/{address}', [AccountController::class, 'destroyAddress']);
@@ -141,6 +149,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('items/{item}/availability', [MerchantController::class, 'setAvailability']);
         Route::get('earnings', [MerchantController::class, 'earnings']);
         Route::get('promos', [MerchantController::class, 'promos']);
+        Route::post('payout-now', [MerchantController::class, 'payoutNow'])->middleware('throttle:5,1');
+        Route::get('orders/{order}/prescription', [MerchantController::class, 'prescription']);
+        Route::get('payments/{payment}', [MerchantController::class, 'paymentStatus']);
         Route::post('promos', [MerchantController::class, 'savePromo']);
         Route::patch('promos/{promo}', [MerchantController::class, 'savePromo']);
         Route::get('reviews', [MerchantController::class, 'reviews']);

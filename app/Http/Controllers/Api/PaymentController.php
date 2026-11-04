@@ -65,9 +65,9 @@ class PaymentController extends Controller
         }
 
         $ref = $payload['reference'] ?? null;
-        $payment = Payment::where('provider', 'paynow')
-            ->where(fn ($q) => $q->whereHas('order', fn ($o) => $o->where('reference', $ref))->orWhere('raw->reference', $ref))
-            ->latest()->first();
+        // Split-bill shares and counter QR payments carry their own reference; otherwise match the order.
+        $payment = Payment::where('provider', 'paynow')->where('raw->reference', $ref)->latest()->first()
+            ?? Payment::where('provider', 'paynow')->whereNull('raw->reference')->whereHas('order', fn ($o) => $o->where('reference', $ref))->latest()->first();
 
         if ($payment) {
             $payment->update([

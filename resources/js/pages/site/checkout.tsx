@@ -22,6 +22,7 @@ interface ServerCart {
     distance_km: number | null;
     eta_minutes: [number, number] | null;
     tip_totals?: Record<string, Money>;
+    needs_prescription?: boolean;
 }
 interface Props {
     cart: ServerCart;
@@ -35,6 +36,7 @@ interface Props {
     codLimit: number;
     phone: string;
     splitTender: boolean;
+    splitBill: number;
     charity: { name: string; step: number } | null;
 }
 
@@ -70,6 +72,8 @@ export default function Checkout(p: Props) {
         dropoff: 'hand_to_me',
         use_wallet: false as boolean,
         cash_part: '',
+        prescription: '',
+        split_with: [] as { name: string; phone: string; amount: string }[],
         round_up: false as boolean,
         no_cutlery: true as boolean,
     });
@@ -115,12 +119,30 @@ export default function Checkout(p: Props) {
     const walletPart = form.data.use_wallet && form.data.payment_method !== 'wallet' ? Math.min(p.wallet.zig, total) : 0;
     const online = ['ecocash', 'onemoney', 'innbucks', 'card'].includes(form.data.payment_method);
     const cashPart = p.splitTender && online && form.data.fulfilment === 'delivery' ? Math.min(Number(form.data.cash_part) || 0, Math.max(0, total - walletPart - 1)) : 0;
-    const due = total - walletPart - cashPart;
+    const splitOk = p.splitBill > 0 && ['ecocash', 'onemoney', 'innbucks'].includes(form.data.payment_method);
+    const friends = splitOk ? form.data.split_with.filter((f) => Number(f.amount) > 0 && f.phone.replace(/\D/g, '').length >= 9) : [];
+    const friendsTotal = friends.reduce((s, f) => s + Number(f.amount), 0);
+    const due = total - walletPart - cashPart - friendsTotal;
+    const [uploading, setUploading] = useState(false);
+    const uploadPrescription = async (file: File) => {
+        setUploading(true);
+        const fd = new FormData();
+        fd.append('photo', file);
+        const r = await fetch('/checkout/prescription', { method: 'POST', headers: { Accept: 'application/json', 'X-XSRF-TOKEN': headers()['X-XSRF-TOKEN'] }, body: fd });
+        const d = await r.json().catch(() => ({}));
+        setUploading(false);
+        if (r.ok) { form.setData('prescription', d.token); toast.success('Prescription added'); } else toast.error(d.message ?? 'Upload failed');
+    };
+    const evenSplit = () => {
+        const people = form.data.split_with.length + 1;
+        const each = Math.floor(((total - walletPart - cashPart) / people) * 100) / 100;
+        form.setData('split_with', form.data.split_with.map((f) => ({ ...f, amount: String(each) })));
+    };
     const slots = scheduleSlots(p.scheduleDays);
-    const canPay = server.items.length > 0 && (form.data.fulfilment === 'pickup' || form.data.address_id) && (when === 'asap' ? p.store?.availability.is_open !== false : form.data.scheduled_for);
+    const canPay = server.items.length > 0 && (!server.needs_prescription || !!form.data.prescription) && due > 0 && (form.data.fulfilment === 'pickup' || form.data.address_id) && (when === 'asap' ? p.store?.availability.is_open !== false : form.data.scheduled_for);
 
     const place = () => {
-        form.transform((d) => ({ ...d, tip, cash_part: cashPart || null, scheduled_for: when === 'later' ? d.scheduled_for : null }));
+        form.transform((d) => ({ ...d, tip, cash_part: cashPart || null, split_with: friends.length ? friends : null, prescription: d.prescription || null, scheduled_for: when === 'later' ? d.scheduled_for : null }));
         form.post('/checkout', { onSuccess: () => browserCart.clear(), preserveScroll: true });
     };
 
@@ -214,6 +236,26 @@ export default function Checkout(p: Props) {
                                 {cashPart > 0 && <p className="text-muted-foreground mt-2 text-xs">Hand {zig(cashPart)} (≈ {usd(cashPart / zigPerUsd)}) to your driver, the rest {zig(due)} by {form.data.payment_method === 'card' ? 'card' : label(form.data.payment_method)}.</p>}
                             </div>
                         )}
+                        {splitOk && (
+                            <div className="mt-3 rounded-2xl bg-neutral-50 p-4 dark:bg-white/5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-semibold">Split the bill with friends</span>
+                                    <span className="flex gap-3 text-sm">
+                                        {form.data.split_with.length > 0 && <button type="button" onClick={evenSplit} className="font-semibold underline">Split evenly</button>}
+                                        {form.data.split_with.length < p.splitBill && <button type="button" onClick={() => form.setData('split_with', [...form.data.split_with, { name: '', phone: '', amount: '' }])} className="flex items-center gap-1 font-semibold"><Plus className="size-4" /> Add friend</button>}
+                                    </span>
+                                </div>
+                                {form.data.split_with.map((f, i) => (
+                                    <div key={i} className="mt-2 grid grid-cols-[1fr_1fr_110px_auto] gap-2">
+                                        <Input className="h-11" placeholder="Name" value={f.name} onChange={(e) => form.setData('split_with', form.data.split_with.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+                                        <Input className="h-11" inputMode="tel" placeholder="077 123 4567" value={f.phone} onChange={(e) => form.setData('split_with', form.data.split_with.map((x, j) => (j === i ? { ...x, phone: e.target.value } : x)))} />
+                                        <Input className="h-11" type="number" placeholder="ZiG" value={f.amount} onChange={(e) => form.setData('split_with', form.data.split_with.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} />
+                                        <button type="button" aria-label="Remove" onClick={() => form.setData('split_with', form.data.split_with.filter((_, j) => j !== i))} className="text-muted-foreground px-2">✕</button>
+                                    </div>
+                                ))}
+                                {friends.length > 0 && <p className="text-muted-foreground mt-2 text-xs">Each friend gets a {label(form.data.payment_method)} prompt for their share. Your order goes to the restaurant once everyone has paid. You pay {zig(due)}.</p>}
+                            </div>
+                        )}
                         {['ecocash', 'onemoney', 'innbucks'].includes(form.data.payment_method) && (
                             <div className="mt-4"><label className="text-sm font-semibold">{label(form.data.payment_method)} number</label><Input className="mt-1.5 h-12" inputMode="tel" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder="077 123 4567" /></div>
                         )}
@@ -226,6 +268,18 @@ export default function Checkout(p: Props) {
                                 <button onClick={() => setTipPct('custom')} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === 'custom' ? 'bg-[#111412] text-white' : 'bg-muted dark:bg-white/10')}>Other</button>
                             </div>
                             {tipPct === 'custom' && <Input className="mt-3 h-12 w-48" type="number" prefix="ZiG" value={customTip} onChange={(e) => setCustomTip(e.target.value)} />}
+                        </Block>
+                    )}
+
+                    {server.needs_prescription && (
+                        <Block title="Prescription">
+                            <p className="text-muted-foreground text-sm">Your basket has prescription medicine. Add a clear photo of your prescription. The pharmacist checks it before accepting your order (you’re refunded in full if it’s declined).</p>
+                            <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed p-4">
+                                {uploading ? <Loader2 className="size-5 animate-spin" /> : form.data.prescription ? <Check className="size-5 text-[#0b6e4f]" /> : <Plus className="size-5" />}
+                                <span className="font-semibold">{form.data.prescription ? 'Prescription added. Tap to replace' : 'Add prescription photo'}</span>
+                                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && uploadPrescription(e.target.files[0])} />
+                            </label>
+                            {form.errors.prescription && <p className="mt-2 text-sm text-[#c8102e]">{form.errors.prescription}</p>}
                         </Block>
                     )}
 
@@ -274,10 +328,11 @@ export default function Checkout(p: Props) {
                             <span className="text-right"><span className="tabular block text-2xl font-extrabold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{usd(totals.total.usd || total / zigPerUsd)} · VAT incl.</span></span>
                         </div>
                         <p className="text-muted-foreground mt-1 text-right text-[11px]">Rate today: 1 USD = {zigPerUsd} ZiG</p>
-                        {(walletPart > 0 || cashPart > 0) && (
+                        {(walletPart > 0 || cashPart > 0 || friendsTotal > 0) && (
                             <dl className="bg-muted mt-3 grid gap-1 rounded-xl p-3 text-sm dark:bg-white/5">
                                 {walletPart > 0 && <Row l="From wallet" v={-walletPart} green />}
                                 {cashPart > 0 && <Row l="Cash to driver" v={-cashPart} />}
+                                {friendsTotal > 0 && <Row l={`Friends (${friends.length})`} v={-friendsTotal} />}
                                 <div className="flex justify-between font-semibold"><dt>To pay now</dt><dd className="tabular">{zig(due)}</dd></div>
                             </dl>
                         )}

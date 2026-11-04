@@ -17,6 +17,6 @@ class Payment extends Model
     /** Reference sent to Paynow: the order ref, or our own for top-ups / gift cards / Zvino+. */
     public function reference(): string
     {
-        return $this->order?->reference ?? ($this->raw['reference'] ?? 'ZVP-'.$this->id);
+        return $this->raw['reference'] ?? $this->order?->reference ?? 'ZVP-'.$this->id;
     }
 }

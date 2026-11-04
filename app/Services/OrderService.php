@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Services\Payments\PaynowGateway;
 use App\Support\I18n;
+use App\Support\PrescriptionStore;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -102,6 +103,30 @@ class OrderService
         }
         $due = round($t['total'] - $t['wallet_applied'], 2);
 
+        // Pharmacy (#30): prescription medicines need a photo the pharmacist checks before accepting.
+        if (Setting::get('orders.prescriptions_required') && $cart->items->contains(fn ($ci) => $ci->item?->requires_prescription)) {
+            $path = PrescriptionStore::resolve($data['prescription'] ?? null, $user);
+            if (! $path) {
+                throw ValidationException::withMessages(['prescription' => 'Please add a photo of your prescription.']);
+            }
+            $data['prescription_path'] = $path;
+        }
+
+        // Split the bill (#13): each friend gets their own EcoCash/OneMoney/InnBucks prompt.
+        $shares = collect($data['split_with'] ?? [])->filter(fn ($s) => ($s['amount'] ?? 0) > 0)->values();
+        if ($shares->isNotEmpty()) {
+            if (! Setting::get('orders.split_bill') || ! in_array($data['payment_method'], ['ecocash', 'onemoney', 'innbucks'], true)) {
+                throw ValidationException::withMessages(['split_with' => 'Splitting the bill works with EcoCash, OneMoney or InnBucks.']);
+            }
+            if ($shares->count() > Setting::get('orders.split_bill_max_people')) {
+                throw ValidationException::withMessages(['split_with' => 'You can split with up to '.Setting::get('orders.split_bill_max_people').' friends.']);
+            }
+            if (round($shares->sum('amount'), 2) >= $due) {
+                throw ValidationException::withMessages(['split_with' => 'Your friends’ shares must leave something for you to pay.']);
+            }
+            $data['split_with'] = $shares->map(fn ($s) => ['phone' => $s['phone'], 'name' => $s['name'] ?? null, 'amount' => round((float) $s['amount'], 2)])->all();
+        }
+
         // Split tender, cash + mobile money: e.g. USD notes to the driver, the balance by EcoCash.
         $t['cash_part'] = 0.0;
         if (($data['cash_part'] ?? 0) > 0 && Setting::get('payments.split_tender') && Setting::get('payments.cash')
@@ -141,6 +166,7 @@ class OrderService
                 'no_cutlery' => (bool) ($data['no_cutlery'] ?? false),
                 'payment_method' => $data['payment_method'],
                 'notes' => $data['notes'] ?? null,
+                'prescription_path' => $data['prescription_path'] ?? null,
                 'scheduled_for' => $scheduledFor,
                 'subtotal_zig' => $t['subtotal'],
                 'delivery_fee_zig' => $t['delivery'],
@@ -179,11 +205,12 @@ class OrderService
             $cart->items()->delete();
             $cart->update(['promo_code_id' => null, 'vendor_id' => null]);
 
-            return [$order, $this->startPayment($order, $data['payment_method'], $data['phone'] ?? $user->phone)];
+            return [$order, $this->startPayment($order, $data['payment_method'], $data['phone'] ?? $user->phone, $data['split_with'] ?? [])];
         });
 
-        if ($this->paynow->fake() && $payment->status === 'pending') {
-            $this->markPaid($payment);
+        if ($this->paynow->fake()) {
+            // Simulated gateway: every pending prompt (host and friends) is approved.
+            $order->payments()->where('provider', 'paynow')->where('status', 'pending')->get()->each(fn ($p) => $this->markPaid($p));
         }
 
         return [$order->fresh(['items', 'vendor']), $payment->fresh()];
@@ -268,7 +295,8 @@ class OrderService
                 return [$order->load('items'), null];
             }
 
-            $payment = Payment::create(['order_id' => $order->id, 'provider' => 'paynow', 'method' => $method, 'phone' => $phone, 'amount_zig' => $subtotal]);
+            $payment = Payment::create(['order_id' => $order->id, 'provider' => 'paynow', 'method' => $method, 'phone' => $phone, 'amount_zig' => $subtotal]
+                + ($method === 'qr' ? ['raw' => ['reference' => $order->reference.'-QR']] : []));
             $order->update(['payment_status' => 'pending']);
             $this->paynow->initiate($payment);
             OrderUpdated::dispatch($order);
@@ -288,8 +316,16 @@ class OrderService
         return round(ceil(round($total, 2) / $step) * $step - $total, 2);
     }
 
-    private function startPayment(Order $order, string $method, ?string $phone): Payment
+    private function startPayment(Order $order, string $method, ?string $phone, array $shares = []): Payment
     {
+        foreach ($shares as $i => $s) {
+            $share = Payment::create([
+                'order_id' => $order->id, 'provider' => 'paynow', 'method' => $method, 'phone' => $s['phone'], 'amount_zig' => $s['amount'],
+                'raw' => ['split_share' => true, 'name' => $s['name'], 'reference' => $order->reference.'-S'.($i + 1)],
+            ]);
+            $this->paynow->initiate($share);
+        }
+
         if ($order->wallet_applied_zig > 0) {
             $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'debit', 'amount_zig' => $order->wallet_applied_zig, 'reason' => 'Order '.$order->reference.' (part)']);
             Payment::create(['order_id' => $order->id, 'provider' => 'wallet', 'method' => 'wallet', 'amount_zig' => $order->wallet_applied_zig, 'status' => 'paid']);
@@ -303,7 +339,7 @@ class OrderService
             'provider' => match ($method) { 'wallet' => 'wallet', 'cash' => 'cash', default => 'paynow' },
             'method' => $method,
             'phone' => $phone,
-            'amount_zig' => round($order->total_zig - $order->wallet_applied_zig - $order->cash_part_zig, 2),
+            'amount_zig' => round($order->total_zig - $order->wallet_applied_zig - $order->cash_part_zig - collect($shares)->sum('amount'), 2),
         ]);
 
         if ($method === 'wallet') {
@@ -346,6 +382,13 @@ class OrderService
         if (! $order) {
             return; // wallet top-up / gift card: handled by WalletService
         }
+        // Split bill: the order only goes to the store once every share is in.
+        if ($order->payments()->where('provider', 'paynow')->whereNotIn('status', ['paid', 'cancelled'])->exists()) {
+            $order->update(['payment_status' => 'partially_paid']);
+            OrderUpdated::dispatch($order);
+
+            return;
+        }
         $order->update(['payment_status' => $order->cash_part_zig > 0 ? 'pending_cash' : 'paid']);
 
         $order->status === 'pending_payment' ? $this->release($order) : OrderUpdated::dispatch($order);
@@ -354,6 +397,13 @@ class OrderService
     public function markFailed(Payment $payment, string $status = 'failed'): void
     {
         $payment->update(['status' => $status]);
+        if (($payment->raw['split_share'] ?? false) && $payment->order?->user) {
+            // A friend declined: the host can resend the prompt or pay that share themselves.
+            $who = $payment->raw['name'] ?? $payment->phone;
+            $this->push->toUser($payment->order->user, 'split_declined', "{$who}’s share wasn’t paid", 'Resend their prompt or pay it yourself from the order screen.', ['order_id' => $payment->order_id]);
+
+            return;
+        }
         if ($payment->order) {
             $payment->order->update(['payment_status' => 'failed']);
             OrderUpdated::dispatch($payment->order);
@@ -408,16 +458,29 @@ class OrderService
         if (! $order->user) {
             return;
         }
-        // Split payments: only what was actually paid comes back (cash not yet handed over is simply not collected).
-        $paid = $order->payment_status === 'paid' ? $order->total_zig : round((float) $order->payments()->where('status', 'paid')->sum('amount_zig'), 2);
+        // Only what was actually paid comes back (cash not yet handed over is simply not collected).
         $order->payments()->where('method', 'cash')->where('status', 'pending')->update(['status' => 'cancelled']);
-        if ($paid <= 0 || $order->refunded_zig > 0) {
+        if ($order->refunded_zig > 0) {
             return;
         }
-        // Fast path: credit the wallet instantly; card/mobile reversals are processed by ops from Refunds.
-        $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'credit', 'amount_zig' => $paid, 'reason' => $reason]);
-        $order->refunds()->create(['amount_zig' => $paid, 'destination' => 'wallet', 'status' => 'paid', 'reason' => $reason]);
-        $order->update(['payment_status' => 'refunded', 'refunded_zig' => $paid]);
+        $paidPayments = $order->payments()->where('status', 'paid')->get();
+        $shares = $paidPayments->filter(fn ($p) => $p->raw['split_share'] ?? false);
+        $own = $paidPayments->isEmpty() && $order->payment_status === 'paid'
+            ? $order->total_zig
+            : round($paidPayments->sum('amount_zig') - $shares->sum('amount_zig'), 2);
+
+        // Host's money: instant wallet credit. Friends' split shares: reversed to their own phones by ops (Refunds).
+        if ($own > 0) {
+            $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'credit', 'amount_zig' => $own, 'reason' => $reason]);
+            $order->refunds()->create(['amount_zig' => $own, 'destination' => 'wallet', 'status' => 'paid', 'reason' => $reason]);
+        }
+        foreach ($shares as $share) {
+            $order->refunds()->create(['amount_zig' => $share->amount_zig, 'destination' => 'original', 'status' => 'approved', 'reason' => "$reason (split share, return to {$share->phone})"]);
+        }
+        $total = round($own + $shares->sum('amount_zig'), 2);
+        if ($total > 0) {
+            $order->update(['payment_status' => 'refunded', 'refunded_zig' => $total]);
+        }
     }
 
     // ── Status engine ────────────────────────────────────────────────

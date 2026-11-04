@@ -41,11 +41,22 @@ class PosController extends AdminController
         ]);
     }
 
+    public function paymentStatus(Request $request, \App\Models\Payment $payment, OrderService $orders, PaynowGateway $paynow)
+    {
+        abort_unless($payment->order, 404);
+        $this->authorizeVendor($request, $payment->order->vendor_id);
+        if ($payment->status === 'pending' && ! $paynow->fake() && ($status = $paynow->poll($payment))) {
+            $status === 'paid' ? $orders->markPaid($payment) : ($status !== 'pending' ? $orders->markFailed($payment, $status) : null);
+        }
+
+        return response()->json($payment->fresh()->only('id', 'status'));
+    }
+
     public function store(Request $request, OrderService $orders, PaynowGateway $paynow)
     {
         $data = $request->validate([
             'vendor_id' => ['required', 'exists:vendors,id'],
-            'method' => ['required', Rule::in(OrderService::METHODS)],
+            'method' => ['required', Rule::in([...OrderService::METHODS, 'qr'])],
             'phone' => ['required_if:method,ecocash,onemoney,innbucks', 'nullable', 'string'],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.item_id' => ['required', 'integer', Rule::exists('items', 'id')->where('vendor_id', $request->input('vendor_id'))],
@@ -58,6 +69,7 @@ class PosController extends AdminController
         ]);
         $this->authorizeVendor($request, (int) $data['vendor_id']);
         abort_if($data['method'] === 'wallet', 422, 'Wallet payments are app-only.');
+        abort_if($data['method'] === 'qr' && ! \App\Models\Setting::get('payments.counter_qr'), 422, 'Counter QR payments are switched off.');
 
         [$order, $payment] = $orders->placePos($request->user(), Vendor::findOrFail($data['vendor_id']), $data['lines'], $data['method'], $data['phone'] ?? null);
 
@@ -68,6 +80,10 @@ class PosController extends AdminController
                 'tendered' => $data['tendered'], 'currency' => $data['tendered_currency'] ?? 'ZIG',
                 'change_zig' => round(max(0, $tenderedZig - $order->total_zig), 2),
             ]]);
+        }
+        // Counter QR (#35): the till shows a code, the customer pays on their own phone, the till polls.
+        if ($data['method'] === 'qr') {
+            return response()->json(['reference' => $order->reference, 'payment_id' => $payment->id, 'qr_url' => $payment->fresh()->redirect_url, 'total_zig' => $order->total_zig], 201);
         }
         if ($payment && $paynow->fake()) {
             $orders->markPaid($payment);

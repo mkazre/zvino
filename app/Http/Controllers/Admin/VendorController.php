@@ -123,6 +123,7 @@ class VendorController extends AdminController
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'cuisine' => ['nullable', 'string', 'max:60'],
+            'kind' => ['nullable', 'in:restaurant,grocery,market,pharmacy'],
             'tags' => ['nullable', 'array'],
             'description' => ['nullable', 'string', 'max:500'],
             'city' => ['required', Rule::in(Setting::get('general.cities'))],

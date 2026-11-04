@@ -59,6 +59,7 @@
         "laravel-vite-plugin": "^1.0",
         "lucide-react": "^0.475.0",
         "pusher-js": "^8.6.0",
+        "qrcode-generator": "^1.4.4",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "recharts": "^3.10.1",

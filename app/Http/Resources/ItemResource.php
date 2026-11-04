@@ -24,6 +24,7 @@ class ItemResource extends JsonResource
             'is_available' => $this->isOrderable(),
             'unavailable_until' => $this->unavailable_until,
             'is_special' => $this->is_special,
+            'requires_prescription' => (bool) $this->requires_prescription,
             'is_popular' => $this->is_popular,
             'needs_power' => $this->needs_power,
             'dietary' => $this->dietary ?? [],

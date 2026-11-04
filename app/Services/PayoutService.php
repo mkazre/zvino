@@ -57,12 +57,13 @@ class PayoutService
      * Instant cash-out (#27): a driver sweeps their unpaid balance into a same-day payout, less a small fee.
      * Ops sees these flagged "Instant" at the top of Admin → Payouts.
      */
-    public function instantCashOut(Driver $driver, ?string $phone = null): Payout
+    public function instantCashOut(Driver|Vendor $driver, ?string $phone = null): Payout
     {
-        abort_unless(Setting::get('payments.instant_cashout'), 422, 'Instant cash-out is not available right now.');
-        abort_if($driver->cashHeld() > 0, 422, 'Pay in the cash you are holding before cashing out.');
+        $isStore = $driver instanceof Vendor;
+        abort_unless(Setting::get($isStore ? 'payments.merchant_instant_payout' : 'payments.instant_cashout'), 422, 'Instant cash-out is not available right now.');
+        abort_if(! $isStore && $driver->cashHeld() > 0, 422, 'Pay in the cash you are holding before cashing out.');
 
-        return DB::transaction(function () use ($driver, $phone) {
+        return DB::transaction(function () use ($driver, $phone, $isStore) {
             $morph = $driver->getMorphClass();
             $open = LedgerEntry::where('account_type', $morph)->where('account_id', $driver->id)->whereNull('payout_id')->lockForUpdate();
             $total = round((float) (clone $open)->sum('amount_zig'), 2);
@@ -79,7 +80,7 @@ class PayoutService
             ]);
             $open->update(['payout_id' => $payout->id]);
             if ($fee > 0) {
-                $driver->ledger()->create(['type' => 'adjustment', 'amount_zig' => -$fee, 'description' => 'Instant cash-out fee', 'payout_id' => $payout->id]);
+                $driver->ledger()->create(['type' => 'adjustment', 'amount_zig' => -$fee, 'description' => $isStore ? 'Same-day payout fee' : 'Instant cash-out fee', 'payout_id' => $payout->id]);
             }
             if ($phone) {
                 $driver->update(['payout_details' => array_merge($driver->payout_details ?? [], ['phone' => $phone])]);

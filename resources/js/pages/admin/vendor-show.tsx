@@ -9,7 +9,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 
 interface Hour { weekday: number; opens_at: string; closes_at: string }
 interface Vendor {
-    id: number; name: string; slug: string; cuisine: string | null; description: string | null; city: string; zone_id: number | null; address: string | null; phone: string | null; email: string | null;
+    id: number; name: string; slug: string; cuisine: string | null; kind?: string; description: string | null; city: string; zone_id: number | null; address: string | null; phone: string | null; email: string | null;
     lat: number | null; lng: number | null; status: string; commission_pct: number; prep_minutes: number; price_level: number; delivery_fee_zig: number; min_order_zig: number; delivery_radius_km: number;
     is_featured: boolean; offers_delivery: boolean; offers_pickup: boolean; accepts_scheduled: boolean; auto_accept: boolean; is_busy: boolean; power_out: boolean; logo_path: string | null; cover_path: string | null;
     payout_method: string | null; payout_details: Record<string, string> | null; rating: number; rating_count: number; balance_zig: number;
@@ -110,7 +110,7 @@ export default function VendorShow(p: Props) {
 
 function ProfileForm({ v, cities, zones }: { v: Vendor; cities: string[]; zones: { id: number; name: string }[] }) {
     const { data, setData, post, processing, errors, isDirty, transform } = useForm({
-        name: v.name, cuisine: v.cuisine ?? '', description: v.description ?? '', city: v.city, zone_id: v.zone_id ?? '', address: v.address ?? '', phone: v.phone ?? '', email: v.email ?? '',
+        name: v.name, cuisine: v.cuisine ?? '', kind: v.kind ?? 'restaurant', description: v.description ?? '', city: v.city, zone_id: v.zone_id ?? '', address: v.address ?? '', phone: v.phone ?? '', email: v.email ?? '',
         lat: v.lat ?? '', lng: v.lng ?? '', status: v.status, commission_pct: v.commission_pct, prep_minutes: v.prep_minutes, price_level: v.price_level, delivery_fee_zig: v.delivery_fee_zig,
         min_order_zig: v.min_order_zig, delivery_radius_km: v.delivery_radius_km, is_featured: v.is_featured, offers_delivery: v.offers_delivery, offers_pickup: v.offers_pickup,
         accepts_scheduled: v.accepts_scheduled, auto_accept: v.auto_accept, payout_method: v.payout_method ?? 'ecocash', payout_details: v.payout_details ?? { number: '', name: '' },
@@ -130,6 +130,7 @@ function ProfileForm({ v, cities, zones }: { v: Vendor; cities: string[]; zones:
                     <div className="grid grid-cols-2 gap-3">
                         <Field label="Name" error={err('name')}><Input value={data.name} onChange={(e) => setData('name', e.target.value)} /></Field>
                         <Field label="Cuisine"><Input value={data.cuisine} onChange={(e) => setData('cuisine', e.target.value)} /></Field>
+                        <Field label="Type of store"><Select value={data.kind} onChange={(e) => setData('kind', e.target.value)}><option value="restaurant">Restaurant</option><option value="grocery">Grocery</option><option value="market">Fresh market</option><option value="pharmacy">Pharmacy</option></Select></Field>
                     </div>
                     <Field label="Description"><Textarea value={data.description} onChange={(e) => setData('description', e.target.value)} /></Field>
                     <div className="grid grid-cols-2 gap-3">

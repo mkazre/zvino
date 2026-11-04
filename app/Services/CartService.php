@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
 use App\Models\Cart;
 use App\Models\Item;
 use App\Models\PromoCode;
@@ -106,6 +107,7 @@ class CartService
             'distance_km' => $t['distance_km'],
             'eta_minutes' => $t['eta_minutes'],
             'store' => $cart->vendor ? app(StoreAvailability::class)->status($cart->vendor) : null,
+            'needs_prescription' => (bool) Setting::get('orders.prescriptions_required') && $cart->items->contains(fn ($ci) => $ci->item?->requires_prescription),
         ];
     }
 }

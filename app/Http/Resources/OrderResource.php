@@ -34,6 +34,7 @@ class OrderResource extends JsonResource
                 'tip' => $m($this->tip_zig),
             ],
             'no_cutlery' => (bool) $this->no_cutlery,
+            'has_prescription' => (bool) $this->prescription_path,
             'zig_per_usd' => $this->zig_per_usd,
             'notes' => $this->notes,
             'rider' => $this->rider_name ? ['name' => $this->rider_name, 'phone' => $this->rider_phone, 'lat' => $this->rider_lat, 'lng' => $this->rider_lng] : null,
@@ -49,6 +50,7 @@ class OrderResource extends JsonResource
             'scheduled_for' => $this->scheduled_for,
             'estimated_delivery_at' => $this->estimated_delivery_at,
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($i) => [
+                'item_id' => $i->item_id,
                 'name' => $i->name,
                 'quantity' => $i->quantity,
                 'options' => $i->options,

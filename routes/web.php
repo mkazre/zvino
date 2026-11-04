@@ -43,6 +43,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::get('orders', [OrderController::class, 'index'])->name('orders');
             Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
             Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+            Route::get('orders/{order}/prescription', [OrderController::class, 'prescription'])->name('orders.prescription');
             Route::get('reviews', [ReviewController::class, 'index'])->name('reviews');
         });
         Route::middleware('can:orders.manage')->group(function () {
@@ -170,6 +171,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::middleware('can:pos.use')->group(function () {
             Route::get('pos', [PosController::class, 'index'])->name('pos');
             Route::post('pos/sales', [PosController::class, 'store'])->name('pos.store');
+            Route::get('pos/payments/{payment}', [PosController::class, 'paymentStatus'])->name('pos.payment');
         });
 
         Route::middleware('can:kitchen.use')->group(function () {
@@ -182,3 +184,16 @@ Route::middleware(['auth', 'staff'])->group(function () {
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+
+// Data-light resized images (also used by the apps).
+Route::get('img/{width}/{path}', [\App\Http\Controllers\ImageController::class, 'show'])->whereNumber('width')->where('path', '.*')->name('img');
+
+// Demo only: "pay" a counter QR from your phone when Paynow is simulated (never in production).
+Route::get('pay/demo/{payment}', function (\App\Models\Payment $payment, \Illuminate\Http\Request $request) {
+    abort_if(app()->isProduction() || ! app(\App\Services\Payments\PaynowGateway::class)->fake(), 404);
+    abort_unless(hash_equals(hash_hmac('sha256', (string) $payment->id, config('app.key')), (string) $request->query('sig')), 403);
+    app(\App\Services\OrderService::class)->markPaid($payment);
+
+    return response('<meta name="viewport" content="width=device-width"><body style="font-family:sans-serif;text-align:center;padding:60px"><h1>✅ Paid</h1><p>ZiG '.number_format($payment->amount_zig, 2).' (demo payment)</p></body>');
+})->name('pay.demo');
+

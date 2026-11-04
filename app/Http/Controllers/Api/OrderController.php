@@ -38,6 +38,11 @@ class OrderController extends Controller
             'group_order_id' => ['nullable', Rule::exists('group_orders', 'id')->where('host_id', $request->user()->id)],
             'use_wallet' => ['nullable', 'boolean'],
             'cash_part' => ['nullable', 'numeric', 'min:0'],
+            'split_with' => ['nullable', 'array', 'max:10'],
+            'split_with.*.phone' => ['required', 'string', 'max:20'],
+            'split_with.*.name' => ['nullable', 'string', 'max:40'],
+            'split_with.*.amount' => ['required', 'numeric', 'min:1'],
+            'prescription' => ['nullable', 'string'],
             'round_up' => ['nullable', 'boolean'],
             'no_cutlery' => ['nullable', 'boolean'],
         ]);
@@ -58,12 +63,34 @@ class OrderController extends Controller
         ], 201);
     }
 
+    /** Split bill: resend a friend's prompt (optionally to a new number), or pay their share yourself. */
+    public function resendShare(Request $request, Order $order, \App\Models\Payment $payment, \App\Services\Payments\PaynowGateway $paynow)
+    {
+        abort_unless($order->user_id === $request->user()->id && $payment->order_id === $order->id && ($payment->raw['split_share'] ?? false), 404);
+        abort_unless(in_array($payment->status, ['pending', 'failed', 'cancelled'], true) && $order->status === 'pending_payment', 422, 'This share can’t be changed now.');
+        $data = $request->validate(['phone' => ['nullable', 'string', 'max:20'], 'pay_myself' => ['nullable', 'boolean']]);
+
+        $payment->update([
+            'status' => 'initiated',
+            'phone' => ! empty($data['pay_myself']) ? $request->user()->phone : ($data['phone'] ?? $payment->phone),
+            'raw' => array_merge($payment->raw, ['reference' => $order->reference.'-S'.$payment->id.'R'.now()->timestamp] + (! empty($data['pay_myself']) ? ['split_share' => false, 'covered_by_host' => true] : [])),
+        ]);
+        $paynow->initiate($payment);
+        if ($paynow->fake()) {
+            $this->orders->markPaid($payment->fresh());
+        }
+
+        return response()->json($payment->fresh()->only('id', 'status', 'phone'));
+    }
+
     public function show(Request $request, Order $order)
     {
         abort_unless($order->user_id === $request->user()->id, 404);
 
         return (new OrderResource($order->load('vendor', 'items', 'address', 'driver.user', 'review')))
-            ->additional(['delivery_pin' => $order->delivery_pin]);
+            ->additional(['delivery_pin' => $order->delivery_pin, 'split' => $order->payments()->where('provider', 'paynow')->get()
+                ->filter(fn ($p) => ($p->raw['split_share'] ?? false) || ($p->raw['covered_by_host'] ?? false))
+                ->map(fn ($p) => ['payment_id' => $p->id, 'name' => $p->raw['name'] ?? null, 'phone' => $p->phone, 'amount' => \App\Support\Money::both($p->amount_zig), 'status' => $p->status])->values()]);
     }
 
     /** Live price for the checkout screen: fees for the chosen address, tip and time. */
@@ -90,6 +117,8 @@ class OrderController extends Controller
             'tip_presets_pct' => \App\Models\Setting::get('orders.tip_presets_pct'),
             'payment_methods' => collect(OrderService::METHODS)->filter(fn ($m) => \App\Models\Setting::get("payments.$m"))->values(),
             'wallet_balance' => \App\Support\Money::both($request->user()->walletBalance()),
+            'needs_prescription' => (bool) \App\Models\Setting::get('orders.prescriptions_required') && $cart->items->contains(fn ($ci) => $ci->item?->requires_prescription),
+            'split_bill' => \App\Models\Setting::get('orders.split_bill') ? ['max_people' => (int) \App\Models\Setting::get('orders.split_bill_max_people')] : null,
             'split_tender' => (bool) (\App\Models\Setting::get('payments.split_tender') && \App\Models\Setting::get('payments.wallet')),
             'round_up' => \App\Models\Setting::get('orders.charity_round_up') ? [
                 'charity' => \App\Models\Setting::get('orders.charity_name'),

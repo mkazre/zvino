@@ -27,6 +27,7 @@ type Detail = Order & {
     cash_part_zig?: number;
     donation_zig?: number;
     no_cutlery?: boolean;
+    has_prescription?: boolean;
     refunded_zig: number;
     commission_zig: number;
     driver_pay_zig: number;
@@ -162,6 +163,7 @@ export default function OrderShow({ order: o, next, nearbyDrivers, audit }: Prop
                             </div>
                         </Card>
 
+                        {o.has_prescription && <Card padded><a href={`/admin/orders/${o.id}/prescription`} target="_blank" rel="noreferrer" className="text-sm font-semibold underline">💊 View prescription photo</a></Card>}
                         {o.no_cutlery && <Card padded><div className="text-sm">🌿 <b>No cutlery or straws</b></div></Card>}
                         {o.notes && (
                             <Card padded className="border-gold/30 bg-gold-50/40 dark:bg-gold/5">

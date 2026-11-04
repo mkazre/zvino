@@ -19,6 +19,7 @@ Schedule::call(function () {
     $orders->cancelUnaccepted();
     $orders->expireUnpaid();
     app(DispatchService::class)->sweep();
+    app(\App\Services\RecurringOrderService::class)->run();
     \Illuminate\Support\Facades\Cache::put('zvino.scheduler_heartbeat', now(), now()->addHour()); // zvino:doctor checks this
 })->everyMinute()->name('order-engine')->withoutOverlapping();
 

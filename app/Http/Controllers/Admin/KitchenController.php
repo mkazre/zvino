@@ -34,6 +34,7 @@ class KitchenController extends AdminController
                 'driver' => $o->driver?->user?->name,
                 'notes' => $o->notes,
                 'no_cutlery' => (bool) $o->no_cutlery,
+                'has_prescription' => (bool) $o->prescription_path,
                 'placed_at' => $o->created_at,
                 'accepted_at' => $o->accepted_at,
                 'prep_minutes' => $o->prep_minutes ?? $vendor->prep_minutes,

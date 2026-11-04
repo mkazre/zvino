@@ -31,12 +31,13 @@ class PaynowGateway
     public function initiate(Payment $payment): Payment
     {
         if (! $this->fake() && ! config('zvino.paynow.integration_id')) {
-            $payment->update(['status' => 'failed', 'raw' => ['error' => 'Paynow is not configured']]);
+            $payment->update(['status' => 'failed', 'raw' => array_merge($payment->raw ?? [], ['error' => 'Paynow is not configured'])]);
 
             return $payment;
         }
         if ($this->fake()) {
-            $payment->update(['status' => 'pending', 'provider_reference' => 'FAKE-'.$payment->id]);
+            // Demo: counter QR points at a page that simulates paying on the customer's phone.
+            $payment->update(['status' => 'pending', 'provider_reference' => 'FAKE-'.$payment->id, 'redirect_url' => $payment->method === 'qr' ? url('/pay/demo/'.$payment->id.'?sig='.hash_hmac('sha256', (string) $payment->id, config('app.key'))) : null]);
 
             return $payment;
         }
@@ -68,7 +69,7 @@ class PaynowGateway
             'poll_url' => $res['pollurl'] ?? null,
             'redirect_url' => $res['browserurl'] ?? null,
             'provider_reference' => $res['paynowreference'] ?? null,
-            'raw' => $res,
+            'raw' => array_merge($res, $payment->raw ?? []), // keep our own keys (split share, reference)
         ]);
 
         return $payment;

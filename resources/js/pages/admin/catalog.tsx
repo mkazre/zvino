@@ -8,7 +8,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { ChefHat, Layers, Pencil, Plus, Trash2, UtensilsCrossed, Zap, ZapOff } from 'lucide-react';
 import { useState } from 'react';
 
-type MenuItem = Item & { sold_by?: 'unit' | 'kg'; step_kg?: number; needs_power: boolean; is_popular: boolean; dietary: string[]; calories: number | null; unavailable_until: string | null; modifier_groups?: { id: number; name: string; min: number; max: number }[] };
+type MenuItem = Item & { requires_prescription?: boolean; sold_by?: 'unit' | 'kg'; step_kg?: number; needs_power: boolean; is_popular: boolean; dietary: string[]; calories: number | null; unavailable_until: string | null; modifier_groups?: { id: number; name: string; min: number; max: number }[] };
 interface Group { id: number; name: string; min_select: number; max_select: number; items_count: number; options: { id: number; name: string; price_delta_zig: number; is_available: boolean }[] }
 interface Props {
     vendor: { id: number; name: string; power_out: boolean } | null;
@@ -104,6 +104,7 @@ export default function Catalog(p: Props) {
                                                         <span className={cn('font-semibold', !i.is_available && 'text-muted-foreground')}>{i.name}</span>
                                                         {i.is_popular && <Badge tone="dark">Popular</Badge>}
                                                         {i.special_price && <Badge tone="danger">Special</Badge>}
+                                                        {i.requires_prescription && <Badge>💊 Rx</Badge>}
                                                         {i.needs_power && <Badge tone="warning"><Zap className="size-3" />Needs power</Badge>}
                                                         {i.dietary.map((d) => <Badge key={d}>{label(d)}</Badge>)}
                                                     </div>
@@ -147,6 +148,7 @@ function ItemDrawer({ item, vendorId, categories, groups, onClose, onDelete }: {
         is_special: item?.is_special ?? false,
         is_popular: item?.is_popular ?? false,
         needs_power: item?.needs_power ?? false,
+        requires_prescription: item?.requires_prescription ?? false,
         dietary: item?.dietary ?? ([] as string[]),
         calories: item?.calories ?? '',
         variants: item?.variants ?? ([] as { name: string; price_delta_zig: number }[]),
@@ -160,7 +162,7 @@ function ItemDrawer({ item, vendorId, categories, groups, onClose, onDelete }: {
         transform((d) => {
             const { vendor_id, ...rest } = d;
             const out: Record<string, unknown> = { ...(item ? rest : { ...rest, vendor_id }), special_price_zig: d.special_price_zig === '' ? null : d.special_price_zig, calories: d.calories === '' ? null : d.calories };
-            ['is_available', 'is_special', 'is_popular', 'needs_power'].forEach((k) => (out[k] = d[k as keyof typeof d] ? 1 : 0));
+            ['is_available', 'is_special', 'is_popular', 'needs_power', 'requires_prescription'].forEach((k) => (out[k] = d[k as keyof typeof d] ? 1 : 0));
             return out as typeof d;
         });
         post(item ? `/admin/catalog/items/${item.id}` : '/admin/catalog/items', { forceFormData: true, preserveScroll: true, onSuccess: onClose });
@@ -222,6 +224,7 @@ function ItemDrawer({ item, vendorId, categories, groups, onClose, onDelete }: {
                     <Switch checked={data.is_available} onChange={(v) => setData('is_available', v)} label="In stock" />
                     <Switch checked={data.is_popular} onChange={(v) => setData('is_popular', v)} label="Mark as popular" description="Gets a “Popular” badge and appears first." />
                     <Switch checked={data.is_special} onChange={(v) => setData('is_special', v)} label="Feature in Specials" />
+                    <Switch checked={data.requires_prescription} onChange={(v) => setData('requires_prescription', v)} label="💊 Prescription medicine" description="Customers must upload a prescription photo. The pharmacist checks it before accepting." />
                     <Switch checked={data.needs_power} onChange={(v) => setData('needs_power', v)} label={<span className="flex items-center gap-1.5"><ZapOff className="size-4" /> Needs electricity</span>} description="Hidden automatically when the store switches on load-shedding mode." />
                 </div>
             </div>
