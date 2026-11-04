@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { useCart } from '@/lib/cart';
 import { zig } from '@/lib/money';
 import { Button, Loading, Row, Text, useTheme } from '@/ui';
+import { useSession } from '@/lib/session';
 
 type Menu = Store & { description: string | null; categories: { id: number; name: string; items: { data?: MenuItem[] } | MenuItem[] }[] };
 
@@ -15,10 +16,11 @@ export default function StoreScreen() {
     const t = useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [store, setStore] = useState<Menu | null>(null);
+    const [deals, setDeals] = useState<{ id: number; headline: string; live: boolean }[]>([]);
     const [item, setItem] = useState<MenuItem | null>(null);
 
     useEffect(() => {
-        api.get<{ data: Menu }>(`/vendors/${id}/menu`).then((r) => setStore(r.data)).catch(() => Alert.alert('Store unavailable', 'This store isn’t taking orders right now.', [{ text: 'OK', onPress: () => router.back() }]));
+        api.get<{ data: Menu; deals?: { id: number; headline: string; live: boolean }[] }>(`/vendors/${id}/menu`).then((r) => { setStore(r.data); setDeals(r.deals ?? []); }).catch(() => Alert.alert('Store unavailable', 'This store isn’t taking orders right now.', [{ text: 'OK', onPress: () => router.back() }]));
     }, [id]);
 
     const sections = useMemo(
@@ -51,6 +53,11 @@ export default function StoreScreen() {
                                 <Pill icon="bicycle-outline" text={store.delivery_fee.zig === 0 ? 'Free delivery' : `From ${zig(store.delivery_fee.zig)}`} />
                                 {store.min_order.zig > 0 && <Pill icon="information-circle-outline" text={`${zig(store.min_order.zig)} min`} />}
                             </Row>
+                            {deals.map((d) => (
+                                <View key={d.id} style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: d.live ? t.brandSoft : t.subtle }}>
+                                    <Text variant="label" color={d.live ? 'brand' : 'muted'}>🏷️  {d.headline}{d.live ? '' : ' · later today'}</Text>
+                                </View>
+                            ))}
                         </View>
                     </View>
                 }
@@ -116,7 +123,10 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
                     <Pressable onPress={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="close" size={20} color="#111412" /></Pressable>
                     <View style={{ padding: 20, gap: 8 }}>
                         <Text variant="title">{item.name}</Text>
-                        <Text variant="heading">{zig(base)}</Text>
+                        <Row justify="space-between">
+                            <Text variant="heading">{zig(base)}</Text>
+                            <WatchButton itemId={item.id} />
+                        </Row>
                         {item.description && <Text color="muted">{item.description}</Text>}
                         {item.variants.length > 0 && (
                             <View style={{ marginTop: 16 }}>
@@ -144,5 +154,26 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
                 </SafeAreaView>
             </View>
         </Modal>
+    );
+}
+
+/** Price-drop alert: get a push when this item gets cheaper. */
+function WatchButton({ itemId }: { itemId: number }) {
+    const t = useTheme();
+    const { me } = useSession();
+    const [on, setOn] = useState(false);
+    useEffect(() => {
+        if (me) api.get<{ item_id: number }[]>('/watches').then((w) => setOn(w.some((x) => x.item_id === itemId))).catch(() => {});
+    }, [me, itemId]);
+    if (!me) return null;
+    const toggle = async () => {
+        setOn(!on);
+        await (on ? api.delete(`/items/${itemId}/watch`) : api.post(`/items/${itemId}/watch`)).catch(() => setOn(on));
+    };
+    return (
+        <Pressable onPress={toggle} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 17, backgroundColor: on ? t.brandSoft : t.subtle }}>
+            <Ionicons name={on ? 'notifications' : 'notifications-outline'} size={16} color={on ? t.brand : t.ink} />
+            <Text variant="caption" color={on ? 'brand' : 'ink'}>{on ? 'Watching price' : 'Price-drop alert'}</Text>
+        </Pressable>
     );
 }

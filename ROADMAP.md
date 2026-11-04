@@ -63,15 +63,15 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 12. **Hot-meal guarantee**: automatic wallet credit when delivery runs past the promised ETA ✅
 13. **Split the bill**: friends pay their share by EcoCash link before the order is placed ✅ (EcoCash/OneMoney/InnBucks prompts)
 14. **Gift a meal to any phone number**: recipient gets an SMS and picks their meal ✅
-15. **Photo reviews** with dish-level ratings, plus **price-drop alerts** on favourites (reviews ✅)
-16. **Dietary and allergen filters**: halal, vegetarian, no pork, nut-free, spice level (vegetarian, vegan, halal, spicy ✅; allergens to do)
+15. **Photo reviews** with dish-level ratings, plus **price-drop alerts** on favourites (reviews ✅, price-drop alerts ✅)
+16. **Dietary and allergen filters**: halal, vegetarian, no pork, nut-free, spice level ✅
 17. **School and office lunch plans**: recurring weekday deliveries ✅
 18. **Round-up for charity, eco "no cutlery" toggle, and accessibility** (large text, screen reader, high contrast) (round-up and no-cutlery ✅)
 
 ### Driver app (9)
 19. 🇿🇼 **Cash remittance via EcoCash** for cash-on-delivery money held, in-app ✅
 20. 🇿🇼 **USD change to wallet**: credit the customer's change as wallet balance when there are no small notes ✅
-21. 🇿🇼 **Peri-urban batch runs**: Chitungwiza, Ruwa, Norton and Epworth delivered in scheduled batches
+21. 🇿🇼 **Peri-urban batch runs**: Chitungwiza, Ruwa, Norton and Epworth delivered in scheduled batches ✅
 22. **SOS and trip sharing**: panic button alerts ops and shares live location ✅
 23. **Night safety zones**: warnings and optional opt-out for flagged areas after dark ✅
 24. **Demand heatmap and earnings goals**: where to wait, with daily and weekly targets ✅
@@ -83,7 +83,7 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 28. 🇿🇼 **Load-shedding mode**: "Power out / on generator" hides oven and fryer items and adds prep time ✅
 29. 🇿🇼 **Fresh market selling**: Mbare and market vendors list produce by weight ✅
 30. 🇿🇼 **Pharmacy orders**: prescription photo review and approve/decline before payment ✅ (reviewed when accepting; declined = full refund)
-31. **Self-serve promotions**: BOGO, happy hour, % off, free item (% off, ZiG off, free delivery with results ✅; BOGO/happy hour to do)
+31. **Self-serve promotions**: BOGO, happy hour, % off, free item ✅ (BOGO, happy hour, automatic deals; free item via BOGO)
 32. **Menu insights**: best sellers, items often removed from carts, prep time per item ✅
 33. **Same-day payout** to EcoCash (small fee) ✅
 
@@ -97,7 +97,7 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 ### Merchant app: Kitchen mode (4)
 39. **Rush mode**: when tickets pile up, automatically add prep time and slow incoming app orders ✅
 40. **Station routing**: grill, fryer and drinks each see only their items ✅
-41. **Bluetooth kitchen printer** with loud new-order alerts that repeat until acknowledged
+41. **Bluetooth kitchen printer** with loud new-order alerts that repeat until acknowledged (alerts ✅; printer to do)
 42. **Prep timers** per item that learn real cook times, so the app's ETAs improve ✅
 
 ### Admin panel (8)

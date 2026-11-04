@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { Chip, Empty, Row, SectionTitle, Text, useTheme } from '@/ui';
 
-const DIETS = [['vegetarian', '🥬 Vegetarian'], ['vegan', '🌱 Vegan'], ['halal', 'Halal'], ['spicy', '🌶️ Spicy']] as const;
+const DIETS = [['vegetarian', '🥬 Vegetarian'], ['vegan', '🌱 Vegan'], ['halal', 'Halal'], ['no_pork', 'No pork'], ['nut_free', '🥜 Nut-free'], ['gluten_free', 'Gluten-free'], ['dairy_free', 'Dairy-free'], ['spicy', '🌶️ Spicy']] as const;
 const FILTERS = [['', 'All'], ['offers', '🔥 Offers'], ['free_delivery', 'Free delivery'], ['fastest', 'Fastest'], ['rating', 'Top rated']] as const;
 
 export default function Search() {

@@ -10,6 +10,7 @@ import { Badge, Button, Card, Chip, Empty, Row, Text, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
 import { API_URL } from '@/lib/config';
 import { Image } from 'expo-image';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 
 type Tab = 'incoming' | 'active' | 'scheduled' | 'done';
 const PREP = [10, 15, 20, 30, 45];
@@ -43,15 +44,21 @@ export default function Board() {
     }, [load]);
 
     // Repeat the alert every 15 s while there are unaccepted orders.
-    const incoming = me?.incoming ?? 0;
+    const incoming = kitchen ? orders.filter((o) => o.kitchen_stage === 'new').length : (me?.incoming ?? 0);
+    const chime = useAudioPlayer(require('../../../../assets/sounds/new-order.wav'));
     useEffect(() => {
-        if (!incoming || kitchen) return;
-        // TODO: add assets/sounds/new-order.mp3 and play it with expo-audio for a louder kitchen alert.
-        const ring = () => Vibration.vibrate([0, 500, 250, 500]);
+        if (!incoming) return;
+        // Loud two-tone chime + vibration, repeating until every new order is accepted / started (#41).
+        setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+        const ring = () => {
+            Vibration.vibrate([0, 500, 250, 500]);
+            chime.seekTo(0);
+            chime.play();
+        };
         ring();
-        const timer = setInterval(ring, 15000);
+        const timer = setInterval(ring, kitchen ? 20000 : 10000);
         return () => clearInterval(timer);
-    }, [incoming, kitchen]);
+    }, [incoming, kitchen, chime]);
 
     const act = async (o: StoreOrder, path: string, body?: Record<string, unknown>) => {
         setBusyId(o.id);

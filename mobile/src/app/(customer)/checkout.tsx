@@ -22,6 +22,8 @@ interface Quote {
     split_tender: boolean;
     split_bill: { max_people: number } | null;
     needs_prescription: boolean;
+    batch: { zone: string; departs_at: string; arrives_at: string } | null;
+    deal: string | null;
     round_up: { charity: string; amount: Money } | null;
 }
 
@@ -183,6 +185,12 @@ export default function Checkout() {
                                 <View style={{ flex: 1 }}><Text variant="label">{a.label}</Text><Text variant="caption" numberOfLines={1}>{a.line1}{a.landmark ? ` · ${a.landmark}` : ''}, {a.city}</Text></View>
                             </Pressable>
                         ))}
+                        {quote?.batch && (
+                            <View style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: t.brandSoft }}>
+                                <Text variant="label" color="brand">🚐  {quote.batch.zone} run</Text>
+                                <Text variant="caption">Leaves {new Date(quote.batch.departs_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · arrives about {new Date(quote.batch.arrives_at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</Text>
+                            </View>
+                        )}
                         <Row gap={8} style={{ marginTop: 6 }}>
                             <Chip label="Hand it to me" active={dropoff === 'hand_to_me'} onPress={() => setDropoff('hand_to_me')} />
                             <Chip label="Leave at gate" active={dropoff === 'leave_at_door'} onPress={() => setDropoff('leave_at_door')} />
@@ -267,7 +275,7 @@ export default function Checkout() {
 
                 {quote && (
                     <Card tone="subtle">
-                        {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? ['Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null, sharesTotal ? [`Friends (${shares.length})`, -sharesTotal] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
+                        {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? [quote.deal ?? 'Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null, sharesTotal ? [`Friends (${shares.length})`, -sharesTotal] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
                             <Row key={l} justify="space-between" style={{ paddingVertical: 4 }}><Text color="muted">{l}</Text><Text color={v < 0 ? 'brand' : 'ink'}>{v < 0 ? `−${zig(-v)}` : zig(v)}</Text></Row>
                         ))}
                         {quote.totals.member_savings.zig > 0 && <Text variant="caption" color="brand">Zvino+ saved you {zig(quote.totals.member_savings.zig)} 🎉</Text>}
