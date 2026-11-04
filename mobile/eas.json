@@ -6,7 +6,8 @@
   "build": {
     "base": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://zvino.co.zw"
+        "EXPO_PUBLIC_API_URL": "https://zvino.co.zw",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "customer-dev": {
