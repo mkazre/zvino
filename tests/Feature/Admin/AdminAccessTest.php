@@ -47,7 +47,7 @@ class AdminAccessTest extends TestCase
             '/dashboard', '/dashboard?range=90', '/admin/orders', '/admin/orders?status=active', "/admin/orders/{$order->id}", "/admin/orders/{$live->id}",
             '/admin/dispatch', '/admin/dispatch/live', '/admin/refunds', '/admin/support', '/admin/reviews', '/admin/catalog', '/admin/vendors', "/admin/vendors/{$vendor->id}",
             '/admin/drivers', "/admin/drivers/{$driver->id}", '/admin/zones', '/admin/users', "/admin/users/{$customer->id}", '/admin/staff',
-            '/admin/home-builder', '/admin/rewards-promos', '/admin/campaigns', '/admin/payouts', '/admin/reports', '/admin/audit', '/admin/pos', '/admin/kitchen', '/admin/catering', '/admin/hampers', '/admin/companies',
+            '/admin/home-builder', '/admin/rewards-promos', '/admin/campaigns', '/admin/payouts', '/admin/reports', '/admin/audit', '/admin/pos', '/admin/kitchen', '/admin/catering', '/admin/hampers', '/admin/companies', '/admin/app-content',
             '/admin/search?q=ZV', '/admin/orders/export', '/admin/users/export', '/admin/reports/export/orders',
         ];
         foreach (array_keys(config('zvino_settings')) as $g) {

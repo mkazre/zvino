@@ -71,6 +71,6 @@ class Brand
         [$r, $g, $b] = array_map(fn ($c) => ($c /= 255) <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4, self::rgb($hex));
         $l = 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
 
-        return ($l + 0.05) / 0.05 > 1.05 / ($l + 0.05) ? '#111111' : '#FFFFFF';
+        return $l > 0.3 ? '#111111' : '#FFFFFF'; // bright colours (green, yellow) get dark text; red/dark get white
     }
 }

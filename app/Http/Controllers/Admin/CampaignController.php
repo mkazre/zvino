@@ -42,12 +42,22 @@ class CampaignController extends AdminController
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'channel' => ['required', 'in:push,sms'],
+            'kind' => ['nullable', 'in:marketing,service'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remove_image' => ['nullable', 'boolean'],
             'title' => ['nullable', 'string', 'max:120'],
             'body' => ['required', 'string', 'max:500'],
             'audience' => ['array'],
-            'link_to' => ['nullable', 'string', 'max:120'],
+            'link_to' => ['nullable', 'string', 'max:300', 'regex:/^(store:\d+|promo:[A-Za-z0-9_-]+|url:https?:\/\/.+|[a-z\/0-9_-]+)$/'],
             'scheduled_at' => ['nullable', 'date', 'after:now'],
         ]);
+        if ($request->hasFile('image')) {
+            $data['image_path'] = '/storage/'.$request->file('image')->store('campaigns', 'public');
+        } elseif (! empty($data['remove_image'])) {
+            $data['image_path'] = null;
+        }
+        unset($data['image'], $data['remove_image']);
+        $data['kind'] ??= 'marketing';
         $data['status'] = ! empty($data['scheduled_at']) ? 'scheduled' : 'draft';
         $data['audience'] ??= [];
 

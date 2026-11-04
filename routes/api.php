@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public
 Route::get('config', [CatalogController::class, 'config']);
+Route::get('app-content', [\App\Http\Controllers\Admin\AppContentController::class, 'forApp']); // onboarding + launch screen (published from the admin)
 Route::get('home-layout', HomeLayoutController::class);
 Route::get('categories', [CatalogController::class, 'categories']);
 Route::get('vendors', [CatalogController::class, 'vendors']);
@@ -81,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('loyalty/redeem', [AccountController::class, 'redeem']);
 
     Route::get('notifications', [AccountController::class, 'notifications']);
+    Route::get('notifications/unread', fn (\Illuminate\Http\Request $r) => response()->json(['count' => $r->user()->appNotifications()->whereNull('read_at')->count()]));
     Route::post('notifications/read', [AccountController::class, 'markNotificationsRead']);
     Route::post('devices', [AccountController::class, 'registerDevice']);
     Route::post('support/tickets', [AccountController::class, 'createTicket']);

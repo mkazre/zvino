@@ -6,7 +6,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Megaphone, MessageSquare, Moon, Plus, Send, Smartphone, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-interface Campaign { id: number; name: string; channel: 'push' | 'sms'; title: string | null; body: string; audience: Record<string, string | number>; link_to: string | null; status: string; scheduled_at: string | null; sent_count: number; created_at: string }
+interface Campaign { id: number; name: string; kind?: 'marketing' | 'service'; image_path?: string | null; channel: 'push' | 'sms'; title: string | null; body: string; audience: Record<string, string | number>; link_to: string | null; status: string; scheduled_at: string | null; sent_count: number; created_at: string }
 interface Props { campaigns: Campaign[]; presets: { name: string; title: string; body: string }[]; cities: string[]; tiers: string[]; quiet: { start: string; end: string } }
 
 export default function Campaigns({ campaigns, presets, cities, tiers, quiet }: Props) {
@@ -43,6 +43,7 @@ export default function Campaigns({ campaigns, presets, cities, tiers, quiet }: 
                                         <div className="text-muted-foreground truncate text-[13px]">{c.title ? `${c.title} · ` : ''}{c.body}</div>
                                         <div className="text-muted-foreground mt-1 flex flex-wrap gap-1.5 text-xs">
                                             {Object.entries(c.audience ?? {}).filter(([, v]) => v).map(([k, v]) => <Badge key={k}>{label(k)}: {String(v)}</Badge>)}
+                                            {c.kind === 'service' && <Badge tone="warning">Service notice</Badge>}
                                             {!Object.values(c.audience ?? {}).some(Boolean) && <Badge>All customers</Badge>}
                                         </div>
                                     </div>
@@ -69,6 +70,9 @@ export default function Campaigns({ campaigns, presets, cities, tiers, quiet }: 
 function CampaignDrawer({ c, cities, tiers, onClose }: { c: Partial<Campaign>; cities: string[]; tiers: string[]; onClose: () => void }) {
     const { data, setData, post, processing, errors } = useForm({
         name: c.name ?? '',
+        kind: (c.kind ?? 'marketing') as 'marketing' | 'service',
+        image: null as File | null,
+        remove_image: false as boolean,
         channel: c.channel ?? 'push',
         title: c.title ?? '',
         body: c.body ?? '',
@@ -77,29 +81,57 @@ function CampaignDrawer({ c, cities, tiers, onClose }: { c: Partial<Campaign>; c
         scheduled_at: c.scheduled_at?.slice(0, 16) ?? '',
     });
     const [reach, setReach] = useState<number | null>(null);
+    const [imgPreview, setImgPreview] = useState<string | null>(c.image_path ?? null);
+    useEffect(() => {
+        if (!data.image) return;
+        const u = URL.createObjectURL(data.image);
+        setImgPreview(u);
+        return () => URL.revokeObjectURL(u);
+    }, [data.image]);
+    const [linkType, linkValue] = (() => {
+        const [t, ...rest] = (data.link_to || '').split(':');
+        return ['store', 'promo', 'url'].includes(t) ? [t, rest.join(':')] : data.link_to ? ['screen', data.link_to] : ['none', ''];
+    })();
+    const setLink = (t: string, v: string) => setData('link_to', t === 'none' ? '' : t === 'screen' ? v : `${t}:${v}`);
     const setAud = (k: string, v: string | number | undefined) => setData('audience', { ...data.audience, [k]: v || undefined });
 
     useEffect(() => {
         const t = setTimeout(() => {
-            fetch('/admin/campaigns-audience', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') }, body: JSON.stringify({ audience: data.audience }) })
+            fetch('/admin/campaigns-audience', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') }, body: JSON.stringify({ audience: { ...data.audience, kind: data.kind } }) })
                 .then((r) => r.json()).then((d) => setReach(d.count)).catch(() => setReach(null));
         }, 300);
         return () => clearTimeout(t);
-    }, [data.audience]);
+    }, [data.audience, data.kind]);
 
     return (
         <Drawer open onClose={onClose} width="lg" title={c.id ? 'Edit campaign' : 'New campaign'}
-            footer={<><span className="text-muted-foreground mr-auto flex items-center gap-1.5 text-sm"><Users className="size-4" /> {reach === null ? '…' : reach.toLocaleString()} customers</span><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={processing} onClick={() => post(c.id ? `/admin/campaigns/${c.id}` : '/admin/campaigns', { onSuccess: onClose })}>{data.scheduled_at ? 'Schedule' : 'Save draft'}</Button></>}>
+            footer={<><span className="text-muted-foreground mr-auto flex items-center gap-1.5 text-sm"><Users className="size-4" /> {reach === null ? '…' : reach.toLocaleString()} people</span><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={processing} onClick={() => post(c.id ? `/admin/campaigns/${c.id}` : '/admin/campaigns', { forceFormData: true, onSuccess: onClose })}>{data.scheduled_at ? 'Schedule' : 'Save draft'}</Button></>}>
             <div className="grid gap-5">
                 <Field label="Internal name" error={errors.name}><Input value={data.name} onChange={(e) => setData('name', e.target.value)} /></Field>
+                <Field label="Type" hint={data.kind === 'service' ? 'Outages, holiday hours, safety. Reaches everyone in the audience, even people who turned off promotions, and ignores quiet hours.' : 'Promotions. Only people who allow marketing, never during quiet hours.'}>
+                    <Segmented value={data.kind} onChange={(v) => setData('kind', v as 'marketing' | 'service')} options={[{ value: 'marketing', label: 'Marketing' }, { value: 'service', label: 'Service announcement' }]} />
+                </Field>
+                <Field label="Send to"><Segmented value={String(data.audience.roles ?? 'customers')} onChange={(v) => setAud('roles', v)} options={[{ value: 'all', label: 'Everyone' }, { value: 'customers', label: 'Customers' }, { value: 'drivers', label: 'Drivers' }, { value: 'staff', label: 'Store staff' }]} /></Field>
                 <Field label="Channel"><Segmented value={data.channel} onChange={(v) => setData('channel', v)} options={[{ value: 'push', label: 'Push notification' }, { value: 'sms', label: 'SMS' }]} /></Field>
                 {data.channel === 'push' && <Field label="Title" hint="Use {{name}} for the customer’s first name."><Input value={data.title} onChange={(e) => setData('title', e.target.value)} /></Field>}
                 <Field label="Message" error={errors.body} hint={data.channel === 'sms' ? `${data.body.length}/160. “Reply STOP to opt out” is added automatically.` : undefined}><Textarea value={data.body} onChange={(e) => setData('body', e.target.value)} /></Field>
 
-                <div className="bg-foreground text-background mx-auto w-full max-w-sm rounded-2xl p-4 shadow-(--shadow-pop)">
-                    <div className="mb-1.5 flex items-center gap-2 text-[11px] opacity-60"><span className="bg-brand flex size-4 items-center justify-center rounded text-[9px] font-bold text-white">z</span>ZVINO · now</div>
+                {data.channel === 'push' && (
+                    <Field label="Image" optional hint="Shown in the notification and the app inbox. Wide images (2:1) look best.">
+                        <div className="flex items-center gap-2">
+                            <label className="hover:bg-subtle flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-dashed p-3 text-sm">{data.image ? data.image.name : imgPreview ? 'Replace image' : 'Upload image'}<input type="file" accept="image/*" className="hidden" onChange={(e) => { setData('image', e.target.files?.[0] ?? null); setData('remove_image', false); }} /></label>
+                            {imgPreview && <Button variant="ghost" size="sm" onClick={() => { setImgPreview(null); setData({ ...data, image: null, remove_image: true }); }}>Remove</Button>}
+                        </div>
+                    </Field>
+                )}
+
+                <div className="bg-foreground text-background mx-auto w-full max-w-sm overflow-hidden rounded-2xl shadow-(--shadow-pop)">
+                    <div className="p-4 pb-2">
+                    <div className="mb-1.5 flex items-center gap-2 text-[11px] opacity-60"><img src="/brand/mark.png" alt="" className="size-4 rounded bg-white" />ZVINO · now</div>
                     {data.channel === 'push' && <div className="text-sm font-semibold">{(data.title || 'Title').replace('{{name}}', 'Tendai')}</div>}
                     <div className="text-[13px] opacity-90">{(data.body || 'Your message preview').replace('{{name}}', 'Tendai')}</div>
+                    </div>
+                    {data.channel === 'push' && imgPreview && <img src={imgPreview} alt="" className="max-h-40 w-full object-cover" />}
                 </div>
 
                 <div className="grid gap-3 border-t pt-5">
@@ -113,7 +145,12 @@ function CampaignDrawer({ c, cities, tiers, onClose }: { c: Partial<Campaign>; c
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 border-t pt-5">
-                    <Field label="Opens in app" hint="e.g. specials, vendor/12" optional><Input value={data.link_to} onChange={(e) => setData('link_to', e.target.value)} /></Field>
+                    <Field label="When tapped" error={errors.link_to}>
+                        <div className="grid gap-2">
+                            <Select value={linkType} onChange={(e) => setLink(e.target.value, '')}><option value="none">Open the app</option><option value="store">Open a store</option><option value="promo">Apply a promo code</option><option value="url">Open a web page</option><option value="screen">Open a screen</option></Select>
+                            {linkType !== 'none' && <Input value={linkValue} onChange={(e) => setLink(linkType, e.target.value)} placeholder={{ store: 'Store ID, e.g. 12', promo: 'Code, e.g. ZVINO20', url: 'https://…', screen: 'e.g. plans, hampers, wallet' }[linkType]} />}
+                        </div>
+                    </Field>
                     <Field label="Send at" hint="Leave empty to save as draft" optional error={errors.scheduled_at}><Input type="datetime-local" value={data.scheduled_at} onChange={(e) => setData('scheduled_at', e.target.value)} /></Field>
                 </div>
             </div>

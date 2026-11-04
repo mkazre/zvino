@@ -130,6 +130,12 @@ Route::middleware(['auth', 'staff'])->group(function () {
         });
 
         Route::middleware('can:marketing.manage')->group(function () {
+            Route::get('app-content', [\App\Http\Controllers\Admin\AppContentController::class, 'index'])->name('app-content');
+            Route::post('app-content/slides/{slide?}', [\App\Http\Controllers\Admin\AppContentController::class, 'saveSlide'])->name('app-content.slide');
+            Route::delete('app-content/slides/{slide}', [\App\Http\Controllers\Admin\AppContentController::class, 'deleteSlide'])->name('app-content.slide.delete');
+            Route::post('app-content/reorder', [\App\Http\Controllers\Admin\AppContentController::class, 'reorder'])->name('app-content.reorder');
+            Route::post('app-content/publish', [\App\Http\Controllers\Admin\AppContentController::class, 'publish'])->name('app-content.publish');
+            Route::post('app-content/launch', [\App\Http\Controllers\Admin\AppContentController::class, 'saveLaunch'])->name('app-content.launch');
             Route::get('home-builder', [HomeBuilderController::class, 'index'])->name('home-builder');
             Route::post('home-builder/blocks', [HomeBuilderController::class, 'store'])->name('home-builder.store');
             Route::patch('home-builder/blocks/{block}', [HomeBuilderController::class, 'update'])->name('home-builder.update');

@@ -36,7 +36,9 @@ class PushService
             return;
         }
 
-        $messages = array_map(fn ($to) => compact('to', 'title', 'body', 'data') + ['sound' => 'default'], $tokens);
+        // Expo shows a picture in the notification when richContent.image is set.
+        $extra = ['sound' => 'default'] + (! empty($data['image']) ? ['richContent' => ['image' => $data['image']]] : []);
+        $messages = array_map(fn ($to) => ['to' => $to, 'title' => $title, 'body' => $body, 'data' => $data] + $extra, $tokens);
 
         try {
             $response = Http::timeout(10)->acceptJson()->post(config('zvino.expo_push_url'), $messages);

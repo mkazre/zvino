@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Command } from 'cmdk';
-import { BarChart3, Bell, Bike, Building2, Calculator, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
+import { BarChart3, Bell, Bike, Building2, Calculator, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Smartphone, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
@@ -59,6 +59,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
             { title: 'Home builder', href: '/admin/home-builder', icon: LayoutTemplate, can: 'marketing.manage' },
             { title: 'Promotions', href: '/admin/rewards-promos', icon: Gift, can: 'marketing.manage' },
             { title: 'Campaigns', href: '/admin/campaigns', icon: Megaphone, can: 'marketing.manage' },
+            { title: 'App onboarding', href: '/admin/app-content', icon: Smartphone, can: 'marketing.manage' },
         ],
     },
     {

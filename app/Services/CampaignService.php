@@ -17,7 +17,18 @@ class CampaignService
      */
     public function audience(array $filters): Builder
     {
-        return User::query()->where('role', 'customer')->where('marketing_opt_in', true)->whereNull('banned_at')
+        // Audience: everyone, or customers / drivers / store staff. Marketing respects opt-out; service notices reach everyone.
+        $roles = match ($filters['roles'] ?? 'customers') {
+            'all' => null,
+            'drivers' => ['driver'],
+            'staff' => \App\Models\User::STORE_ROLES,
+            default => ['customer'],
+        };
+        $service = ($filters['kind'] ?? 'marketing') === 'service';
+
+        return User::query()->whereNull('banned_at')
+            ->when($roles, fn ($q) => $q->whereIn('role', $roles))
+            ->unless($service, fn ($q) => $q->where('marketing_opt_in', true))
             ->when($filters['city'] ?? null, fn ($q, $city) => $q->whereHas('addresses', fn ($a) => $a->where('city', $city)))
             ->when($filters['tier'] ?? null, fn ($q, $tier) => $q->whereHas('loyalty', fn ($l) => $l->where('tier', $tier)))
             ->when($filters['locale'] ?? null, fn ($q, $l) => $q->where('locale', $l))
@@ -37,13 +48,14 @@ class CampaignService
 
     public function send(Campaign $campaign): int
     {
-        if ($this->inQuietHours()) {
+        // Quiet hours apply to marketing; service notices (outages, holiday hours) go straight out.
+        if ($campaign->kind !== 'service' && $this->inQuietHours()) {
             return 0; // retried by the scheduler once quiet hours end
         }
         $campaign->update(['status' => 'sending']);
         $sent = 0;
 
-        $this->audience($campaign->audience ?? [])->chunkById(200, function ($users) use ($campaign, &$sent) {
+        $this->audience(($campaign->audience ?? []) + ['kind' => $campaign->kind])->chunkById(200, function ($users) use ($campaign, &$sent) {
             foreach ($users as $user) {
                 $vars = ['name' => explode(' ', $user->name ?: 'there')[0]];
                 $title = \App\Models\NotificationTemplate::render($campaign->title ?? '', $vars);
@@ -52,7 +64,10 @@ class CampaignService
                 if ($campaign->channel === 'sms' && $user->phone) {
                     $this->sms->send($user->phone, $body."\nReply STOP to opt out.");
                 } else {
-                    $this->push->toUser($user, 'campaign', $title, $body, ['link_to' => $campaign->link_to, 'campaign_id' => $campaign->id]);
+                    $this->push->toUser($user, $campaign->kind === 'service' ? 'announcement' : 'campaign', $title, $body, array_filter([
+                        'link_to' => $campaign->link_to, 'campaign_id' => $campaign->id,
+                        'image' => $campaign->image_path ? url($campaign->image_path) : null,
+                    ]));
                 }
                 $sent++;
             }
