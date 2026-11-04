@@ -117,6 +117,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('jobs/{order}/deliver', [DriverController::class, 'deliver']);
         Route::get('earnings', [DriverController::class, 'earnings']);
         Route::post('cash/remit', [DriverController::class, 'remitCash']);
+        Route::post('cashout', [DriverController::class, 'cashOut'])->middleware('throttle:5,1');
+        Route::get('tier', [DriverController::class, 'tier']);
         Route::post('sos', [DriverController::class, 'sos'])->middleware('throttle:5,1');
     });
 
@@ -135,6 +137,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('menu', [MerchantController::class, 'menu']);
         Route::patch('items/{item}/availability', [MerchantController::class, 'setAvailability']);
         Route::get('earnings', [MerchantController::class, 'earnings']);
+        Route::get('promos', [MerchantController::class, 'promos']);
+        Route::post('promos', [MerchantController::class, 'savePromo']);
+        Route::patch('promos/{promo}', [MerchantController::class, 'savePromo']);
         Route::get('reviews', [MerchantController::class, 'reviews']);
         Route::post('reviews/{review}/reply', [MerchantController::class, 'reply']);
         Route::get('insights', [MerchantController::class, 'insights']);

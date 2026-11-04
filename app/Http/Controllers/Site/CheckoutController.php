@@ -41,6 +41,8 @@ class CheckoutController extends Controller
             'cities' => Setting::get('general.cities'),
             'codLimit' => Setting::get('delivery.cash_on_delivery_limit_zig'),
             'phone' => $user->phone,
+            'splitTender' => (bool) (Setting::get('payments.split_tender') && Setting::get('payments.wallet')),
+            'charity' => Setting::get('orders.charity_round_up') ? ['name' => Setting::get('orders.charity_name'), 'step' => (int) Setting::get('orders.charity_round_to_zig')] : null,
         ]);
     }
 
@@ -110,6 +112,10 @@ class CheckoutController extends Controller
             'tip' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'scheduled_for' => ['nullable', 'date'],
             'dropoff' => ['nullable', 'in:hand_to_me,leave_at_door'],
+            'use_wallet' => ['nullable', 'boolean'],
+            'cash_part' => ['nullable', 'numeric', 'min:0'],
+            'round_up' => ['nullable', 'boolean'],
+            'no_cutlery' => ['nullable', 'boolean'],
         ]);
         $data['source'] = 'web';
         if (! empty($data['phone'])) {

@@ -54,7 +54,7 @@ class DispatchService
         $offer = $order->dispatchOffers()->create([
             'driver_id' => $driver->id,
             'pickup_km' => Geo::roadKm($driver->lat, $driver->lng, $vendor->lat, $vendor->lng),
-            'pay_zig' => $order->driver_pay_zig ?: $this->pricing->driverPay($order->distance_km),
+            'pay_zig' => round(($order->driver_pay_zig ?: $this->pricing->driverPay($order->distance_km)) * (1 + app(DriverTierService::class)->bonusPct($driver->tier ?? 'bronze') / 100), 2),
             'expires_at' => now()->addSeconds(Setting::get('delivery.offer_timeout_seconds')),
         ]);
 
@@ -72,6 +72,7 @@ class DispatchService
         $radius = (float) Setting::get('delivery.max_offer_radius_km');
         $alreadyOffered = $order->dispatchOffers()->pluck('driver_id');
         $cashLimit = (float) Setting::get('delivery.driver_cash_limit_zig');
+        $tiers = app(DriverTierService::class);
 
         return Driver::available()
             ->whereNotIn('id', $alreadyOffered)
@@ -79,10 +80,10 @@ class DispatchService
             ->get()
             ->filter(fn (Driver $d) => $d->activeOrders()->count() === 0
                 || (Setting::get('delivery.allow_batching') && $d->activeOrders()->where('vendor_id', $vendor->id)->count() === 1))
-            ->filter(fn (Driver $d) => $order->payment_method !== 'cash' || $d->cashHeld() + $order->total_zig <= $cashLimit)
+            ->filter(fn (Driver $d) => $order->cashDue() <= 0 || $d->cashHeld() + $order->cashDue() <= $cashLimit)
             ->map(fn (Driver $d) => [$d, Geo::km($d->lat, $d->lng, $vendor->lat, $vendor->lng)])
             ->filter(fn ($pair) => $pair[1] <= $radius)
-            ->sortBy(fn ($pair) => $pair[1] - ($pair[0]->rating - 4) * 0.5) // nearer first, slight boost for top-rated
+            ->sortBy(fn ($pair) => $pair[1] - ($pair[0]->rating - 4) * 0.5 - $tiers->priorityKm($pair[0]->tier ?? 'bronze')) // nearer first, boost for top-rated and higher tiers
             ->map(fn ($pair) => $pair[0])
             ->first();
     }

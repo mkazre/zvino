@@ -36,6 +36,10 @@ class OrderController extends Controller
             'scheduled_for' => ['nullable', 'date'],
             'dropoff' => ['nullable', 'in:hand_to_me,leave_at_door'],
             'group_order_id' => ['nullable', Rule::exists('group_orders', 'id')->where('host_id', $request->user()->id)],
+            'use_wallet' => ['nullable', 'boolean'],
+            'cash_part' => ['nullable', 'numeric', 'min:0'],
+            'round_up' => ['nullable', 'boolean'],
+            'no_cutlery' => ['nullable', 'boolean'],
         ]);
 
         [$order, $payment] = $this->orders->placeFromCart($request->user(), $data);
@@ -86,6 +90,11 @@ class OrderController extends Controller
             'tip_presets_pct' => \App\Models\Setting::get('orders.tip_presets_pct'),
             'payment_methods' => collect(OrderService::METHODS)->filter(fn ($m) => \App\Models\Setting::get("payments.$m"))->values(),
             'wallet_balance' => \App\Support\Money::both($request->user()->walletBalance()),
+            'split_tender' => (bool) (\App\Models\Setting::get('payments.split_tender') && \App\Models\Setting::get('payments.wallet')),
+            'round_up' => \App\Models\Setting::get('orders.charity_round_up') ? [
+                'charity' => \App\Models\Setting::get('orders.charity_name'),
+                'amount' => \App\Support\Money::both(OrderService::roundUpAmount($t['total'])),
+            ] : null,
         ]);
     }
 

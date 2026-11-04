@@ -86,11 +86,40 @@ class OrderService
         if ($t['subtotal'] < max($vendor->min_order_zig, $vendor->zone?->min_order_zig ?? 0)) {
             throw ValidationException::withMessages(['cart' => "Minimum order for {$vendor->name} is ZiG {$vendor->min_order_zig}."]);
         }
-        app(RiskService::class)->assertCanPlace($user, $data['payment_method'], $t['total']);
+        // Charity round-up (#38): the change goes to the partner charity, outside VAT and fees.
+        $t['donation'] = ! empty($data['round_up']) ? self::roundUpAmount($t['total']) : 0.0;
+        $t['total'] = round($t['total'] + $t['donation'], 2);
+
+        // Split tender (#13): wallet balance first, the rest by the chosen method.
+        $t['wallet_applied'] = 0.0;
+        if (! empty($data['use_wallet']) && $data['payment_method'] !== 'wallet' && Setting::get('payments.split_tender') && Setting::get('payments.wallet')) {
+            $t['wallet_applied'] = round(min(max(0, $user->walletBalance()), $t['total']), 2);
+            if ($t['wallet_applied'] >= $t['total']) {
+                $data['payment_method'] = 'wallet';
+                $t['wallet_applied'] = 0.0;
+            }
+        }
+        $due = round($t['total'] - $t['wallet_applied'], 2);
+
+        // Split tender, cash + mobile money: e.g. USD notes to the driver, the balance by EcoCash.
+        $t['cash_part'] = 0.0;
+        if (($data['cash_part'] ?? 0) > 0 && Setting::get('payments.split_tender') && Setting::get('payments.cash')
+            && $data['fulfilment'] === 'delivery' && in_array($data['payment_method'], ['ecocash', 'onemoney', 'innbucks', 'card'], true)) {
+            $t['cash_part'] = round(min((float) $data['cash_part'], $due), 2);
+            if ($t['cash_part'] >= $due) {
+                throw ValidationException::withMessages(['cash_part' => 'To pay everything in cash, choose Cash on delivery.']);
+            }
+            if ($t['cash_part'] > Setting::get('delivery.cash_on_delivery_limit_zig')) {
+                throw ValidationException::withMessages(['cash_part' => 'The cash part is limited to ZiG '.Setting::get('delivery.cash_on_delivery_limit_zig').'.']);
+            }
+            app(RiskService::class)->assertCanPlace($user, 'cash', $t['cash_part']);
+        }
+
+        app(RiskService::class)->assertCanPlace($user, $data['payment_method'], $due);
         if ($data['payment_method'] === 'wallet' && $user->walletBalance() < $t['total']) {
             throw ValidationException::withMessages(['payment_method' => 'Insufficient wallet balance.']);
         }
-        if ($data['payment_method'] === 'cash' && $t['total'] > Setting::get('delivery.cash_on_delivery_limit_zig')) {
+        if ($data['payment_method'] === 'cash' && $due > Setting::get('delivery.cash_on_delivery_limit_zig')) {
             throw ValidationException::withMessages(['payment_method' => 'Cash on delivery is limited to ZiG '.Setting::get('delivery.cash_on_delivery_limit_zig').'. Please choose another method.']);
         }
 
@@ -108,6 +137,7 @@ class OrderService
                 'source' => $data['source'] ?? 'app',
                 'fulfilment' => $data['fulfilment'],
                 'dropoff' => $data['dropoff'] ?? 'hand_to_me',
+                'no_cutlery' => (bool) ($data['no_cutlery'] ?? false),
                 'payment_method' => $data['payment_method'],
                 'notes' => $data['notes'] ?? null,
                 'scheduled_for' => $scheduledFor,
@@ -119,6 +149,9 @@ class OrderService
                 'tip_zig' => $t['tip'],
                 'vat_zig' => $t['vat'],
                 'total_zig' => $t['total'],
+                'wallet_applied_zig' => $t['wallet_applied'],
+                'cash_part_zig' => $t['cash_part'],
+                'donation_zig' => $t['donation'],
                 'distance_km' => $t['distance_km'],
                 'zig_per_usd' => $rate,
                 'total_usd' => ExchangeRate::toUsd($t['total'], $rate),
@@ -243,14 +276,33 @@ class OrderService
         });
     }
 
+    /** Amount that rounds $total up to the next multiple of the configured step (0 if already round). */
+    public static function roundUpAmount(float $total): float
+    {
+        if (! Setting::get('orders.charity_round_up') || $total <= 0) {
+            return 0.0;
+        }
+        $step = max(1, (int) Setting::get('orders.charity_round_to_zig'));
+
+        return round(ceil(round($total, 2) / $step) * $step - $total, 2);
+    }
+
     private function startPayment(Order $order, string $method, ?string $phone): Payment
     {
+        if ($order->wallet_applied_zig > 0) {
+            $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'debit', 'amount_zig' => $order->wallet_applied_zig, 'reason' => 'Order '.$order->reference.' (part)']);
+            Payment::create(['order_id' => $order->id, 'provider' => 'wallet', 'method' => 'wallet', 'amount_zig' => $order->wallet_applied_zig, 'status' => 'paid']);
+        }
+        if ($order->cash_part_zig > 0) {
+            Payment::create(['order_id' => $order->id, 'provider' => 'cash', 'method' => 'cash', 'amount_zig' => $order->cash_part_zig, 'status' => 'pending']);
+        }
+
         $payment = Payment::create([
             'order_id' => $order->id,
             'provider' => match ($method) { 'wallet' => 'wallet', 'cash' => 'cash', default => 'paynow' },
             'method' => $method,
             'phone' => $phone,
-            'amount_zig' => $order->total_zig,
+            'amount_zig' => round($order->total_zig - $order->wallet_applied_zig - $order->cash_part_zig, 2),
         ]);
 
         if ($method === 'wallet') {
@@ -293,7 +345,7 @@ class OrderService
         if (! $order) {
             return; // wallet top-up / gift card: handled by WalletService
         }
-        $order->update(['payment_status' => 'paid']);
+        $order->update(['payment_status' => $order->cash_part_zig > 0 ? 'pending_cash' : 'paid']);
 
         $order->status === 'pending_payment' ? $this->release($order) : OrderUpdated::dispatch($order);
     }
@@ -352,13 +404,19 @@ class OrderService
 
     private function refundInFull(Order $order, string $reason): void
     {
-        if ($order->payment_status !== 'paid' || ! $order->user) {
+        if (! $order->user) {
+            return;
+        }
+        // Split payments: only what was actually paid comes back (cash not yet handed over is simply not collected).
+        $paid = $order->payment_status === 'paid' ? $order->total_zig : round((float) $order->payments()->where('status', 'paid')->sum('amount_zig'), 2);
+        $order->payments()->where('method', 'cash')->where('status', 'pending')->update(['status' => 'cancelled']);
+        if ($paid <= 0 || $order->refunded_zig > 0) {
             return;
         }
         // Fast path: credit the wallet instantly; card/mobile reversals are processed by ops from Refunds.
-        $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'credit', 'amount_zig' => $order->total_zig, 'reason' => $reason]);
-        $order->refunds()->create(['amount_zig' => $order->total_zig, 'destination' => 'wallet', 'status' => 'paid', 'reason' => $reason]);
-        $order->update(['payment_status' => 'refunded', 'refunded_zig' => $order->total_zig]);
+        $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'credit', 'amount_zig' => $paid, 'reason' => $reason]);
+        $order->refunds()->create(['amount_zig' => $paid, 'destination' => 'wallet', 'status' => 'paid', 'reason' => $reason]);
+        $order->update(['payment_status' => 'refunded', 'refunded_zig' => $paid]);
     }
 
     // ── Status engine ────────────────────────────────────────────────
@@ -506,10 +564,15 @@ class OrderService
         return $stale->count();
     }
 
-    /** Unpaid checkouts older than 30 minutes are abandoned. */
+    /** Unpaid checkouts older than 30 minutes are abandoned (any wallet part of a split payment goes back). */
     public function expireUnpaid(): int
     {
-        return Order::where('status', 'pending_payment')->where('created_at', '<', now()->subMinutes(30))
-            ->update(['status' => 'cancelled', 'cancelled_by' => 'system', 'cancel_reason' => 'Payment not completed', 'cancelled_at' => now()]);
+        $stale = Order::where('status', 'pending_payment')->where('created_at', '<', now()->subMinutes(30))->get();
+        foreach ($stale as $order) {
+            $order->update(['status' => 'cancelled', 'cancelled_by' => 'system', 'cancel_reason' => 'Payment not completed', 'cancelled_at' => now()]);
+            $this->refundInFull($order, 'Returned: payment not completed');
+        }
+
+        return $stale->count();
     }
 }

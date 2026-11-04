@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Ticket {
     id: number; reference: string; stage: 'new' | 'cooking' | 'ready'; status: string; source: string; fulfilment: string; customer: string | null; driver: string | null;
-    notes: string | null; placed_at: string; accepted_at: string | null; prep_minutes: number; scheduled_for: string | null;
+    notes: string | null; no_cutlery?: boolean; placed_at: string; accepted_at: string | null; prep_minutes: number; scheduled_for: string | null;
     items: { name: string; quantity: number; options: { variant?: string; modifiers?: string[] } | null; notes: string | null; station: string | null }[];
 }
 interface Props {
@@ -146,6 +146,7 @@ export default function Kitchen({ vendor, vendors, tickets, stations, learnedPre
                                                     ))}
                                                     {station !== 'all' && visibleItems(t).length < t.items.length && <li className="text-xs text-white/40">+ {t.items.length - visibleItems(t).length} item(s) at other stations</li>}
                                                 </ul>
+                                                {t.no_cutlery && <div className="mx-3 mb-2 text-sm font-semibold text-emerald-300">🌿 No cutlery</div>}
                                                 {t.notes && <div className="mx-3 mb-3 rounded-lg bg-amber-400/10 px-3 py-2 text-sm text-amber-200">📝 {t.notes}</div>}
                                                 <div className="p-2 pt-0">
                                                     {col.stage === 'ready' && t.fulfilment === 'delivery' ? (

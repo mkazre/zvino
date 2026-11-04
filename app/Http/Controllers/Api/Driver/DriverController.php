@@ -152,7 +152,7 @@ class DriverController extends Controller
             'pickup_km' => $o->pickup_km,
             'dropoff_km' => $o->order->distance_km,
             'payment_method' => $o->order->payment_method,
-            'collect_cash' => $o->order->payment_method === 'cash' ? Money::both($o->order->total_zig) : null,
+            'collect_cash' => $o->order->cashDue() > 0 ? Money::both($o->order->cashDue()) : null,
             'store' => $o->order->vendor->only('name', 'address', 'lat', 'lng'),
             'dropoff_area' => $o->order->address?->suburb ?? $o->order->address?->city,
             'items_count' => $o->order->items()->sum('quantity'),
@@ -216,7 +216,7 @@ class DriverController extends Controller
         }
 
         // Zimbabwe: no small USD notes → credit the customer's change to their wallet.
-        if (($data['change_to_wallet_zig'] ?? 0) > 0 && $order->payment_method === 'cash' && $order->user) {
+        if (($data['change_to_wallet_zig'] ?? 0) > 0 && $order->cashDue() > 0 && $order->user) {
             $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'credit', 'amount_zig' => $data['change_to_wallet_zig'], 'reason' => 'Change from cash payment']);
             $this->driver($request)->ledger()->create(['order_id' => $order->id, 'type' => 'adjustment', 'amount_zig' => -$data['change_to_wallet_zig'], 'description' => "Change kept, credited to customer {$order->reference}"]);
         }
@@ -248,9 +248,34 @@ class DriverController extends Controller
             'balance' => Money::both($driver->balance()),
             'cash_held' => Money::both($driver->cashHeld()),
             'cash_limit' => Money::both((float) Setting::get('delivery.driver_cash_limit_zig')),
+            'available_to_cash_out' => Money::both(max(0, (float) $driver->ledger()->whereNull('payout_id')->sum('amount_zig'))),
+            'instant_cashout' => Setting::get('payments.instant_cashout') ? [
+                'fee_pct' => (float) Setting::get('payments.instant_cashout_fee_pct'),
+                'min' => Money::both((float) Setting::get('payments.instant_cashout_min_zig')),
+            ] : null,
+            'tier' => $driver->tier ?? 'bronze',
             'entries' => $entries->take(50)->values()->map(fn ($e) => $e->only('id', 'type', 'amount_zig', 'description', 'created_at')),
             'daily' => $entries->whereIn('type', ['earning', 'tip'])->groupBy(fn ($e) => $e->created_at->toDateString())->map->sum('amount_zig'),
         ]);
+    }
+
+    public function cashOut(Request $request, \App\Services\PayoutService $payouts)
+    {
+        $driver = $this->approved($request);
+        $data = $request->validate(['phone' => ['nullable', 'string', 'max:20']]);
+        $payout = $payouts->instantCashOut($driver, $data['phone'] ?? null);
+
+        return response()->json([
+            'payout_id' => $payout->id,
+            'amount' => Money::both($payout->amount_zig),
+            'fee' => Money::both($payout->fee_zig),
+            'message' => 'Cash-out requested. You’ll receive it today via '.ucfirst($payout->method).'.',
+        ], 201);
+    }
+
+    public function tier(Request $request, \App\Services\DriverTierService $tiers)
+    {
+        return response()->json($tiers->progress($this->driver($request)));
     }
 
     /** Pay cash collected on COD orders back to Zvino via EcoCash. */
@@ -313,7 +338,7 @@ class DriverController extends Controller
             'dropoff' => $o->address ? $o->address->only('line1', 'landmark', 'suburb', 'city', 'lat', 'lng', 'instructions', 'gate_photo_path', 'voice_note_path') : null,
             'dropoff_type' => $o->dropoff,
             'requires_pin' => Setting::get('delivery.require_delivery_pin') && $o->dropoff === 'hand_to_me',
-            'collect_cash' => $o->payment_method === 'cash' ? Money::both($o->total_zig) : null,
+            'collect_cash' => $o->cashDue() > 0 ? Money::both($o->cashDue()) : null,
             'items' => $o->items->map(fn ($i) => ['name' => $i->name, 'quantity' => $i->quantity]),
             'pay' => Money::both($o->driver_pay_zig + $o->tip_zig),
             'notes' => $o->notes,

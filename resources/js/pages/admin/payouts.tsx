@@ -7,7 +7,7 @@ import { router } from '@inertiajs/react';
 import { Banknote, Bike, RefreshCw, Store } from 'lucide-react';
 import { useState } from 'react';
 
-interface Payout { id: number; account_type: 'vendor' | 'driver'; account_id: number; account_name: string; amount_zig: number; period_start: string; period_end: string; status: string; method: string | null; reference: string | null; paid_at: string | null; payout_details: Record<string, string> | null }
+interface Payout { id: number; account_type: 'vendor' | 'driver'; account_id: number; account_name: string; amount_zig: number; period_start: string; period_end: string; status: string; method: string | null; reference: string | null; paid_at: string | null; is_instant: boolean; fee_zig: number; payout_details: Record<string, string> | null }
 interface Props {
     payouts: { data: Payout[]; links: PageLink[] };
     filters: { status: string; type?: string };
@@ -20,10 +20,10 @@ export default function Payouts({ payouts, filters, summary, schedule }: Props) 
     const go = (p: Record<string, string | undefined>) => router.get('/admin/payouts', { ...filters, ...p }, { preserveState: true });
 
     const columns: Column<Payout>[] = [
-        { key: 'who', header: 'Payee', cell: (p) => <span className="flex items-center gap-2.5"><span className="bg-muted flex size-8 items-center justify-center rounded-lg">{p.account_type === 'vendor' ? <Store className="size-4" /> : <Bike className="size-4" />}</span><span><span className="block font-semibold">{p.account_name}</span><span className="text-muted-foreground text-xs">{label(p.account_type === 'vendor' ? 'store' : 'driver')}</span></span></span> },
+        { key: 'who', header: 'Payee', cell: (p) => <span className="flex items-center gap-2.5"><span className="bg-muted flex size-8 items-center justify-center rounded-lg">{p.account_type === 'vendor' ? <Store className="size-4" /> : <Bike className="size-4" />}</span><span><span className="block font-semibold">{p.account_name}</span><span className="text-muted-foreground text-xs">{label(p.account_type === 'vendor' ? 'store' : 'driver')}</span>{p.is_instant && <span className="bg-gold/15 text-gold ml-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase">Instant · today</span>}</span></span> },
         { key: 'period', header: 'Period', hideOnMobile: true, cell: (p) => <span className="text-[13px]">{new Date(p.period_start).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' })} – {new Date(p.period_end).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' })}</span> },
         { key: 'method', header: 'Pay to', hideOnMobile: true, cell: (p) => <span className="text-[13px]">{label(p.method ?? 'ecocash')}{p.payout_details?.number && <span className="text-muted-foreground block font-mono text-xs">{p.payout_details.number}</span>}</span> },
-        { key: 'amount', header: 'Amount', align: 'right', sort: (p) => p.amount_zig, cell: (p) => <span className="tabular font-semibold">{zig(p.amount_zig)}</span> },
+        { key: 'amount', header: 'Amount', align: 'right', sort: (p) => p.amount_zig, cell: (p) => <span className="tabular font-semibold">{zig(p.amount_zig)}{p.fee_zig > 0 && <span className="text-muted-foreground block text-[11px] font-normal">fee {zig(p.fee_zig)}</span>}</span> },
         { key: 'status', header: 'Status', cell: (p) => <div><StatusPill status={p.status} />{p.reference && <div className="text-muted-foreground mt-0.5 font-mono text-[11px]">{p.reference}</div>}</div> },
         { key: 'act', header: '', align: 'right', cell: (p) => p.status === 'pending' && <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setPaying(p); }}>Mark paid</Button> },
     ];

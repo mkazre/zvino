@@ -20,7 +20,7 @@ class PayoutController extends AdminController
         $payouts = Payout::with('account')
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($type, fn ($q) => $q->where('account_type', $type))
-            ->latest()->paginate(40)->withQueryString()
+            ->orderByDesc('is_instant')->latest()->paginate(40)->withQueryString()
             ->through(fn (Payout $p) => $p->toArray() + [
                 'account_name' => $p->account instanceof Driver ? $p->account->user?->name : $p->account?->name,
                 'payout_details' => $p->account?->payout_details,

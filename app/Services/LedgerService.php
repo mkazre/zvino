@@ -40,10 +40,11 @@ class LedgerService
                     $tipShare = round($order->tip_zig * \App\Models\Setting::get('delivery.driver_keeps_tips_pct') / 100, 2);
                     $this->entry($driver, $order, 'tip', $tipShare, "Tip {$order->reference}");
                 }
-                if ($order->payment_method === 'cash') {
-                    $this->entry($driver, $order, 'cash_collected', -$order->total_zig, "Cash collected {$order->reference}");
+                if ($order->cashDue() > 0) {
+                    $this->entry($driver, $order, 'cash_collected', -$order->cashDue(), "Cash collected {$order->reference}");
                 }
                 $driver->increment('completed_deliveries');
+                app(DriverTierService::class)->refresh($driver->fresh());
             }
         });
     }

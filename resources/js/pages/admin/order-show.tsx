@@ -23,6 +23,10 @@ type Detail = Order & {
     estimated_delivery_at?: string;
     distance_km?: number;
     tip_zig: number;
+    wallet_applied_zig?: number;
+    cash_part_zig?: number;
+    donation_zig?: number;
+    no_cutlery?: boolean;
     refunded_zig: number;
     commission_zig: number;
     driver_pay_zig: number;
@@ -145,8 +149,12 @@ export default function OrderShow({ order: o, next, nearbyDrivers, audit }: Prop
                                         ['Service fee', zig(o.totals.service.zig)],
                                         ...(o.totals.discount.zig ? [['Discount', `−${zig(o.totals.discount.zig)}`] as [string, string]] : []),
                                         ...(o.tip_zig ? [['Tip', zig(o.tip_zig)] as [string, string]] : []),
+                                        ...(o.donation_zig ? [['Charity round-up', zig(o.donation_zig)] as [string, string]] : []),
                                         ['VAT (included)', zig(o.totals.vat.zig)],
                                         [<b key="t" className="text-foreground">Total</b>, <span key="v" className="text-base"><Money zig={o.totals.total.zig} usd={o.totals.total.usd} /></span>],
+                                        ...(o.wallet_applied_zig ? [['Paid from wallet', zig(o.wallet_applied_zig)] as [string, string]] : []),
+                                        ...(o.cash_part_zig ? [['Cash to driver', zig(o.cash_part_zig)] as [string, string]] : []),
+                                        ...(o.wallet_applied_zig || o.cash_part_zig ? [[`Paid by ${label(o.payment_method)}`, zig(o.totals.total.zig - (o.wallet_applied_zig ?? 0) - (o.cash_part_zig ?? 0))] as [string, string]] : []),
                                         ...(o.refunded_zig ? [['Refunded', <span key="r" className="text-zred">−{zig(o.refunded_zig)}</span>] as [string, React.ReactNode]] : []),
                                     ]}
                                 />
@@ -154,6 +162,7 @@ export default function OrderShow({ order: o, next, nearbyDrivers, audit }: Prop
                             </div>
                         </Card>
 
+                        {o.no_cutlery && <Card padded><div className="text-sm">🌿 <b>No cutlery or straws</b></div></Card>}
                         {o.notes && (
                             <Card padded className="border-gold/30 bg-gold-50/40 dark:bg-gold/5">
                                 <div className="flex gap-3 text-sm"><StickyNote className="text-gold size-4 shrink-0" /><span><b>Customer note:</b> {o.notes}</span></div>

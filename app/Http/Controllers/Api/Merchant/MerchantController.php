@@ -267,6 +267,59 @@ class MerchantController extends Controller
         ]);
     }
 
+    // ── Self-serve promotions (#33) ──────────────────────────────────
+
+    public function promos(Request $request)
+    {
+        $v = $this->store($request);
+        $promos = \App\Models\PromoCode::where('vendor_id', $v->id)->latest()->get();
+        $redemptions = Order::where('vendor_id', $v->id)->whereIn('promo_code_id', $promos->pluck('id'))->where('status', 'delivered')
+            ->selectRaw('promo_code_id, COUNT(*) as orders, SUM(subtotal_zig) as sales, SUM(discount_zig) as cost')->groupBy('promo_code_id')->get()->keyBy('promo_code_id');
+
+        return response()->json([
+            'enabled' => (bool) \App\Models\Setting::get('payments.merchant_promos'),
+            'max_pct' => (float) \App\Models\Setting::get('payments.merchant_promo_max_pct'),
+            'promos' => $promos->map(fn ($p) => $p->only('id', 'code', 'title', 'type', 'value', 'min_order_zig', 'max_uses', 'used_count', 'starts_at', 'ends_at', 'is_active') + [
+                'orders' => (int) ($redemptions[$p->id]->orders ?? 0),
+                'sales' => Money::both((float) ($redemptions[$p->id]->sales ?? 0)),
+                'cost' => Money::both((float) ($redemptions[$p->id]->cost ?? 0)),
+            ]),
+        ]);
+    }
+
+    public function savePromo(Request $request, ?\App\Models\PromoCode $promo = null)
+    {
+        $v = $this->managerOnly($request);
+        abort_unless(\App\Models\Setting::get('payments.merchant_promos'), 403, 'Store promotions are turned off by Zvino.');
+        abort_if($promo && $promo->vendor_id !== $v->id, 404);
+
+        $data = $request->validate([
+            'code' => [$promo ? 'sometimes' : 'required', 'string', 'alpha_num', 'min:3', 'max:20', \Illuminate\Validation\Rule::unique('promo_codes', 'code')->ignore($promo?->id)],
+            'title' => ['nullable', 'string', 'max:80'],
+            'type' => [$promo ? 'sometimes' : 'required', 'in:percent,fixed,free_delivery'],
+            'value' => ['nullable', 'numeric', 'min:0'],
+            'min_order_zig' => ['nullable', 'numeric', 'min:0'],
+            'max_uses' => ['nullable', 'integer', 'min:1'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after:starts_at'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+        $type = $data['type'] ?? $promo?->type;
+        if ($type === 'percent' && ($data['value'] ?? $promo?->value ?? 0) > \App\Models\Setting::get('payments.merchant_promo_max_pct')) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['value' => 'The largest discount allowed is '.\App\Models\Setting::get('payments.merchant_promo_max_pct').'%.']);
+        }
+        if (isset($data['code'])) {
+            $data['code'] = strtoupper($data['code']);
+        }
+
+        $promo = $promo
+            ? tap($promo)->update($data)
+            : \App\Models\PromoCode::create($data + ['vendor_id' => $v->id, 'created_by' => $request->user()->id, 'value' => $data['value'] ?? 0]);
+        AuditLog::record('promo.store_saved', $promo, $data);
+
+        return response()->json($promo, $promo->wasRecentlyCreated ? 201 : 200);
+    }
+
     public function reviews(Request $request)
     {
         $v = $this->store($request);

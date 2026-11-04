@@ -22,6 +22,7 @@ class Order extends Model
         'scheduled_for' => 'datetime', 'accepted_at' => 'datetime', 'ready_at' => 'datetime',
         'picked_up_at' => 'datetime', 'delivered_at' => 'datetime', 'cancelled_at' => 'datetime',
         'estimated_delivery_at' => 'datetime',
+        'wallet_applied_zig' => 'float', 'cash_part_zig' => 'float', 'donation_zig' => 'float', 'no_cutlery' => 'boolean',
     ];
 
     /** Statuses in which the order is still in progress. */
@@ -50,6 +51,14 @@ class Order extends Model
     public function messages(): HasMany { return $this->hasMany(OrderMessage::class); }
     public function refunds(): HasMany { return $this->hasMany(Refund::class); }
     public function review(): HasOne { return $this->hasOne(Review::class); }
+
+    /** What the driver collects in cash: the whole balance on cash orders, or the cash share of a split payment. */
+    public function cashDue(): float
+    {
+        return $this->payment_method === 'cash'
+            ? round($this->total_zig - $this->wallet_applied_zig, 2)
+            : round((float) $this->cash_part_zig, 2);
+    }
 
     public function scopeActive($q)
     {

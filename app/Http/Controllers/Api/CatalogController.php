@@ -97,6 +97,24 @@ class CatalogController extends Controller
     public function search(Request $request)
     {
         $term = trim((string) $request->query('q'));
+        // Dietary filters (#40): ?dietary=vegetarian,halal limits dishes (and the stores shown) to matching items.
+        $diet = array_values(array_filter(explode(',', (string) $request->query('dietary'))));
+        $dietScope = function ($q) use ($diet) {
+            foreach ($diet as $tag) {
+                $q->whereJsonContains('dietary', $tag);
+            }
+        };
+        if ($diet) {
+            $items = Item::with('vendor')->where('is_available', true)->where($dietScope)
+                ->when(mb_strlen($term) >= 2, fn ($q) => $q->where('name', 'like', "%$term%"))
+                ->whereHas('vendor', fn ($v) => $this->scopeVendor($v, $request->query('city')))->limit(40)->get();
+
+            return response()->json([
+                'vendors' => VendorResource::collection($this->vendorQuery($request->query('city'))->whereIn('id', $items->pluck('vendor_id')->unique())->limit(10)->get()),
+                'items' => ItemResource::collection($items),
+                'dietary' => $diet,
+            ]);
+        }
         if (mb_strlen($term) < 2) {
             return response()->json([
                 'vendors' => VendorResource::collection($this->vendorQuery($request->query('city'))->orderByDesc('rating')->limit(6)->get()),

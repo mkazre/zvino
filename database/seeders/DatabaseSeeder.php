@@ -71,6 +71,7 @@ class DatabaseSeeder extends Seeder
                     $vendor->items()->create([
                         'category_id' => $cat->id, 'name' => $itemName, 'description' => $desc, 'price_zig' => $price,
                         'sort_order' => $ii,
+                        'dietary' => self::dietaryFor($itemName.' '.$desc),
                         'is_special' => $vi === 0 && $ii === 0,
                         'special_price_zig' => $vi === 1 && $ii === 1 ? 180 : null,
                         'variants' => $cSort === 1 ? [['name' => 'Regular', 'price_delta_zig' => 0], ['name' => 'Large', 'price_delta_zig' => 20]] : null,
@@ -160,5 +161,21 @@ class DatabaseSeeder extends Seeder
         foreach (['terms' => 'Terms of Service', 'privacy' => 'Privacy Policy', 'about' => 'About Zvino', 'faq' => 'Help & FAQ', 'drivers' => 'Drive with Zvino', 'partners' => 'Partner with Zvino'] as $slug => $title) {
             Page::create(['slug' => $slug, 'title' => $title, 'body' => "<p>{$title}: content to be supplied by Zvino.</p>"]);
         }
+    }
+
+    /** Demo dietary tags inferred from the dish name. */
+    private static function dietaryFor(string $text): array
+    {
+        $t = strtolower($text);
+        $meat = preg_match('/beef|chicken|goat|oxtail|pork|boerewors|mince|matumbu|wings|burger|fish|kapenta|bream|meat/', $t);
+        $tags = $meat ? ['halal'] : ['vegetarian'];
+        if (preg_match('/chilli|peri|spicy|hot/', $t)) {
+            $tags[] = 'spicy';
+        }
+        if (preg_match('/salad|veg|greens|covo|rape|beans|chips|fries|maheu|juice|tea|coffee/', $t) && ! $meat) {
+            $tags[] = 'vegan';
+        }
+
+        return $tags;
     }
 }

@@ -7,7 +7,7 @@ import { label, usd, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Money } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Banknote, Bike, CalendarClock, Check, CreditCard, Footprints, Home, Loader2, MapPin, Plus, Smartphone, Tag, Wallet, Zap } from 'lucide-react';
+import { Banknote, Bike, CalendarClock, Check, CreditCard, Footprints, Heart, Home, Leaf, Loader2, MapPin, Plus, Smartphone, Tag, Wallet, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -33,6 +33,8 @@ interface Props {
     cities: string[];
     codLimit: number;
     phone: string;
+    splitTender: boolean;
+    charity: { name: string; step: number } | null;
 }
 
 const METHOD_META: Record<string, { icon: typeof Smartphone; hint: string }> = {
@@ -64,6 +66,10 @@ export default function Checkout(p: Props) {
         tip: 0,
         scheduled_for: '',
         dropoff: 'hand_to_me',
+        use_wallet: false as boolean,
+        cash_part: '',
+        round_up: false as boolean,
+        no_cutlery: true as boolean,
     });
     const subtotal = server.totals.subtotal.zig;
     const tip = tipPct === 'custom' ? Number(customTip) || 0 : Math.round(subtotal * (tipPct / 100));
@@ -100,12 +106,19 @@ export default function Checkout(p: Props) {
     }, [quote]);
 
     const totals = server.tip_totals ?? server.totals;
-    const total = totals.total.zig;
+    const baseTotal = totals.total.zig;
+    const step = p.charity?.step ?? 0;
+    const donation = form.data.round_up && step ? Math.round((Math.ceil(baseTotal / step) * step - baseTotal) * 100) / 100 : 0;
+    const total = baseTotal + donation;
+    const walletPart = form.data.use_wallet && form.data.payment_method !== 'wallet' ? Math.min(p.wallet.zig, total) : 0;
+    const online = ['ecocash', 'onemoney', 'innbucks', 'card'].includes(form.data.payment_method);
+    const cashPart = p.splitTender && online && form.data.fulfilment === 'delivery' ? Math.min(Number(form.data.cash_part) || 0, Math.max(0, total - walletPart - 1)) : 0;
+    const due = total - walletPart - cashPart;
     const slots = scheduleSlots(p.scheduleDays);
     const canPay = server.items.length > 0 && (form.data.fulfilment === 'pickup' || form.data.address_id) && (when === 'asap' ? p.store?.availability.is_open !== false : form.data.scheduled_for);
 
     const place = () => {
-        form.transform((d) => ({ ...d, tip, scheduled_for: when === 'later' ? d.scheduled_for : null }));
+        form.transform((d) => ({ ...d, tip, cash_part: cashPart || null, scheduled_for: when === 'later' ? d.scheduled_for : null }));
         form.post('/checkout', { onSuccess: () => browserCart.clear(), preserveScroll: true });
     };
 
@@ -178,17 +191,27 @@ export default function Checkout(p: Props) {
                         <div className="grid gap-2">
                             {p.methods.map((m) => {
                                 const meta = METHOD_META[m];
-                                const disabled = (m === 'wallet' && p.wallet.zig < total) || (m === 'cash' && total > p.codLimit);
+                                const disabled = (m === 'wallet' && p.wallet.zig < total) || (m === 'cash' && due > p.codLimit);
                                 return (
                                     <button key={m} disabled={disabled} onClick={() => form.setData('payment_method', m)} className={cn('flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition disabled:opacity-45', form.data.payment_method === m ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
                                         <span className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-white/10"><meta.icon className="size-5" /></span>
                                         <span className="flex-1"><span className="block font-semibold">{m === 'card' ? 'Visa / Mastercard' : m === 'wallet' ? 'Zvino wallet' : m === 'cash' ? 'Cash on delivery' : label(m)}</span>
-                                            <span className="text-muted-foreground block text-xs">{m === 'wallet' ? `Balance ${zig(p.wallet.zig)}` : m === 'cash' && total > p.codLimit ? `Not available over ${zig(p.codLimit)}` : meta.hint}</span></span>
+                                            <span className="text-muted-foreground block text-xs">{m === 'wallet' ? `Balance ${zig(p.wallet.zig)}` : m === 'cash' && due > p.codLimit ? `Not available over ${zig(p.codLimit)}` : meta.hint}</span></span>
                                         {form.data.payment_method === m && <Check className="size-5" />}
                                     </button>
                                 );
                             })}
                         </div>
+                        {p.splitTender && p.wallet.zig > 0 && form.data.payment_method !== 'wallet' && (
+                            <div className="mt-3 grid"><Toggle checked={form.data.use_wallet} onChange={(v) => form.setData('use_wallet', v)} icon={Wallet} title={`Use my wallet balance (${zig(p.wallet.zig)})`} sub={walletPart > 0 ? `${zig(walletPart)} from wallet, ${zig(due)} by ${form.data.payment_method === 'cash' ? 'cash' : label(form.data.payment_method)}` : 'Pay part with your wallet, the rest another way'} /></div>
+                        )}
+                        {p.splitTender && online && form.data.fulfilment === 'delivery' && methodsHaveCash(p.methods) && (
+                            <div className="mt-3 rounded-2xl bg-neutral-50 p-4 dark:bg-white/5">
+                                <label className="flex items-center gap-2 text-sm font-semibold"><Banknote className="size-4" /> Pay part in cash? <span className="text-muted-foreground font-normal">(optional)</span></label>
+                                <Input className="mt-2 h-11 w-48" type="number" min={0} prefix="ZiG" value={form.data.cash_part} onChange={(e) => form.setData('cash_part', e.target.value)} placeholder="0" />
+                                {cashPart > 0 && <p className="text-muted-foreground mt-2 text-xs">Hand {zig(cashPart)} (≈ {usd(cashPart / zigPerUsd)}) to your driver, the rest {zig(due)} by {form.data.payment_method === 'card' ? 'card' : label(form.data.payment_method)}.</p>}
+                            </div>
+                        )}
                         {['ecocash', 'onemoney', 'innbucks'].includes(form.data.payment_method) && (
                             <div className="mt-4"><label className="text-sm font-semibold">{label(form.data.payment_method)} number</label><Input className="mt-1.5 h-12" inputMode="tel" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder="077 123 4567" /></div>
                         )}
@@ -204,8 +227,17 @@ export default function Checkout(p: Props) {
                         </Block>
                     )}
 
+                    <Block title="Extras">
+                        <div className="grid gap-2">
+                            <Toggle checked={form.data.no_cutlery} onChange={(v) => form.setData('no_cutlery', v)} icon={Leaf} title="No cutlery or straws" sub="Less plastic. Thank you!" />
+                            {p.charity && (
+                                <Toggle checked={form.data.round_up} onChange={(v) => form.setData('round_up', v)} icon={Heart} title={`Round up for ${p.charity.name}`} sub={donation > 0 || !form.data.round_up ? `Add ${zig(form.data.round_up ? donation : Math.round((Math.ceil(baseTotal / step) * step - baseTotal) * 100) / 100)}. Every cent goes to the charity` : 'Your total is already round'} />
+                            )}
+                        </div>
+                    </Block>
+
                     <Block title="Notes for the restaurant">
-                        <Textarea value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="Allergies, cutlery, extra napkins…" />
+                        <Textarea value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="Allergies, extra napkins…" />
                     </Block>
                 </div>
 
@@ -232,6 +264,7 @@ export default function Checkout(p: Props) {
                             {totals.small_order.zig > 0 && <Row l="Small order fee" v={totals.small_order.zig} />}
                             {totals.discount.zig > 0 && <Row l="Promo" v={-totals.discount.zig} green />}
                             {totals.tip.zig > 0 && <Row l="Driver tip" v={totals.tip.zig} />}
+                            {donation > 0 && <Row l={`Donation · ${p.charity?.name}`} v={donation} />}
                             {totals.member_savings.zig > 0 && <div className="rounded-lg bg-[#e8f3ee] px-3 py-2 text-xs font-medium text-[#0b6e4f]">Zvino+ saved you {zig(totals.member_savings.zig)} 🎉</div>}
                         </dl>
                         <div className="mt-4 flex items-end justify-between border-t pt-4">
@@ -239,9 +272,16 @@ export default function Checkout(p: Props) {
                             <span className="text-right"><span className="tabular block text-2xl font-extrabold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{usd(totals.total.usd || total / zigPerUsd)} · VAT incl.</span></span>
                         </div>
                         <p className="text-muted-foreground mt-1 text-right text-[11px]">Rate today: 1 USD = {zigPerUsd} ZiG</p>
+                        {(walletPart > 0 || cashPart > 0) && (
+                            <dl className="bg-muted mt-3 grid gap-1 rounded-xl p-3 text-sm dark:bg-white/5">
+                                {walletPart > 0 && <Row l="From wallet" v={-walletPart} green />}
+                                {cashPart > 0 && <Row l="Cash to driver" v={-cashPart} />}
+                                <div className="flex justify-between font-semibold"><dt>To pay now</dt><dd className="tabular">{zig(due)}</dd></div>
+                            </dl>
+                        )}
                         {Object.values(form.errors).length > 0 && <div className="mt-4 rounded-xl bg-[#fdecee] p-3 text-sm text-[#c8102e]">{Object.values(form.errors)[0]}</div>}
                         <Button variant="dark" className="mt-5 h-14 w-full rounded-full text-base" disabled={!canPay || form.processing || syncing} onClick={place}>
-                            {form.processing ? <Loader2 className="size-5 animate-spin" /> : `Place order · ${zig(total)}`}
+                            {form.processing ? <Loader2 className="size-5 animate-spin" /> : `Place order · ${zig(due)}`}
                         </Button>
                         {!canPay && <p className="text-muted-foreground mt-2 text-center text-xs">{form.data.fulfilment === 'delivery' && !form.data.address_id ? 'Add a delivery address to continue' : when === 'later' && !form.data.scheduled_for ? 'Pick a delivery time' : ''}</p>}
                     </div>
@@ -250,6 +290,10 @@ export default function Checkout(p: Props) {
             <AddressModal open={addrOpen} onClose={() => setAddrOpen(false)} cities={p.cities} />
         </SiteLayout>
     );
+}
+
+function methodsHaveCash(methods: string[]) {
+    return methods.includes('cash');
 }
 
 function headers() {
@@ -283,6 +327,16 @@ function Tile({ active, onClick, icon: Icon, title, sub, disabled, small }: { ac
         <button type="button" disabled={disabled} onClick={onClick} className={cn('flex items-center gap-3 rounded-2xl border-2 text-left transition disabled:opacity-40', small ? 'p-3' : 'p-4', active ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
             {Icon && <Icon className="size-5 shrink-0" />}
             <span><span className={cn('block font-semibold', small && 'text-sm')}>{title}</span>{sub && <span className="text-muted-foreground block text-xs">{sub}</span>}</span>
+        </button>
+    );
+}
+
+function Toggle({ checked, onChange, icon: Icon, title, sub }: { checked: boolean; onChange: (v: boolean) => void; icon: typeof Bike; title: string; sub?: string }) {
+    return (
+        <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className="flex items-center gap-4 rounded-2xl bg-neutral-50 p-4 text-left dark:bg-white/5">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-white/10"><Icon className="size-5" /></span>
+            <span className="min-w-0 flex-1"><span className="block font-semibold">{title}</span>{sub && <span className="text-muted-foreground block text-xs">{sub}</span>}</span>
+            <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition', checked ? 'bg-[#0b6e4f]' : 'bg-neutral-300 dark:bg-white/20')}><span className={cn('absolute top-0.5 size-5 rounded-full bg-white shadow transition-all', checked ? 'left-[22px]' : 'left-0.5')} /></span>
         </button>
     );
 }
