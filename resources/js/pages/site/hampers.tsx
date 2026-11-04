@@ -22,7 +22,7 @@ export default function Hampers(p: Props) {
     return (
         <SiteLayout>
             <Head title="Send groceries home · Zvino" />
-            <section className="bg-[#0b6e4f] text-white">
+            <section className="bg-brand text-white">
                 <div className="mx-auto max-w-6xl px-6 py-14 md:py-20">
                     <p className="text-sm font-semibold tracking-wide text-white/70 uppercase">For Zimbabweans abroad</p>
                     <h1 className="mt-3 max-w-2xl text-4xl leading-tight font-extrabold tracking-[-0.03em] md:text-5xl">Send a grocery hamper home. Every month, on time.</h1>
@@ -36,7 +36,7 @@ export default function Hampers(p: Props) {
                     <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                         {p.hampers.map((h) => (
                             <article key={h.id} className="flex flex-col overflow-hidden rounded-3xl border">
-                                {h.image_path ? <img src={h.image_path} alt="" className="h-44 w-full object-cover" /> : <div className="flex h-44 items-center justify-center bg-[#e8f3ee]"><Gift className="size-10 text-[#0b6e4f]" /></div>}
+                                {h.image_path ? <img src={h.image_path} alt="" className="h-44 w-full object-cover" /> : <div className="flex h-44 items-center justify-center bg-brand-50"><Gift className="size-10 text-brand-600" /></div>}
                                 <div className="flex flex-1 flex-col p-5">
                                     <h2 className="text-lg font-bold">{h.name}</h2>
                                     <p className="text-muted-foreground text-sm">{h.vendor?.name} · {h.vendor?.city}</p>
@@ -90,7 +90,7 @@ function SendForm({ h, p, onClose }: { h: Hamper; p: Props; onClose: () => void 
     };
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 md:items-center md:p-6" onClick={onClose}>
-            <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-3xl bg-white p-6 md:rounded-3xl dark:bg-[#111412]" onClick={(e) => e.stopPropagation()}>
+            <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-3xl bg-white p-6 md:rounded-3xl dark:bg-[#222222]" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-xl font-bold">Send “{h.name}”</h2>
                 <p className="text-muted-foreground text-sm">{usd(h.price.usd)} ({zig(h.price.zig)}) each time · paid from your Zvino wallet</p>
                 <div className="mt-5 grid gap-3">
@@ -99,7 +99,7 @@ function SendForm({ h, p, onClose }: { h: Hamper; p: Props; onClose: () => void 
                     <div className="grid grid-cols-2 gap-3"><Input placeholder="Suburb" value={f.suburb} onChange={set('suburb')} /><Select value={f.city} onChange={set('city')}>{p.cities.map((c) => <option key={c}>{c}</option>)}</Select></div>
                     <Input placeholder="Landmark (e.g. opposite the church, green gate)" value={f.landmark} onChange={set('landmark')} />
                     <div className="grid grid-cols-2 gap-2">
-                        {['monthly', 'once'].map((k) => <button key={k} type="button" onClick={() => setF({ ...f, frequency: k })} className={cn('rounded-2xl border-2 p-3 text-left text-sm font-semibold', f.frequency === k ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>{k === 'monthly' ? 'Every month' : 'Just once'}{f.frequency === k && <Check className="float-right size-4" />}</button>)}
+                        {['monthly', 'once'].map((k) => <button key={k} type="button" onClick={() => setF({ ...f, frequency: k })} className={cn('rounded-2xl border-2 p-3 text-left text-sm font-semibold', f.frequency === k ? 'border-[#222222] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>{k === 'monthly' ? 'Every month' : 'Just once'}{f.frequency === k && <Check className="float-right size-4" />}</button>)}
                     </div>
                     {f.frequency === 'monthly' ? <label className="text-sm">Deliver on day <Input className="ml-2 inline-block w-20" type="number" min={1} max={28} value={f.day_of_month} onChange={set('day_of_month')} /> of each month</label> : <Input type="date" value={f.deliver_on} onChange={set('deliver_on')} />}
                     <Textarea placeholder="Gift message (optional)" value={f.gift_message} onChange={set('gift_message')} maxLength={200} />

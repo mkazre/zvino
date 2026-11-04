@@ -36,7 +36,7 @@ export type MenuItem = Item & {
     modifier_groups?: { id: number; name: string; min: number; max: number; required: boolean; options: { id: number; name: string; price_delta: Money }[] }[];
 };
 
-const GRADIENTS = ['from-[#0b6e4f] to-[#073e2c]', 'from-[#111412] to-[#2b302d]', 'from-[#c99412] to-[#8a6508]', 'from-[#c8102e] to-[#7a0a1c]'];
+const GRADIENTS = ['from-[var(--color-brand)] to-[#073e2c]', 'from-[#222222] to-[#2b302d]', 'from-[var(--color-gold)] to-[#8a6508]', 'from-[var(--color-zred)] to-[#7a0a1c]'];
 
 export function Cover({ src, seed = 0, className, children }: { src: string | null; seed?: number; className?: string; children?: ReactNode }) {
     return src ? (
@@ -59,8 +59,8 @@ export function StoreCard({ s, compact = false }: { s: StoreCardData; compact?: 
             <Cover src={s.cover} seed={s.id} className={cn('rounded-2xl', compact ? 'aspect-[16/10]' : 'aspect-[16/9]')}>
                 {closed && <div className="absolute inset-0 flex items-center justify-center bg-black/55 text-sm font-semibold text-white">{s.availability?.reason === 'paused' ? 'Paused' : 'Closed'}{s.availability?.next_open_at && ` · opens ${new Date(s.availability.next_open_at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}`}</div>}
                 <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                    {s.has_offers && <span className="flex items-center gap-1 rounded-full bg-[#c8102e] px-2.5 py-1 text-[11px] font-bold text-white"><Tag className="size-3" />Offers</span>}
-                    {s.delivery_fee.zig === 0 && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#111412]">Free delivery</span>}
+                    {s.has_offers && <span className="flex items-center gap-1 rounded-full bg-[var(--color-zred)] px-2.5 py-1 text-[11px] font-bold text-white"><Tag className="size-3" />Offers</span>}
+                    {s.delivery_fee.zig === 0 && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#222222]">Free delivery</span>}
                     {s.availability?.power_out && <span className="rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-bold text-black">⚡ Limited menu</span>}
                 </div>
                 {s.logo && <img src={s.logo} alt="" className="absolute bottom-3 left-3 size-11 rounded-xl border-2 border-white object-cover shadow" />}
@@ -81,16 +81,16 @@ export function StoreCard({ s, compact = false }: { s: StoreCardData; compact?: 
 export function DishCard({ i, onClick, showStore = false }: { i: MenuItem; onClick: () => void; showStore?: boolean }) {
     const price = i.special_price?.zig ?? i.price.zig;
     return (
-        <button onClick={onClick} disabled={!i.is_available} className="group flex w-full gap-4 rounded-2xl border p-4 text-left transition hover:border-[#111412]/25 hover:shadow-lg disabled:opacity-50 dark:hover:border-white/25">
+        <button onClick={onClick} disabled={!i.is_available} className="group flex w-full gap-4 rounded-2xl border p-4 text-left transition hover:border-[#222222]/25 hover:shadow-lg disabled:opacity-50 dark:hover:border-white/25">
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                     <h4 className="font-bold tracking-tight">{i.name}</h4>
-                    {i.is_popular && <span className="rounded bg-[#111412] px-1.5 py-0.5 text-[10px] font-bold text-white uppercase dark:bg-white dark:text-black">Popular</span>}
+                    {i.is_popular && <span className="rounded bg-[#222222] px-1.5 py-0.5 text-[10px] font-bold text-white uppercase dark:bg-white dark:text-black">Popular</span>}
                 </div>
                 {showStore && i.vendor && <p className="text-muted-foreground text-xs">{i.vendor.name}</p>}
                 {i.description && <p className="text-muted-foreground mt-1 line-clamp-2 text-[13px] leading-relaxed">{i.description}</p>}
                 <p className="mt-2 flex items-baseline gap-2">
-                    <span className={cn('tabular font-bold', i.special_price && 'text-[#c8102e]')}>{zig(price)}{i.sold_by === 'kg' && <span className="text-muted-foreground font-normal"> / kg</span>}</span>
+                    <span className={cn('tabular font-bold', i.special_price && 'text-zred')}>{zig(price)}{i.sold_by === 'kg' && <span className="text-muted-foreground font-normal"> / kg</span>}</span>
                     {i.special_price && <span className="tabular text-muted-foreground text-[13px] line-through">{zig(i.price.zig)}</span>}
                     {!i.is_available && <span className="text-muted-foreground text-xs font-medium">Sold out</span>}
                 </p>
@@ -98,7 +98,7 @@ export function DishCard({ i, onClick, showStore = false }: { i: MenuItem; onCli
             </div>
             <div className="relative shrink-0">
                 {i.image ? <img src={i.image} alt="" loading="lazy" className="size-28 rounded-xl object-cover" /> : <div className="bg-muted size-28 rounded-xl dark:bg-white/5" />}
-                <span className="absolute right-2 bottom-2 flex size-9 items-center justify-center rounded-full bg-white text-[#111412] shadow-md transition group-hover:scale-110"><Plus className="size-5" /></span>
+                <span className="absolute right-2 bottom-2 flex size-9 items-center justify-center rounded-full bg-white text-[#222222] shadow-md transition group-hover:scale-110"><Plus className="size-5" /></span>
             </div>
         </button>
     );
@@ -168,7 +168,7 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
                     <fieldset key={g.id}>
                         <legend className="mb-2 flex w-full items-center justify-between">
                             <span><span className="font-bold">{g.name}</span><span className="text-muted-foreground ml-2 text-xs">{g.max === 1 ? 'Choose 1' : `Choose up to ${g.max}`}</span></span>
-                            {g.required && <span className={cn('rounded px-2 py-0.5 text-[11px] font-semibold', missing?.id === g.id ? 'bg-[#c8102e] text-white' : 'bg-muted')}>Required</span>}
+                            {g.required && <span className={cn('rounded px-2 py-0.5 text-[11px] font-semibold', missing?.id === g.id ? 'bg-[var(--color-zred)] text-white' : 'bg-muted')}>Required</span>}
                         </legend>
                         <div className="grid gap-2">{g.options.map((o) => <Choice key={o.id} active={mods.includes(o.name)} onClick={() => toggle(g, o.name)} label={o.name} extra={o.price_delta.zig ? `+${zig(o.price_delta.zig)}` : ''} radio={g.max === 1} />)}</div>
                     </fieldset>
@@ -184,8 +184,8 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
 
 function Choice({ active, onClick, label, extra, radio }: { active: boolean; onClick: () => void; label: string; extra: string; radio?: boolean }) {
     return (
-        <button type="button" onClick={onClick} className={cn('flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition', active ? 'border-[#111412] bg-[#111412]/[0.03] dark:border-white' : 'hover:border-[#111412]/30')}>
-            <span className={cn('flex size-5 shrink-0 items-center justify-center border-2', radio ? 'rounded-full' : 'rounded-md', active ? 'border-[#111412] bg-[#111412] dark:border-white dark:bg-white' : 'border-neutral-300')}>{active && <span className={cn('bg-white dark:bg-black', radio ? 'size-2 rounded-full' : 'size-2.5 rounded-sm')} />}</span>
+        <button type="button" onClick={onClick} className={cn('flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition', active ? 'border-[#222222] bg-[#222222]/[0.03] dark:border-white' : 'hover:border-[#222222]/30')}>
+            <span className={cn('flex size-5 shrink-0 items-center justify-center border-2', radio ? 'rounded-full' : 'rounded-md', active ? 'border-[#222222] bg-[#222222] dark:border-white dark:bg-white' : 'border-neutral-300')}>{active && <span className={cn('bg-white dark:bg-black', radio ? 'size-2 rounded-full' : 'size-2.5 rounded-sm')} />}</span>
             <span className="flex-1 font-medium">{label}</span>
             {extra && <span className="tabular text-muted-foreground">{extra}</span>}
         </button>

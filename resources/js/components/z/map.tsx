@@ -75,7 +75,7 @@ function Polygons({ polygons }: { polygons: MapPolygon[] }) {
         if (!map) return;
         refs.current.forEach((p) => p.setMap(null));
         refs.current = polygons.map((p) => {
-            const color = p.tone === 'gold' ? '#c99412' : p.tone === 'muted' ? '#7a8a82' : '#0b6e4f';
+            const color = p.tone === 'gold' ? 'var(--color-gold)' : p.tone === 'muted' ? '#7a8a82' : 'var(--color-brand)';
             return new google.maps.Polygon({ map, paths: p.points.map(([lat, lng]) => ({ lat, lng })), strokeColor: color, strokeWeight: 2, fillColor: color, fillOpacity: 0.08, clickable: false });
         });
         return () => refs.current.forEach((p) => p.setMap(null));
@@ -108,14 +108,14 @@ function SchematicMap({ markers, polygons, draft, onMapClick }: { markers: MapMa
         >
             <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                 {polygons.map((p) => (
-                    <polygon key={p.id} points={p.points.map(([la, ln]) => `${x(ln)},${y(la)}`).join(' ')} fill={p.tone === 'gold' ? '#c99412' : '#0b6e4f'} fillOpacity={0.07} stroke={p.tone === 'gold' ? '#c99412' : '#0b6e4f'} strokeWidth={0.35} vectorEffect="non-scaling-stroke" />
+                    <polygon key={p.id} points={p.points.map(([la, ln]) => `${x(ln)},${y(la)}`).join(' ')} fill={p.tone === 'gold' ? 'var(--color-gold)' : 'var(--color-brand)'} fillOpacity={0.07} stroke={p.tone === 'gold' ? 'var(--color-gold)' : 'var(--color-brand)'} strokeWidth={0.35} vectorEffect="non-scaling-stroke" />
                 ))}
-                {draft && draft.length > 0 && <polygon points={draft.map(([la, ln]) => `${x(ln)},${y(la)}`).join(' ')} fill="#c99412" fillOpacity={0.12} stroke="#c99412" strokeWidth={2} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />}
+                {draft && draft.length > 0 && <polygon points={draft.map(([la, ln]) => `${x(ln)},${y(la)}`).join(' ')} fill="var(--color-gold)" fillOpacity={0.12} stroke="var(--color-gold)" strokeWidth={2} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />}
             </svg>
             {polygons.filter((p) => p.label).map((p) => {
                 const cy = p.points.reduce((s, q) => s + q[0], 0) / p.points.length;
                 const cx = p.points.reduce((s, q) => s + q[1], 0) / p.points.length;
-                return <span key={`l${p.id}`} className="text-brand/70 pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-semibold tracking-wide uppercase" style={{ left: `${x(cx)}%`, top: `${y(cy)}%` }}>{p.label}</span>;
+                return <span key={`l${p.id}`} className="text-brand-600/70 pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-semibold tracking-wide uppercase" style={{ left: `${x(cx)}%`, top: `${y(cy)}%` }}>{p.label}</span>;
             })}
             {draft?.map(([la, ln], i) => <span key={`d${i}`} className="bg-gold absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white" style={{ left: `${x(ln)}%`, top: `${y(la)}%` }} />)}
             {markers.map((m) => (

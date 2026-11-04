@@ -9,6 +9,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { ChevronDown, Globe, MapPin, Minus, Plus, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
+import { AppVersion, BrandLogo } from '@/components/brand-logo';
 
 export interface SiteProps extends SharedData {
     site: {
@@ -26,14 +27,7 @@ export interface SiteProps extends SharedData {
 }
 
 export function Logo({ inverse = false }: { inverse?: boolean }) {
-    const { brand } = usePage<SiteProps>().props;
-    if (brand?.logo) return <img src={brand.logo} alt={brand.name} className="h-8 w-auto" />;
-    return (
-        <span className="flex items-center gap-2">
-            <span className="bg-brand flex size-8 items-center justify-center rounded-[9px] text-lg font-extrabold text-white">z</span>
-            <span className={cn('text-xl font-extrabold tracking-[-0.04em]', inverse && 'text-white')}>{brand?.name ?? 'Zvino'}</span>
-        </span>
-    );
+    return <BrandLogo inverse={inverse} className="h-9 w-auto md:h-10" />;
 }
 
 export default function SiteLayout({ children, transparent = false, hideCart = false }: { children: ReactNode; transparent?: boolean; hideCart?: boolean }) {
@@ -52,7 +46,7 @@ export default function SiteLayout({ children, transparent = false, hideCart = f
     }, []);
 
     return (
-        <div className="flex min-h-screen flex-col bg-white text-[#111412] dark:bg-[#0c0e0d] dark:text-[#eef0ef]">
+        <div className="flex min-h-screen flex-col bg-white text-[#222222] dark:bg-[#0c0e0d] dark:text-[#eef0ef]">
             <Header transparent={transparent} onCart={() => setCartOpen(true)} hideCart={hideCart} />
             <main className="flex-1">{children}</main>
             <Footer />
@@ -104,13 +98,13 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
                 {site.platform_mode === 'marketplace' && (
                     <form onSubmit={(e) => { e.preventDefault(); router.get('/stores', { q }); }} className="relative hidden max-w-lg flex-1 md:block">
                         <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2" />
-                        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search food, restaurants, groceries…" className="bg-muted h-11 w-full rounded-full pr-4 pl-11 text-sm outline-none focus:ring-2 focus:ring-[#111412]/10 dark:bg-white/10" />
+                        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search food, restaurants, groceries…" className="bg-muted h-11 w-full rounded-full pr-4 pl-11 text-sm outline-none focus:ring-2 focus:ring-[#222222]/10 dark:bg-white/10" />
                     </form>
                 )}
 
                 <nav className="ml-auto flex items-center gap-1.5">
                     {!hideCart && (
-                        <button onClick={onCart} className={cn('relative flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold transition', count ? 'bg-[#111412] text-white dark:bg-white dark:text-black' : scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>
+                        <button onClick={onCart} className={cn('relative flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold transition', count ? 'bg-[#1c1c1c] text-white dark:bg-white dark:text-black' : scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>
                             <ShoppingBag className="size-[18px]" />
                             {count > 0 ? <><span>{count}</span><span className="hidden sm:inline">· {zig(subtotal)}</span></> : <span className="hidden sm:inline">{t('Basket')}</span>}
                         </button>
@@ -198,7 +192,7 @@ function MobileCartBar({ hidden, onOpen }: { hidden: boolean; onOpen: () => void
     const { count, subtotal } = useCart();
     if (hidden || !count) return null;
     return (
-        <button onClick={onOpen} className="fixed inset-x-4 bottom-4 z-30 flex h-14 items-center justify-between rounded-full bg-[#111412] px-6 text-white shadow-2xl md:hidden">
+        <button onClick={onOpen} className="fixed inset-x-4 bottom-4 z-30 flex h-14 items-center justify-between rounded-full bg-[#222222] px-6 text-white shadow-2xl md:hidden">
             <span className="flex items-center gap-2 font-semibold"><ShoppingBag className="size-5" /> View basket · {count}</span>
             <span className="tabular font-bold">{zig(subtotal)}</span>
         </button>
@@ -213,7 +207,7 @@ function Footer() {
         ['Legal', [['Terms of service', '/p/terms'], ['Privacy policy', '/p/privacy']]],
     ];
     return (
-        <footer className="mt-20 bg-[#111412] text-white">
+        <footer className="mt-20 bg-[#1c1c1c] text-white">
             <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 md:grid-cols-[1.3fr_repeat(3,1fr)]">
                 <div>
                     <Logo inverse />
@@ -235,7 +229,7 @@ function Footer() {
             </div>
             <div className="border-t border-white/10">
                 <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-5 text-xs text-white/50">
-                    <span>© {new Date().getFullYear()} {brand?.name ?? 'Zvino'} · Made in Zimbabwe 🇿🇼</span>
+                    <span>© {new Date().getFullYear()} {brand?.name ?? 'Zvino'} · Made in Zimbabwe 🇿🇼 · <AppVersion /></span>
                     <LanguagePicker />
                     <span className="flex gap-4">
                         {site.support_phone && <a href={`tel:${site.support_phone}`} className="hover:text-white">{site.support_phone}</a>}

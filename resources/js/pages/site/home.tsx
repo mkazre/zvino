@@ -30,19 +30,19 @@ export default function Home({ city, blocks, categories, stores, specials, stats
         <SiteLayout transparent>
             <Head title={seo.title} />
             {/* Hero */}
-            <section className="relative -mt-16 overflow-hidden bg-[#0a120e] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(11,110,79,0.55),transparent_60%),radial-gradient(ellipse_at_bottom_left,rgba(201,148,18,0.18),transparent_55%)]" />
+            <section className="relative -mt-16 overflow-hidden bg-[#1c1c1c] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(23,199,74,0.32),transparent_60%),radial-gradient(ellipse_at_bottom_left,rgba(253,229,0,0.16),transparent_55%)]" />
                 <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.1fr_1fr] md:px-6 md:py-24">
                     <div>
-                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur"><span className="size-1.5 rounded-full bg-[#5fe0b3]" />Now delivering in {site.cities.join(' & ')}</span>
-                        <h1 className="mt-5 text-[44px] leading-[1.02] font-extrabold tracking-[-0.045em] md:text-[68px]">{hero?.title ?? 'Your favourite food,'}<br /><span className="text-[#5fe0b3]">delivered fast.</span></h1>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur"><span className="size-1.5 rounded-full bg-brand" />Now delivering in {site.cities.join(' & ')}</span>
+                        <h1 className="mt-5 text-[44px] leading-[1.02] font-extrabold tracking-[-0.045em] md:text-[68px]">{hero?.title ?? 'Your favourite food,'}<br /><span className="text-brand">delivered fast.</span></h1>
                         <p className="mt-5 max-w-md text-lg text-white/70">{hero?.subtitle ?? 'Order from the best restaurants and shops near you. Pay with EcoCash, InnBucks, OneMoney or card.'}</p>
                         <form onSubmit={(e) => { e.preventDefault(); router.get('/stores', { q, city: city ?? undefined }); }} className="mt-8 flex max-w-xl flex-col gap-2 rounded-2xl bg-white p-2 sm:flex-row">
-                            <div className="flex flex-1 items-center gap-3 px-3 text-[#111412]">
+                            <div className="flex flex-1 items-center gap-3 px-3 text-[#222222]">
                                 <Search className="size-5 text-neutral-400" />
                                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Sadza, pizza, braai, groceries…" className="h-12 w-full bg-transparent text-[15px] outline-none" />
                             </div>
-                            <select value={city ?? ''} onChange={(e) => router.post('/city', { city: e.target.value }, { preserveScroll: true })} className="h-12 rounded-xl bg-neutral-100 px-3 text-sm font-medium text-[#111412] outline-none" aria-label="City">
+                            <select value={city ?? ''} onChange={(e) => router.post('/city', { city: e.target.value }, { preserveScroll: true })} className="h-12 rounded-xl bg-neutral-100 px-3 text-sm font-medium text-[#222222] outline-none" aria-label="City">
                                 <option value="" disabled>City</option>
                                 {site.cities.map((c) => <option key={c}>{c}</option>)}
                             </select>
@@ -68,7 +68,7 @@ export default function Home({ city, blocks, categories, stores, specials, stats
             </section>
 
             {banner && (
-                <div className={banner.payload?.tone === 'gold' ? 'bg-[#fdf6e3] text-[#6b4e05]' : 'bg-[#111412] text-white'}>
+                <div className={banner.payload?.tone === 'gold' ? 'bg-sun-50 text-ink' : 'bg-[#1c1c1c] text-white'}>
                     <div className="mx-auto max-w-7xl px-4 py-3 text-center text-sm md:px-6"><b>{banner.title}</b> {banner.subtitle}</div>
                 </div>
             )}
@@ -79,7 +79,7 @@ export default function Home({ city, blocks, categories, stores, specials, stats
                     <div className="scroll-quiet -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
                         {categories.map((c) => (
                             <Link key={c.id} href={`/stores?cuisine=${encodeURIComponent(c.name)}`} className="group flex w-24 shrink-0 flex-col items-center gap-2">
-                                <span className="bg-muted flex size-20 items-center justify-center rounded-full text-3xl transition group-hover:scale-105 group-hover:bg-[#e8f3ee] dark:bg-white/10">{c.icon ?? '🍽️'}</span>
+                                <span className="bg-muted flex size-20 items-center justify-center rounded-full text-3xl transition group-hover:scale-105 group-hover:bg-brand-50 dark:bg-white/10">{c.icon ?? '🍽️'}</span>
                                 <span className="text-[13px] font-semibold">{c.name}</span>
                             </Link>
                         ))}
@@ -125,16 +125,16 @@ export default function Home({ city, blocks, categories, stores, specials, stats
 
             {/* Growth tiles */}
             <section className="mx-auto mt-6 grid max-w-7xl gap-4 px-4 md:grid-cols-2 md:px-6">
-                <Link href="/plus" className="group relative overflow-hidden rounded-3xl bg-[#111412] p-8 text-white">
-                    <span className="text-sm font-bold text-[#5fe0b3]">ZVINO+</span>
+                <Link href="/plus" className="group relative overflow-hidden rounded-3xl bg-[#222222] p-8 text-white">
+                    <span className="text-sm font-bold text-brand">ZVINO+</span>
                     <h3 className="mt-2 text-3xl font-extrabold tracking-tight">Free delivery,<br />every order.</h3>
                     <p className="mt-2 max-w-xs text-white/60">Plus half-price service fees and member-only deals.</p>
                     <span className="mt-6 inline-flex items-center gap-1.5 font-semibold">Join Zvino+ <ArrowRight className="size-4 transition group-hover:translate-x-1" /></span>
                 </Link>
-                <Link href="/gift-cards" className="group relative overflow-hidden rounded-3xl bg-[#fdf6e3] p-8 text-[#3d2c03]">
+                <Link href="/gift-cards" className="group relative overflow-hidden rounded-3xl bg-sun-50 p-8 text-ink">
                     <Gift className="size-7" />
                     <h3 className="mt-3 text-3xl font-extrabold tracking-tight">Send a meal home.</h3>
-                    <p className="mt-2 max-w-xs text-[#3d2c03]/70">In the diaspora? Gift a Zvino card to family in Zimbabwe. They get it by SMS.</p>
+                    <p className="mt-2 max-w-xs text-ink/70">In the diaspora? Gift a Zvino card to family in Zimbabwe. They get it by SMS.</p>
                     <span className="mt-6 inline-flex items-center gap-1.5 font-semibold">Buy a gift card <ArrowRight className="size-4 transition group-hover:translate-x-1" /></span>
                 </Link>
             </section>

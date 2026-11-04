@@ -185,7 +185,7 @@ export default function Checkout(p: Props) {
                             ) : (
                                 <div className="grid gap-2">
                                     {p.addresses.map((a) => (
-                                        <button key={a.id} onClick={() => form.setData('address_id', a.id)} className={cn('flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition', form.data.address_id === a.id ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
+                                        <button key={a.id} onClick={() => form.setData('address_id', a.id)} className={cn('flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition', form.data.address_id === a.id ? 'border-[#222222] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
                                             <Home className="mt-0.5 size-5 shrink-0" />
                                             <span className="min-w-0 flex-1"><span className="block font-semibold">{a.label}</span><span className="text-muted-foreground block text-sm">{a.line1}{a.suburb && `, ${a.suburb}`}, {a.city}</span>{a.landmark && <span className="text-muted-foreground block text-xs">📍 {a.landmark}</span>}</span>
                                             {form.data.address_id === a.id && <Check className="size-5" />}
@@ -194,7 +194,7 @@ export default function Checkout(p: Props) {
                                 </div>
                             )}
                             {server.distance_km && <p className="text-muted-foreground mt-3 text-xs">{server.distance_km} km from the store</p>}
-                            {server.batch && <div className="mt-3 rounded-xl bg-[#e8f3ee] px-4 py-3 text-sm text-[#0b6e4f]">🚐 <b>{server.batch.zone} run</b>: leaves {new Date(server.batch.departs_at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}, arrives about {new Date(server.batch.arrives_at).toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}.</div>}
+                            {server.batch && <div className="mt-3 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-600">🚐 <b>{server.batch.zone} run</b>: leaves {new Date(server.batch.departs_at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}, arrives about {new Date(server.batch.arrives_at).toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}.</div>}
                             <div className="mt-4 grid grid-cols-2 gap-2">
                                 <Tile small active={form.data.dropoff === 'hand_to_me'} onClick={() => form.setData('dropoff', 'hand_to_me')} title="Hand it to me" />
                                 <Tile small active={form.data.dropoff === 'leave_at_door'} onClick={() => form.setData('dropoff', 'leave_at_door')} title="Leave at gate / door" sub="Driver sends a photo" />
@@ -213,7 +213,7 @@ export default function Checkout(p: Props) {
                                 {slots.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                             </Select>
                         )}
-                        {form.errors.scheduled_for && <p className="mt-2 text-sm text-[#c8102e]">{form.errors.scheduled_for}</p>}
+                        {form.errors.scheduled_for && <p className="mt-2 text-sm text-zred">{form.errors.scheduled_for}</p>}
                     </Block>
 
                     <Block title={t('Payment')}>
@@ -222,7 +222,7 @@ export default function Checkout(p: Props) {
                                 const meta = METHOD_META[m];
                                 const disabled = (m === 'wallet' && p.wallet.zig < total) || (m === 'cash' && due > p.codLimit);
                                 return (
-                                    <button key={m} disabled={disabled} onClick={() => form.setData('payment_method', m)} className={cn('flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition disabled:opacity-45', form.data.payment_method === m ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
+                                    <button key={m} disabled={disabled} onClick={() => form.setData('payment_method', m)} className={cn('flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition disabled:opacity-45', form.data.payment_method === m ? 'border-[#222222] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
                                         <span className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-white/10"><meta.icon className="size-5" /></span>
                                         <span className="flex-1"><span className="block font-semibold">{m === 'card' ? 'Visa / Mastercard' : m === 'wallet' ? 'Zvino wallet' : m === 'cash' ? 'Cash on delivery' : m === 'company' ? `${p.company?.company ?? 'Company'} account` : label(m)}</span>
                                             <span className="text-muted-foreground block text-xs">{m === 'company' ? (p.company?.left_today_zig != null ? `${zig(p.company.left_today_zig)} left today` : 'Billed to your company') : m === 'wallet' ? `Balance ${zig(p.wallet.zig)}` : m === 'cash' && due > p.codLimit ? `Not available over ${zig(p.codLimit)}` : meta.hint}</span></span>
@@ -269,8 +269,8 @@ export default function Checkout(p: Props) {
                     {p.tipPresets.length > 0 && form.data.fulfilment === 'delivery' && (
                         <Block title={t('Tip your driver')} action={<span className="text-muted-foreground text-xs">{t('100% goes to them')}</span>}>
                             <div className="flex flex-wrap gap-2">
-                                {[0, ...p.tipPresets].map((t) => <button key={t} onClick={() => setTipPct(t)} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === t ? 'bg-[#111412] text-white dark:bg-white dark:text-black' : 'bg-muted dark:bg-white/10')}>{t === 0 ? 'Not now' : `${t}% · ${zig(Math.round(subtotal * t / 100))}`}</button>)}
-                                <button onClick={() => setTipPct('custom')} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === 'custom' ? 'bg-[#111412] text-white' : 'bg-muted dark:bg-white/10')}>Other</button>
+                                {[0, ...p.tipPresets].map((t) => <button key={t} onClick={() => setTipPct(t)} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === t ? 'bg-[#1c1c1c] text-white dark:bg-white dark:text-black' : 'bg-muted dark:bg-white/10')}>{t === 0 ? 'Not now' : `${t}% · ${zig(Math.round(subtotal * t / 100))}`}</button>)}
+                                <button onClick={() => setTipPct('custom')} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === 'custom' ? 'bg-[#1c1c1c] text-white' : 'bg-muted dark:bg-white/10')}>Other</button>
                             </div>
                             {tipPct === 'custom' && <Input className="mt-3 h-12 w-48" type="number" prefix="ZiG" value={customTip} onChange={(e) => setCustomTip(e.target.value)} />}
                         </Block>
@@ -280,11 +280,11 @@ export default function Checkout(p: Props) {
                         <Block title="Prescription">
                             <p className="text-muted-foreground text-sm">Your basket has prescription medicine. Add a clear photo of your prescription. The pharmacist checks it before accepting your order (you’re refunded in full if it’s declined).</p>
                             <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed p-4">
-                                {uploading ? <Loader2 className="size-5 animate-spin" /> : form.data.prescription ? <Check className="size-5 text-[#0b6e4f]" /> : <Plus className="size-5" />}
+                                {uploading ? <Loader2 className="size-5 animate-spin" /> : form.data.prescription ? <Check className="size-5 text-brand-600" /> : <Plus className="size-5" />}
                                 <span className="font-semibold">{form.data.prescription ? 'Prescription added. Tap to replace' : 'Add prescription photo'}</span>
                                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && uploadPrescription(e.target.files[0])} />
                             </label>
-                            {form.errors.prescription && <p className="mt-2 text-sm text-[#c8102e]">{form.errors.prescription}</p>}
+                            {form.errors.prescription && <p className="mt-2 text-sm text-zred">{form.errors.prescription}</p>}
                         </Block>
                     )}
 
@@ -320,13 +320,13 @@ export default function Checkout(p: Props) {
                         </form>
                         <dl className="mt-5 grid gap-2 text-sm">
                             <Row l={t('Subtotal')} v={totals.subtotal.zig} />
-                            {form.data.fulfilment === 'delivery' && <Row l={<>Delivery{server.surge && <span className="ml-1 text-xs text-[#c99412]">({server.surge.multiplier}× {server.surge.reason ?? 'busy'})</span>}</>} v={totals.delivery.zig} free={totals.delivery.zig === 0} />}
+                            {form.data.fulfilment === 'delivery' && <Row l={<>Delivery{server.surge && <span className="ml-1 text-xs text-gold">({server.surge.multiplier}× {server.surge.reason ?? 'busy'})</span>}</>} v={totals.delivery.zig} free={totals.delivery.zig === 0} />}
                             <Row l={t('Service fee')} v={totals.service.zig} />
                             {totals.small_order.zig > 0 && <Row l="Small order fee" v={totals.small_order.zig} />}
                             {totals.discount.zig > 0 && <Row l={server.deal ?? 'Promo'} v={-totals.discount.zig} green />}
                             {totals.tip.zig > 0 && <Row l="Driver tip" v={totals.tip.zig} />}
                             {donation > 0 && <Row l={`Donation · ${p.charity?.name}`} v={donation} />}
-                            {totals.member_savings.zig > 0 && <div className="rounded-lg bg-[#e8f3ee] px-3 py-2 text-xs font-medium text-[#0b6e4f]">Zvino+ saved you {zig(totals.member_savings.zig)} 🎉</div>}
+                            {totals.member_savings.zig > 0 && <div className="rounded-lg bg-brand-50 px-3 py-2 text-xs font-medium text-brand-600">Zvino+ saved you {zig(totals.member_savings.zig)} 🎉</div>}
                         </dl>
                         <div className="mt-4 flex items-end justify-between border-t pt-4">
                             <span className="font-bold">{t('Total')}</span>
@@ -341,7 +341,7 @@ export default function Checkout(p: Props) {
                                 <div className="flex justify-between font-semibold"><dt>To pay now</dt><dd className="tabular">{zig(due)}</dd></div>
                             </dl>
                         )}
-                        {Object.values(form.errors).length > 0 && <div className="mt-4 rounded-xl bg-[#fdecee] p-3 text-sm text-[#c8102e]">{Object.values(form.errors)[0]}</div>}
+                        {Object.values(form.errors).length > 0 && <div className="mt-4 rounded-xl bg-zred-50 p-3 text-sm text-zred">{Object.values(form.errors)[0]}</div>}
                         <Button variant="dark" className="mt-5 h-14 w-full rounded-full text-base" disabled={!canPay || form.processing || syncing} onClick={place}>
                             {form.processing ? <Loader2 className="size-5 animate-spin" /> : `${t('Place order')} · ${zig(due)}`}
                         </Button>
@@ -386,7 +386,7 @@ function Block({ title, action, children }: { title: string; action?: React.Reac
 
 function Tile({ active, onClick, icon: Icon, title, sub, disabled, small }: { active: boolean; onClick: () => void; icon?: typeof Bike; title: string; sub?: string; disabled?: boolean; small?: boolean }) {
     return (
-        <button type="button" disabled={disabled} onClick={onClick} className={cn('flex items-center gap-3 rounded-2xl border-2 text-left transition disabled:opacity-40', small ? 'p-3' : 'p-4', active ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
+        <button type="button" disabled={disabled} onClick={onClick} className={cn('flex items-center gap-3 rounded-2xl border-2 text-left transition disabled:opacity-40', small ? 'p-3' : 'p-4', active ? 'border-[#222222] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
             {Icon && <Icon className="size-5 shrink-0" />}
             <span><span className={cn('block font-semibold', small && 'text-sm')}>{title}</span>{sub && <span className="text-muted-foreground block text-xs">{sub}</span>}</span>
         </button>
@@ -398,12 +398,12 @@ function Toggle({ checked, onChange, icon: Icon, title, sub }: { checked: boolea
         <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className="flex items-center gap-4 rounded-2xl bg-neutral-50 p-4 text-left dark:bg-white/5">
             <span className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-white/10"><Icon className="size-5" /></span>
             <span className="min-w-0 flex-1"><span className="block font-semibold">{title}</span>{sub && <span className="text-muted-foreground block text-xs">{sub}</span>}</span>
-            <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition', checked ? 'bg-[#0b6e4f]' : 'bg-neutral-300 dark:bg-white/20')}><span className={cn('absolute top-0.5 size-5 rounded-full bg-white shadow transition-all', checked ? 'left-[22px]' : 'left-0.5')} /></span>
+            <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition', checked ? 'bg-brand' : 'bg-neutral-300 dark:bg-white/20')}><span className={cn('absolute top-0.5 size-5 rounded-full bg-white shadow transition-all', checked ? 'left-[22px]' : 'left-0.5')} /></span>
         </button>
     );
 }
 
 function Row({ l, v, free, green }: { l: React.ReactNode; v: number; free?: boolean; green?: boolean }) {
-    return <div className="flex justify-between"><dt className="text-muted-foreground">{l}</dt><dd className={cn('tabular', green && 'font-semibold text-[#0b6e4f]')}>{free ? <span className="font-semibold text-[#0b6e4f]">Free</span> : v < 0 ? `−${zig(-v)}` : zig(v)}</dd></div>;
+    return <div className="flex justify-between"><dt className="text-muted-foreground">{l}</dt><dd className={cn('tabular', green && 'font-semibold text-brand-600')}>{free ? <span className="font-semibold text-brand-600">Free</span> : v < 0 ? `−${zig(-v)}` : zig(v)}</dd></div>;
 }
 

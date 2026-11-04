@@ -8,7 +8,7 @@ type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'brand' | 'd
 
 const TONES: Record<Tone, string> = {
     neutral: 'bg-muted text-muted-foreground',
-    success: 'bg-brand-50 text-brand dark:bg-brand/15 dark:text-primary',
+    success: 'bg-brand-50 text-brand-600 dark:bg-brand/15 dark:text-primary',
     warning: 'bg-gold-50 text-[#8a6508] dark:bg-gold/15 dark:text-warning',
     danger: 'bg-zred-50 text-zred dark:bg-zred/15 dark:text-destructive',
     info: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
@@ -83,7 +83,7 @@ export function StatCard({
             <div className="tabular mt-3 text-[28px] leading-none font-bold tracking-[-0.03em]">{value}</div>
             <div className="mt-2.5 flex items-center gap-2 text-xs">
                 {delta !== undefined && delta !== null && (
-                    <span className={cn('inline-flex items-center gap-0.5 font-semibold', delta >= 0 ? (inverse ? 'text-[#5fe0b3]' : 'text-brand') : 'text-zred')}>
+                    <span className={cn('inline-flex items-center gap-0.5 font-semibold', delta >= 0 ? (inverse ? 'text-brand' : 'text-brand-600') : 'text-zred')}>
                         {delta >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
                         {Math.abs(delta)}%
                     </span>
@@ -96,11 +96,11 @@ export function StatCard({
                         <AreaChart data={trend.map((v, i) => ({ i, v }))} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                             <defs>
                                 <linearGradient id={`sg-${label}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={inverse ? '#5fe0b3' : 'var(--chart-1)'} stopOpacity={0.35} />
-                                    <stop offset="100%" stopColor={inverse ? '#5fe0b3' : 'var(--chart-1)'} stopOpacity={0} />
+                                    <stop offset="0%" stopColor={inverse ? 'var(--color-brand)' : 'var(--chart-1)'} stopOpacity={0.35} />
+                                    <stop offset="100%" stopColor={inverse ? 'var(--color-brand)' : 'var(--chart-1)'} stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <Area type="monotone" dataKey="v" stroke={inverse ? '#5fe0b3' : 'var(--chart-1)'} strokeWidth={1.75} fill={`url(#sg-${label})`} isAnimationActive={false} />
+                            <Area type="monotone" dataKey="v" stroke={inverse ? 'var(--color-brand)' : 'var(--chart-1)'} strokeWidth={1.75} fill={`url(#sg-${label})`} isAnimationActive={false} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>

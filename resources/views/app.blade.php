@@ -17,7 +17,13 @@
             <link rel="canonical" href="{{ url()->current() }}">
             @if (! empty($seo['jsonld']))<script type="application/ld+json">{!! json_encode($seo['jsonld'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>@endif
         @endif
-        <meta name="theme-color" content="#0B6E4F">
+        @php($brand = \App\Support\Brand::palette())
+        <meta name="theme-color" content="#ffffff">
+        <link rel="icon" href="/favicon.ico" sizes="any">
+        <link rel="icon" type="image/png" href="/favicon.png">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        {{-- Brand colours from Settings → Branding (change them there, no rebuild needed) --}}
+        <style>:root{--brand-primary:{{ $brand['primary'] }};--brand-primary-dark:{{ $brand['primary_dark'] }};--brand-primary-soft:{{ $brand['primary_soft'] }};--brand-on-primary:{{ $brand['on_primary'] }};--brand-accent:{{ $brand['accent'] }};--brand-accent-dark:{{ $brand['accent_dark'] }};--brand-accent-soft:{{ $brand['accent_soft'] }};--brand-danger:{{ $brand['danger'] }};--brand-danger-soft:{{ $brand['danger_soft'] }}}</style>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800" rel="stylesheet" />

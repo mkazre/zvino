@@ -77,15 +77,15 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                 <Cover src={s.cover} seed={s.id} className="aspect-[16/7] md:aspect-[16/5] md:rounded-3xl">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute top-4 right-4 flex gap-2">
-                        <button onClick={share} className="flex size-10 items-center justify-center rounded-full bg-white/95 text-[#111412] shadow" aria-label="Share"><Share2 className="size-4" /></button>
-                        {auth?.user && <button onClick={() => router.post(`/store/${s.id}/favorite`, {}, { preserveScroll: true })} className="flex size-10 items-center justify-center rounded-full bg-white/95 text-[#111412] shadow" aria-label="Favourite"><Heart className={cn('size-4', isFavorite && 'fill-[#c8102e] text-[#c8102e]')} /></button>}
+                        <button onClick={share} className="flex size-10 items-center justify-center rounded-full bg-white/95 text-[#222222] shadow" aria-label="Share"><Share2 className="size-4" /></button>
+                        {auth?.user && <button onClick={() => router.post(`/store/${s.id}/favorite`, {}, { preserveScroll: true })} className="flex size-10 items-center justify-center rounded-full bg-white/95 text-[#222222] shadow" aria-label="Favourite"><Heart className={cn('size-4', isFavorite && 'fill-[var(--color-zred)] text-zred')} /></button>}
                     </div>
                 </Cover>
             </div>
 
             <div className="mx-auto max-w-7xl px-4 md:px-6">
                 <div className="relative -mt-10 flex flex-wrap items-end gap-5 md:-mt-12">
-                    {s.logo ? <img src={s.logo} alt="" className="size-20 rounded-2xl border-4 border-white object-cover shadow-lg md:size-24 dark:border-[#0c0e0d]" /> : <div className="flex size-20 items-center justify-center rounded-2xl border-4 border-white bg-[#111412] text-3xl font-extrabold text-white shadow-lg md:size-24 dark:border-[#0c0e0d]">{s.name[0]}</div>}
+                    {s.logo ? <img src={s.logo} alt="" className="size-20 rounded-2xl border-4 border-white object-cover shadow-lg md:size-24 dark:border-[#0c0e0d]" /> : <div className="flex size-20 items-center justify-center rounded-2xl border-4 border-white bg-[#222222] text-3xl font-extrabold text-white shadow-lg md:size-24 dark:border-[#0c0e0d]">{s.name[0]}</div>}
                 </div>
                 <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_340px]">
                     <div className="min-w-0">
@@ -106,7 +106,7 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
 
                         {deals.length > 0 && (
                             <div className="mt-5 flex flex-wrap gap-2">
-                                {deals.map((d) => <span key={d.id} className={cn('rounded-full px-4 py-2 text-sm font-semibold', d.live ? 'bg-[#e8f3ee] text-[#0b6e4f]' : 'bg-neutral-100 text-neutral-600 dark:bg-white/5')}>🏷️ {d.headline}{!d.live && ' · later today'}</span>)}
+                                {deals.map((d) => <span key={d.id} className={cn('rounded-full px-4 py-2 text-sm font-semibold', d.live ? 'bg-brand-50 text-brand-600' : 'bg-neutral-100 text-neutral-600 dark:bg-white/5')}>🏷️ {d.headline}{!d.live && ' · later today'}</span>)}
                             </div>
                         )}
                         {closed && <div className="mt-5 rounded-2xl bg-neutral-100 px-5 py-4 text-sm dark:bg-white/5"><b>Closed right now.</b> {s.availability.next_open_at ? `Opens ${new Date(s.availability.next_open_at).toLocaleString('en-ZW', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}.` : ''} {s.accepts_scheduled && 'You can still order and schedule delivery for later.'}</div>}
@@ -118,7 +118,7 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                             <div className="flex items-center gap-4">
                                 <div className="scroll-quiet flex flex-1 gap-6 overflow-x-auto">
                                     {menu.map((c) => (
-                                        <button key={c.id} onClick={() => refs.current[c.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={cn('shrink-0 border-b-2 py-4 text-[15px] font-semibold transition', active === c.id ? 'border-[#111412] dark:border-white' : 'text-muted-foreground border-transparent')}>{c.name}</button>
+                                        <button key={c.id} onClick={() => refs.current[c.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={cn('shrink-0 border-b-2 py-4 text-[15px] font-semibold transition', active === c.id ? 'border-[#222222] dark:border-white' : 'text-muted-foreground border-transparent')}>{c.name}</button>
                                     ))}
                                 </div>
                                 <div className="relative hidden sm:block"><Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${s.name}`} className="bg-muted h-10 w-52 rounded-full pr-3 pl-9 text-sm outline-none dark:bg-white/10" /></div>
@@ -154,7 +154,7 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                                 <div className="grid gap-4 md:grid-cols-2">
                                     {reviews.map((r) => (
                                         <figure key={r.id} className="rounded-2xl border p-5">
-                                            <div className="flex items-center justify-between"><span className="font-semibold">{r.author}</span><span className="flex">{Array.from({ length: 5 }, (_, k) => <Star key={k} className={cn('size-3.5', k < r.rating ? 'fill-[#c99412] text-[#c99412]' : 'text-neutral-300')} />)}</span></div>
+                                            <div className="flex items-center justify-between"><span className="font-semibold">{r.author}</span><span className="flex">{Array.from({ length: 5 }, (_, k) => <Star key={k} className={cn('size-3.5', k < r.rating ? 'fill-[var(--color-gold)] text-gold' : 'text-neutral-300')} />)}</span></div>
                                             <blockquote className="mt-2 text-[15px] leading-relaxed">“{r.comment}”</blockquote>
                                             <figcaption className="text-muted-foreground mt-2 text-xs">{timeAgo(r.at)}</figcaption>
                                             {r.reply && <p className="bg-muted mt-3 rounded-lg px-3 py-2 text-sm dark:bg-white/5"><b>{s.name}:</b> {r.reply}</p>}

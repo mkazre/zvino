@@ -42,7 +42,7 @@ export default function Catering(p: Props) {
     return (
         <SiteLayout>
             <Head title="Catering · Zvino" />
-            <section className="bg-[#111412] text-white">
+            <section className="bg-[#1c1c1c] text-white">
                 <div className="mx-auto max-w-6xl px-6 py-14">
                     <h1 className="max-w-2xl text-4xl font-extrabold tracking-[-0.03em] md:text-5xl">Catering for the moments that matter</h1>
                     <p className="mt-4 max-w-xl text-lg text-white/75">Funerals, weddings, church and family gatherings. Tell us how many people and when, and a trusted caterer sends you a quote. Pay a deposit to confirm.</p>

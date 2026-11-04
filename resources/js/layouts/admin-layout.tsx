@@ -7,6 +7,7 @@ import { Command } from 'cmdk';
 import { BarChart3, Bell, Bike, Building2, Calculator, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
+import { AppVersion, BrandLogo } from '@/components/brand-logo';
 
 interface NavItem {
     title: string;
@@ -161,14 +162,7 @@ function Sidebar() {
     return (
         <>
             <Link href="/dashboard" className="flex h-16 shrink-0 items-center gap-2.5 px-5">
-                {brand?.logo ? (
-                    <img src={brand.logo} alt={brand.name} className="h-7 w-auto" />
-                ) : (
-                    <>
-                        <span className="bg-brand flex size-8 items-center justify-center rounded-[9px] text-[17px] font-extrabold tracking-tight text-white">z</span>
-                        <span className="text-[17px] font-bold tracking-[-0.03em]">{brand?.name ?? 'Zvino'}</span>
-                    </>
-                )}
+                <BrandLogo className="h-8 w-auto" />
                 {auth.user.vendor && <span className="text-muted-foreground ml-auto max-w-20 truncate text-xs">{auth.user.vendor.name}</span>}
             </Link>
             <nav className="scroll-quiet flex-1 overflow-y-auto px-3 pb-4">
@@ -186,10 +180,10 @@ function Sidebar() {
                                             prefetch
                                             className={cn(
                                                 'group flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] font-medium transition-colors',
-                                                active ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-foreground',
+                                                active ? 'bg-sidebar-accent text-foreground shadow-[inset_3px_0_0_var(--color-brand)]' : 'text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-foreground',
                                             )}
                                         >
-                                            <i.icon className={cn('size-[17px] shrink-0', active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground')} strokeWidth={active ? 2.2 : 1.9} />
+                                            <i.icon className={cn('size-[17px] shrink-0', active ? 'text-brand-600' : 'text-muted-foreground group-hover:text-foreground')} strokeWidth={active ? 2.2 : 1.9} />
                                             <span className="truncate">{i.title}</span>
                                             {!!count && (
                                                 <span
@@ -209,6 +203,7 @@ function Sidebar() {
                     </div>
                 ))}
             </nav>
+            <div className="text-muted-foreground border-t px-5 py-3 text-[11px]"><AppVersion /></div>
         </>
     );
 }

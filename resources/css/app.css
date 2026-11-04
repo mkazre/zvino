@@ -15,14 +15,19 @@
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    --color-brand: #0b6e4f;
-    --color-brand-600: #095c42;
-    --color-brand-50: #e8f3ee;
-    --color-brand-dark: #073e2c;
-    --color-gold: #c99412;
-    --color-gold-50: #fdf6e3;
-    --color-zred: #c8102e;
-    --color-zred-50: #fdecee;
+    /* Zvino brand (from the logo). Overridden at runtime by Settings → Branding via --brand-* vars. */
+    --color-brand: var(--brand-primary, #17c74a);
+    --color-brand-600: var(--brand-primary-dark, #108b34);
+    --color-brand-50: var(--brand-primary-soft, #e3f8e9);
+    --color-brand-dark: var(--brand-primary-dark, #108b34);
+    --color-on-brand: var(--brand-on-primary, #111111);
+    --color-sun: var(--brand-accent, #fde500);
+    --color-sun-50: var(--brand-accent-soft, #fffbd9);
+    --color-gold: var(--brand-accent-dark, #8b7e00);
+    --color-gold-50: var(--brand-accent-soft, #fffbd9);
+    --color-zred: var(--brand-danger, #df302d);
+    --color-zred-50: var(--brand-danger-soft, #fcEAEA);
+    --color-ink: #222222;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -93,44 +98,44 @@
 }
 
 :root {
-    --background: #f6f6f4;          /* app canvas */
-    --surface: #ffffff;             /* cards, tables */
-    --subtle: #fafaf9;              /* table headers, wells */
-    --foreground: #111412;          /* ink */
+    --background: #ffffff;          /* main colour: white */
+    --surface: #ffffff;
+    --subtle: #fafafa;
+    --foreground: #222222;          /* logo ink */
     --card: #ffffff;
-    --card-foreground: #111412;
+    --card-foreground: #222222;
     --popover: #ffffff;
-    --popover-foreground: #111412;
-    --primary: #0b6e4f;
-    --primary-foreground: #ffffff;
-    --secondary: #f1f1ef;
-    --secondary-foreground: #111412;
-    --muted: #f1f1ef;
-    --muted-foreground: #6b716d;
-    --accent: #f1f1ef;
-    --accent-foreground: #111412;
-    --destructive: #c8102e;
+    --popover-foreground: #222222;
+    --primary: var(--brand-primary, #17c74a);
+    --primary-foreground: var(--brand-on-primary, #111111);
+    --secondary: #f4f4f2;
+    --secondary-foreground: #222222;
+    --muted: #f4f4f2;
+    --muted-foreground: #6b6b6b;
+    --accent: var(--brand-accent-soft, #fffbd9);
+    --accent-foreground: #222222;
+    --destructive: var(--brand-danger, #df302d);
     --destructive-foreground: #ffffff;
-    --success: #0b6e4f;
-    --warning: #c99412;
+    --success: var(--brand-primary-dark, #108b34);
+    --warning: var(--brand-accent-dark, #8b7e00);
     --info: #2563eb;
-    --border: #e7e7e4;
-    --input: #dededa;
-    --ring: #0b6e4f;
-    --chart-1: #0b6e4f;
-    --chart-2: #111412;
-    --chart-3: #c99412;
-    --chart-4: #7a8a82;
-    --chart-5: #c8102e;
+    --border: #ececea;
+    --input: #e2e2df;
+    --ring: var(--brand-primary, #17c74a);
+    --chart-1: var(--brand-primary, #17c74a);
+    --chart-2: #222222;
+    --chart-3: var(--brand-accent, #fde500);
+    --chart-4: #9a9a9a;
+    --chart-5: var(--brand-danger, #df302d);
     --radius: 0.625rem;
     --sidebar-background: #ffffff;
-    --sidebar-foreground: #3b403d;
-    --sidebar-primary: #111412;
-    --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #f1f1ef;
-    --sidebar-accent-foreground: #111412;
+    --sidebar-foreground: #3d3d3d;
+    --sidebar-primary: var(--brand-primary, #17c74a);
+    --sidebar-primary-foreground: var(--brand-on-primary, #111111);
+    --sidebar-accent: var(--brand-primary-soft, #e3f8e9);
+    --sidebar-accent-foreground: #222222;
     --sidebar-border: #ececea;
-    --sidebar-ring: #0b6e4f;
+    --sidebar-ring: var(--brand-primary, #17c74a);
 }
 
 .dark {
@@ -142,8 +147,8 @@
     --card-foreground: #eef0ef;
     --popover: #181b1a;
     --popover-foreground: #eef0ef;
-    --primary: #22a27a;
-    --primary-foreground: #04130d;
+    --primary: var(--brand-primary, #17c74a);
+    --primary-foreground: var(--brand-on-primary, #111111);
     --secondary: #1f2321;
     --secondary-foreground: #eef0ef;
     --muted: #1f2321;
@@ -152,13 +157,13 @@
     --accent-foreground: #eef0ef;
     --destructive: #ef4459;
     --destructive-foreground: #ffffff;
-    --success: #22a27a;
+    --success: var(--brand-primary, #17c74a);
     --warning: #e0b23a;
     --info: #60a5fa;
     --border: #262a28;
     --input: #2e3330;
-    --ring: #22a27a;
-    --chart-1: #22a27a;
+    --ring: var(--brand-primary, #17c74a);
+    --chart-1: var(--brand-primary, #17c74a);
     --chart-2: #eef0ef;
     --chart-3: #e0b23a;
     --chart-4: #6b766f;
@@ -170,7 +175,7 @@
     --sidebar-accent: #1c1f1e;
     --sidebar-accent-foreground: #eef0ef;
     --sidebar-border: #1f2321;
-    --sidebar-ring: #22a27a;
+    --sidebar-ring: var(--brand-primary, #17c74a);
 }
 
 @layer base {
@@ -194,6 +199,9 @@
 }
 
 @layer components {
+    /* Links in content use the readable brand shade */
+    .prose a, a.link { color: var(--color-brand-600); text-decoration: underline; text-underline-offset: 2px; }
+
     /* Thin, quiet scrollbars for dense admin screens */
     .scroll-quiet {
         scrollbar-width: thin;

@@ -79,7 +79,7 @@ export default function CustomerShow({ customer: c, stats, orders, wallet, ticke
                                     <li key={w.id} className="flex items-center gap-3 px-5 py-2.5">
                                         <span className="text-muted-foreground w-24 text-xs">{new Date(w.created_at).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' })}</span>
                                         <span className="flex-1 truncate">{w.reason}</span>
-                                        <span className={cn('tabular font-medium', w.type === 'credit' ? 'text-brand' : '')}>{w.type === 'credit' ? '+' : '−'}{zig(w.amount_zig)}</span>
+                                        <span className={cn('tabular font-medium', w.type === 'credit' ? 'text-brand-600' : '')}>{w.type === 'credit' ? '+' : '−'}{zig(w.amount_zig)}</span>
                                     </li>
                                 ))}
                             </ul>

@@ -21,7 +21,7 @@ export default function Stores({ seo, stores, cuisines, filters, matchingItems }
     const items = Array.isArray(matchingItems) ? [] : matchingItems.data;
     const open = stores.filter((s) => s.availability?.is_open !== false);
     const closed = stores.filter((s) => s.availability?.is_open === false);
-    const chip = (active: boolean) => cn('h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition', active ? 'bg-[#111412] text-white dark:bg-white dark:text-black' : 'bg-muted hover:bg-neutral-200 dark:bg-white/10');
+    const chip = (active: boolean) => cn('h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition', active ? 'bg-[#1c1c1c] text-white dark:bg-white dark:text-black' : 'bg-muted hover:bg-neutral-200 dark:bg-white/10');
 
     return (
         <SiteLayout>
@@ -62,7 +62,7 @@ export default function Stores({ seo, stores, cuisines, filters, matchingItems }
                         <div className="text-5xl">🍽️</div>
                         <h2 className="mt-4 text-xl font-bold">Nothing matches yet</h2>
                         <p className="text-muted-foreground mt-1">Try another search or clear your filters.</p>
-                        <button onClick={() => router.get('/stores')} className="mt-5 rounded-full bg-[#111412] px-5 py-2.5 text-sm font-semibold text-white">Clear filters</button>
+                        <button onClick={() => router.get('/stores')} className="mt-5 rounded-full bg-[#222222] px-5 py-2.5 text-sm font-semibold text-white">Clear filters</button>
                     </div>
                 )}
                 {closed.length > 0 && (

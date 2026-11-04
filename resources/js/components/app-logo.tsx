@@ -2,16 +2,12 @@ import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 
 export default function AppLogo() {
-    const { auth } = usePage<SharedData>().props;
+    const { auth, brand } = usePage<SharedData & { brand?: { logo: string; name: string } }>().props;
 
     return (
-        <>
-            {/* TODO: swap for the real Zvino logo once supplied */}
-            <div className="bg-brand flex aspect-square size-8 items-center justify-center rounded-lg text-base font-extrabold text-white">z</div>
-            <div className="ml-1 grid flex-1 text-left text-sm">
-                <span className="truncate leading-none font-bold">Zvino</span>
-                <span className="text-muted-foreground mt-0.5 truncate text-xs">{auth.user?.vendor?.name ?? 'Admin'}</span>
-            </div>
-        </>
+        <div className="grid flex-1 text-left">
+            <img src={brand?.logo ?? '/brand/logo.png'} alt={brand?.name ?? 'Zvino'} className="h-7 w-auto self-start" />
+            <span className="text-muted-foreground mt-1 truncate text-xs">{auth.user?.vendor?.name ?? 'Admin'}</span>
+        </div>
     );
 }

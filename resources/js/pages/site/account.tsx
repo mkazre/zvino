@@ -45,7 +45,7 @@ export default function Account(p: Props) {
                 <div className="mt-8 grid gap-8 md:grid-cols-[220px_1fr]">
                     <nav className="scroll-quiet -mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:grid md:content-start md:px-0">
                         {TABS.map(([k, l, Icon]) => (
-                            <button key={k} onClick={() => go(k)} className={cn('flex h-11 shrink-0 items-center gap-3 rounded-xl px-4 text-left text-[15px] font-semibold transition', tab === k ? 'bg-[#111412] text-white dark:bg-white dark:text-black' : 'hover:bg-muted')}>
+                            <button key={k} onClick={() => go(k)} className={cn('flex h-11 shrink-0 items-center gap-3 rounded-xl px-4 text-left text-[15px] font-semibold transition', tab === k ? 'bg-[#1c1c1c] text-white dark:bg-white dark:text-black' : 'hover:bg-muted')}>
                                 <Icon className="size-[18px]" />{l}
                             </button>
                         ))}
@@ -84,11 +84,11 @@ function Orders({ orders }: { orders: Props['orders']['data'] }) {
 
 function OrderRow({ o, live }: { o: Order & { review?: unknown }; live?: boolean }) {
     return (
-        <div className={cn('flex flex-wrap items-center gap-4 rounded-2xl border p-4', live && 'border-[#0b6e4f] bg-[#e8f3ee]/40')}>
+        <div className={cn('flex flex-wrap items-center gap-4 rounded-2xl border p-4', live && 'border-brand bg-brand-50/40')}>
             <Link href={`/orders/${o.id}`} className="min-w-0 flex-1">
                 <div className="font-bold">{o.vendor?.name}</div>
                 <div className="text-muted-foreground truncate text-sm">{o.items?.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</div>
-                <div className="text-muted-foreground mt-1 text-xs">{new Date(o.created_at).toLocaleDateString('en-ZW', { dateStyle: 'medium' })} · {zig(o.totals.total.zig)} · <span className={cn('font-semibold', live ? 'text-[#0b6e4f]' : '')}>{label(o.status === 'picked_up' ? 'on_the_way' : o.status)}</span></div>
+                <div className="text-muted-foreground mt-1 text-xs">{new Date(o.created_at).toLocaleDateString('en-ZW', { dateStyle: 'medium' })} · {zig(o.totals.total.zig)} · <span className={cn('font-semibold', live ? 'text-brand-600' : '')}>{label(o.status === 'picked_up' ? 'on_the_way' : o.status)}</span></div>
             </Link>
             {live ? <Button variant="dark" size="sm" className="rounded-full" asChild><Link href={`/orders/${o.id}`}>Track</Link></Button> : o.status === 'delivered' && (
                 <div className="flex gap-2">
@@ -107,7 +107,7 @@ function WalletTab({ wallet, loyalty, rewards }: Props) {
     return (
         <div className="grid gap-6">
             <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-3xl bg-[#111412] p-6 text-white">
+                <div className="rounded-3xl bg-[#222222] p-6 text-white">
                     <div className="text-sm text-white/60">Zvino wallet</div>
                     <div className="tabular mt-1 text-4xl font-extrabold tracking-tight">{zig(wallet.balance.zig)}</div>
                     <div className="tabular text-sm text-white/60">{usd(wallet.balance.zig / zigPerUsd)}</div>
@@ -116,7 +116,7 @@ function WalletTab({ wallet, loyalty, rewards }: Props) {
                         <Button className="h-11 rounded-xl bg-white text-black hover:bg-white/90" disabled={!code}>Redeem</Button>
                     </form>
                 </div>
-                <div className="rounded-3xl bg-[#fdf6e3] p-6 text-[#3d2c03]">
+                <div className="rounded-3xl bg-sun-50 p-6 text-ink">
                     <div className="flex items-center justify-between"><span className="text-sm opacity-70">Zvino Rewards</span><span className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold">{loyalty.tier}</span></div>
                     <div className="tabular mt-1 text-4xl font-extrabold tracking-tight">{loyalty.points.toLocaleString()} <span className="text-lg font-bold">pts</span></div>
                     {loyalty.next ? <><Progress value={Math.min(100, Math.max(4, pct))} tone="gold" className="mt-4 bg-white/60" /><p className="mt-2 text-xs opacity-70">{loyalty.next.points_needed.toLocaleString()} points to {loyalty.next.name}</p></> : <p className="mt-4 text-sm">You’re at the top tier 👑</p>}
@@ -127,7 +127,7 @@ function WalletTab({ wallet, loyalty, rewards }: Props) {
                 <div className="grid gap-3 sm:grid-cols-2">
                     {rewards.map((r) => (
                         <div key={r.id} className="flex items-center gap-4 rounded-2xl border p-4">
-                            <span className="flex size-11 items-center justify-center rounded-xl bg-[#fdf6e3] text-[#c99412]"><Gift className="size-5" /></span>
+                            <span className="flex size-11 items-center justify-center rounded-xl bg-sun-50 text-gold"><Gift className="size-5" /></span>
                             <div className="flex-1"><div className="font-semibold">{r.name}</div><div className="tabular text-muted-foreground text-sm">{r.points_cost.toLocaleString()} pts</div></div>
                             <Button size="sm" variant="dark" className="rounded-full" disabled={loyalty.points < r.points_cost} onClick={() => router.post('/account/rewards', { reward_id: r.id }, { preserveScroll: true })}>Redeem</Button>
                         </div>
@@ -138,7 +138,7 @@ function WalletTab({ wallet, loyalty, rewards }: Props) {
                 <h2 className="mb-3 font-bold">Wallet activity</h2>
                 <ul className="divide-y rounded-2xl border">
                     {wallet.transactions.length === 0 && <li className="text-muted-foreground px-5 py-8 text-center text-sm">No activity yet.</li>}
-                    {wallet.transactions.map((t) => <li key={t.id} className="flex items-center justify-between px-5 py-3 text-sm"><span><span className="block font-medium">{t.reason}</span><span className="text-muted-foreground text-xs">{timeAgo(t.created_at)}</span></span><span className={cn('tabular font-semibold', t.type === 'credit' && 'text-[#0b6e4f]')}>{t.type === 'credit' ? '+' : '−'}{zig(t.amount_zig)}</span></li>)}
+                    {wallet.transactions.map((t) => <li key={t.id} className="flex items-center justify-between px-5 py-3 text-sm"><span><span className="block font-medium">{t.reason}</span><span className="text-muted-foreground text-xs">{timeAgo(t.created_at)}</span></span><span className={cn('tabular font-semibold', t.type === 'credit' && 'text-brand-600')}>{t.type === 'credit' ? '+' : '−'}{zig(t.amount_zig)}</span></li>)}
                 </ul>
             </div>
         </div>
@@ -153,7 +153,7 @@ function Addresses({ addresses, cities }: { addresses: Props['addresses']; citie
                 <div key={a.id} className="flex items-start gap-4 rounded-2xl border p-4">
                     <Home className="mt-0.5 size-5" />
                     <div className="flex-1"><div className="font-semibold">{a.label} {a.is_default && <span className="bg-muted ml-1 rounded px-1.5 py-0.5 text-[11px]">Default</span>}</div><div className="text-muted-foreground text-sm">{a.line1}{a.suburb && `, ${a.suburb}`}, {a.city}</div>{a.landmark && <div className="text-muted-foreground text-xs">📍 {a.landmark}</div>}</div>
-                    <button onClick={() => router.delete(`/account/addresses/${a.id}`, { preserveScroll: true })} className="text-muted-foreground hover:text-[#c8102e] p-1" aria-label="Remove"><Trash2 className="size-4" /></button>
+                    <button onClick={() => router.delete(`/account/addresses/${a.id}`, { preserveScroll: true })} className="text-muted-foreground hover:text-zred p-1" aria-label="Remove"><Trash2 className="size-4" /></button>
                 </div>
             ))}
             <button onClick={() => setOpen(true)} className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-5 font-semibold"><Plus className="size-5" /> Add address</button>
@@ -167,7 +167,7 @@ function Refer({ r }: { r: Props['referral'] }) {
     const msg = `Get ${zig(r.friend_gets)} off your first Zvino order with my code ${r.code} 🍲 ${link}`;
     return (
         <div className="grid gap-6">
-            <div className="rounded-3xl bg-[#0b6e4f] p-8 text-white">
+            <div className="rounded-3xl bg-brand p-8 text-white">
                 <h2 className="text-3xl font-extrabold tracking-tight">Give {zig(r.friend_gets)}, get {zig(r.you_get)}</h2>
                 <p className="mt-2 max-w-md text-white/75">When a friend places their first order with your code, you both get wallet credit.</p>
                 <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -191,7 +191,7 @@ function Gifts({ cards }: { cards: Props['giftCards'] }) {
             <Button variant="dark" className="w-fit rounded-full" asChild><Link href="/gift-cards"><Gift /> Send a gift card</Link></Button>
             {cards.length === 0 ? <Empty icon={Gift} text="Gift cards you buy will appear here with their codes." /> : cards.map((c) => (
                 <div key={c.id} className="flex flex-wrap items-center gap-4 rounded-2xl border p-4">
-                    <div className="flex h-14 w-24 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b6e4f] to-[#073e2c] font-bold text-white">{zig(c.amount_zig)}</div>
+                    <div className="flex h-14 w-24 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-brand)] to-[#073e2c] font-bold text-white">{zig(c.amount_zig)}</div>
                     <div className="flex-1"><div className="font-mono font-bold tracking-wide">{c.code}</div><div className="text-muted-foreground text-sm">{c.recipient_name ? `For ${c.recipient_name}` : 'No recipient'} {c.recipient_phone && `· ${c.recipient_phone}`}</div></div>
                     <span className="bg-muted rounded-full px-3 py-1 text-xs font-semibold">{label(c.status)}</span>
                     <Button size="sm" variant="outline" className="rounded-full" onClick={() => { navigator.clipboard.writeText(c.code); toast.success('Code copied'); }}><Copy /> Copy</Button>
@@ -203,8 +203,8 @@ function Gifts({ cards }: { cards: Props['giftCards'] }) {
 
 function Plus_({ plus }: { plus: Props['plus'] }) {
     return plus ? (
-        <div className="rounded-3xl bg-[#111412] p-8 text-white">
-            <span className="text-sm font-bold text-[#5fe0b3]">ACTIVE MEMBER</span>
+        <div className="rounded-3xl bg-[#222222] p-8 text-white">
+            <span className="text-sm font-bold text-brand">ACTIVE MEMBER</span>
             <h2 className="mt-2 text-3xl font-extrabold tracking-tight">{plus.plan.name}</h2>
             <p className="mt-2 text-white/60">Renews {new Date(plus.current_period_end).toLocaleDateString('en-ZW', { dateStyle: 'long' })}</p>
         </div>

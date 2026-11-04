@@ -14,7 +14,7 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
     }, [value]);
     return (
         <svg width={size} height={size} viewBox={`0 0 ${n + 8} ${n + 8}`} shapeRendering="crispEdges" role="img" aria-label="Payment QR code" className="rounded-xl bg-white">
-            <path d={cells.join('')} fill="#111412" />
+            <path d={cells.join('')} fill="#222222" />
         </svg>
     );
 }

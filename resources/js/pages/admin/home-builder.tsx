@@ -104,8 +104,8 @@ function Row({ b, active, onSelect }: { b: Block; active: boolean; onSelect: () 
 /** Approximates the customer app home screen so staff see what they're building. */
 function PhonePreview({ blocks, selectedId, onSelect }: { blocks: Block[]; selectedId: number | null; onSelect: (id: number) => void }) {
     return (
-        <div className="mx-auto w-[320px] rounded-[44px] border-[10px] border-[#111412] bg-[#111412] shadow-(--shadow-pop)">
-            <div className="scroll-quiet h-[620px] overflow-y-auto rounded-[34px] bg-white text-[#111412]">
+        <div className="mx-auto w-[320px] rounded-[44px] border-[10px] border-[#222222] bg-[#222222] shadow-(--shadow-pop)">
+            <div className="scroll-quiet h-[620px] overflow-y-auto rounded-[34px] bg-white text-[#222222]">
                 <div className="sticky top-0 z-10 bg-white/95 px-4 pt-4 pb-2 backdrop-blur">
                     <div className="text-[10px] text-neutral-500">Deliver to</div>
                     <div className="text-[13px] font-bold">5 Fife Ave, Avenues ▾</div>
@@ -129,10 +129,10 @@ function PreviewBlock({ b }: { b: Block }) {
     switch (b.type) {
         case 'hero':
             return (
-                <div className="rounded-xl p-4 text-white" style={{ background: b.payload?.background ?? '#0B6E4F' }}>
+                <div className="rounded-xl p-4 text-white" style={{ background: b.payload?.background ?? 'var(--color-brand)' }}>
                     <div className="text-[15px] leading-tight font-bold">{b.title || 'Hero title'}</div>
                     <div className="mt-1 text-[11px] opacity-85">{b.subtitle}</div>
-                    {b.cta_label && <div className="mt-3 inline-block rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#111412]">{b.cta_label}</div>}
+                    {b.cta_label && <div className="mt-3 inline-block rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#222222]">{b.cta_label}</div>}
                 </div>
             );
         case 'categories':
@@ -170,7 +170,7 @@ function Editor({ block, cities }: { block: Block; cities: string[] }) {
                     </div>
                 </>
             )}
-            {block.type === 'hero' && <Field label="Background"><div className="flex items-center gap-2"><input type="color" value={data.payload.background ?? '#0B6E4F'} onChange={(e) => setData('payload', { ...data.payload, background: e.target.value })} className="h-10 w-14 rounded-lg border" />{['#0B6E4F', '#111412', '#C8102E', '#C99412'].map((c) => <button key={c} onClick={() => setData('payload', { ...data.payload, background: c })} className="size-7 rounded-full border-2 border-white shadow ring-1 ring-black/10" style={{ background: c }} aria-label={c} />)}</div></Field>}
+            {block.type === 'hero' && <Field label="Background"><div className="flex items-center gap-2"><input type="color" value={data.payload.background ?? 'var(--color-brand)'} onChange={(e) => setData('payload', { ...data.payload, background: e.target.value })} className="h-10 w-14 rounded-lg border" />{['var(--color-brand)', '#222222', '#C8102E', '#C99412'].map((c) => <button key={c} onClick={() => setData('payload', { ...data.payload, background: c })} className="size-7 rounded-full border-2 border-white shadow ring-1 ring-black/10" style={{ background: c }} aria-label={c} />)}</div></Field>}
             {['specials', 'vendors'].includes(block.type) && <Field label="How many to show"><Input type="number" value={data.payload.limit ?? 10} onChange={(e) => setData('payload', { ...data.payload, limit: Number(e.target.value) })} /></Field>}
             {block.type === 'vendors' && <Switch checked={!!data.payload.featured_only} onChange={(v) => setData('payload', { ...data.payload, featured_only: v })} label="Featured stores only" />}
             {block.type === 'banner' && <Field label="Style"><Select value={data.payload.tone ?? 'dark'} onChange={(e) => setData('payload', { ...data.payload, tone: e.target.value })}><option value="dark">Dark</option><option value="gold">Gold</option></Select></Field>}

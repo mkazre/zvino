@@ -9,13 +9,13 @@ export default function Drivers({ basePay, perKm, seo }: { basePay: number; perK
     return (
         <SiteLayout transparent>
             <Head title={seo.title} />
-            <section className="-mt-16 bg-[#111412] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
+            <section className="-mt-16 bg-[#222222] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
                 <div className="mx-auto max-w-6xl px-4 py-20 md:px-6 md:py-28">
-                    <p className="font-bold text-[#c99412]">Zvino Driver</p>
+                    <p className="font-bold text-gold">Zvino Driver</p>
                     <h1 className="mt-4 max-w-3xl text-[44px] leading-[1.03] font-extrabold tracking-[-0.045em] md:text-[64px]">Your bike. Your hours. Your money.</h1>
                     <p className="mt-5 max-w-xl text-lg text-white/65">Earn {zig(basePay)} per trip plus {zig(perKm)} per km, and keep 100% of your tips. Cash out to EcoCash.</p>
                     <div className="mt-8 flex flex-wrap gap-3">
-                        <Button className="h-14 rounded-full bg-[#c99412] px-8 text-base text-black hover:bg-[#e0b23a]" asChild><a href={site.apps.android || '#'}>Get the Driver app</a></Button>
+                        <Button className="h-14 rounded-full bg-[var(--color-gold)] px-8 text-base text-black hover:bg-[#e0b23a]" asChild><a href={site.apps.android || '#'}>Get the Driver app</a></Button>
                     </div>
                     <p className="mt-3 text-sm text-white/50">You’ll need: national ID, driver’s licence (motorbike/car) and a selfie. Approval usually takes 1–2 days.</p>
                 </div>

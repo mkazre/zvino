@@ -24,6 +24,9 @@ return [
     'cities' => ['Harare', 'Bulawayo'],
 
     'min_app_version' => env('ZVINO_MIN_APP_VERSION', '1.0.0'),
+    // Shown in footers / About screens. Bump on each release (APP_VERSION in .env overrides).
+    'version' => env('APP_VERSION', '1.0.0'),
+    'build' => env('APP_BUILD', null),
 
     'paynow' => [
         'integration_id' => env('PAYNOW_INTEGRATION_ID'),

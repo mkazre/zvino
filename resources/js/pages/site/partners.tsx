@@ -9,12 +9,12 @@ export default function Partners({ commission, seo }: { commission: number; seo:
     return (
         <SiteLayout transparent>
             <Head title={seo.title} />
-            <section className="-mt-16 bg-[#0a120e] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
+            <section className="-mt-16 bg-[#1c1c1c] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
                 <div className="mx-auto max-w-6xl px-4 py-20 md:px-6 md:py-28">
-                    <p className="font-bold text-[#5fe0b3]">For restaurants, grocers & pharmacies</p>
+                    <p className="font-bold text-brand">For restaurants, grocers & pharmacies</p>
                     <h1 className="mt-4 max-w-3xl text-[44px] leading-[1.03] font-extrabold tracking-[-0.045em] md:text-[64px]">More orders. Less hassle. Paid every week.</h1>
                     <p className="mt-5 max-w-xl text-lg text-white/65">List your menu on Zvino and reach customers across {site.cities.join(' and ')}. We bring the drivers, the payments and the marketing.</p>
-                    <Button className="mt-8 h-14 rounded-full bg-[#5fe0b3] px-8 text-base text-black hover:bg-[#4fd4a5]" asChild><a href={wa}>Get started</a></Button>
+                    <Button className="mt-8 h-14 rounded-full bg-brand px-8 text-base text-black hover:bg-[#4fd4a5]" asChild><a href={wa}>Get started</a></Button>
                     <p className="mt-3 text-sm text-white/50">Commission from {commission}% on delivery orders. No sign-up fees.</p>
                 </div>
             </section>

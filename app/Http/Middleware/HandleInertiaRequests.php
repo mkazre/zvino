@@ -53,7 +53,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'can' => fn () => $request->user() ? \App\Support\Permissions::for($request->user()->role ?? 'customer') : [],
             'badges' => fn () => $request->user()?->isStaff() ? $this->badges($request) : [],
-            'brand' => fn () => ['name' => Setting::get('general.business_name'), 'logo' => Setting::get('branding.logo')],
+            'brand' => fn () => ['name' => Setting::get('general.business_name')] + \App\Support\Brand::logos(),
+            'appVersion' => fn () => \App\Support\Brand::version(),
             // Website chrome: footer, city picker, app links. Cheap (settings are cached).
             'site' => fn () => [
                 'cities' => Setting::get('general.cities'),

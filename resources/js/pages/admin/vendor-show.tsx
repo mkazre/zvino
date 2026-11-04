@@ -37,7 +37,7 @@ export default function VendorShow(p: Props) {
             <Page>
                 <Link href="/admin/vendors" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"><ArrowLeft className="size-4" /> Stores</Link>
                 <div className="relative overflow-hidden rounded-2xl border">
-                    <div className="bg-muted h-36 bg-cover bg-center" style={v.cover_path ? { backgroundImage: `url(${v.cover_path})` } : { backgroundImage: 'linear-gradient(120deg, #111412, #0b6e4f)' }} />
+                    <div className="bg-muted h-36 bg-cover bg-center" style={v.cover_path ? { backgroundImage: `url(${v.cover_path})` } : { backgroundImage: 'linear-gradient(120deg, #222222, var(--color-brand))' }} />
                     <div className="bg-surface flex flex-wrap items-end gap-4 px-6 pb-5">
                         <Thumb src={v.logo_path} size={84} rounded="rounded-2xl" className="-mt-10 border-4 border-[var(--surface)] shadow-md" />
                         <div className="min-w-0 flex-1 pt-3">

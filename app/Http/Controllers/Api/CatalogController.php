@@ -30,6 +30,8 @@ class CatalogController extends Controller
             'min_app_version' => config('zvino.min_app_version'),
             'pusher' => ['key' => config('broadcasting.connections.pusher.key'), 'cluster' => config('broadcasting.connections.pusher.options.cluster')],
             'features' => ['rewards' => true, 'specials' => true, 'support_chat' => true],
+            'brand' => \App\Support\Brand::palette() + collect(\App\Support\Brand::logos())->map(fn ($p) => url($p))->all(),
+            'server_version' => config('zvino.version'),
         ]);
     }
 
