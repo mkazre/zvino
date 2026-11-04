@@ -170,6 +170,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::middleware('can:kitchen.use')->group(function () {
             Route::get('kitchen', [KitchenController::class, 'index'])->name('kitchen');
             Route::patch('api/orders/{order}/stage', [KitchenController::class, 'advance'])->name('kitchen.advance');
+            Route::post('kitchen/{vendor}/rush', [KitchenController::class, 'rush'])->name('kitchen.rush');
         });
     });
 });

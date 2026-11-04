@@ -5,7 +5,7 @@ import { label, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Item, type SharedData } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/react';
-import { Layers, Pencil, Plus, Trash2, UtensilsCrossed, Zap, ZapOff } from 'lucide-react';
+import { ChefHat, Layers, Pencil, Plus, Trash2, UtensilsCrossed, Zap, ZapOff } from 'lucide-react';
 import { useState } from 'react';
 
 type MenuItem = Item & { needs_power: boolean; is_popular: boolean; dietary: string[]; calories: number | null; unavailable_until: string | null; modifier_groups?: { id: number; name: string; min: number; max: number }[] };
@@ -13,7 +13,7 @@ interface Group { id: number; name: string; min_select: number; max_select: numb
 interface Props {
     vendor: { id: number; name: string; power_out: boolean } | null;
     vendors: { id: number; name: string }[];
-    categories: { id: number; name: string; items_count: number }[];
+    categories: { id: number; name: string; station: string | null; items_count: number }[];
     items: { data: MenuItem[] };
     groups: Group[];
     filters: { category?: string; q?: string; stock?: string };
@@ -77,7 +77,10 @@ export default function Catalog(p: Props) {
                                 <li><button onClick={() => go({ category: undefined })} className={cn('flex w-full justify-between rounded-lg px-3 py-2 text-sm', !p.filters.category ? 'bg-surface font-semibold shadow-(--shadow-card)' : 'text-muted-foreground hover:text-foreground')}>All items <span className="tabular">{p.items.data.length}</span></button></li>
                                 {p.categories.map((c) => (
                                     <li key={c.id} className="group flex items-center">
-                                        <button onClick={() => go({ category: String(c.id) })} className={cn('flex flex-1 justify-between rounded-lg px-3 py-2 text-sm', p.filters.category === String(c.id) ? 'bg-surface font-semibold shadow-(--shadow-card)' : 'text-muted-foreground hover:text-foreground')}>{c.name} <span className="tabular">{c.items_count}</span></button>
+                                        <button onClick={() => go({ category: String(c.id) })} className={cn('flex flex-1 justify-between rounded-lg px-3 py-2 text-sm', p.filters.category === String(c.id) ? 'bg-surface font-semibold shadow-(--shadow-card)' : 'text-muted-foreground hover:text-foreground')}>
+                                            <span className="truncate">{c.name}{c.station && <span className="text-muted-foreground ml-1.5 text-[11px] font-normal">· {c.station}</span>}</span> <span className="tabular">{c.items_count}</span>
+                                        </button>
+                                        <button className="text-muted-foreground hover:text-foreground hidden p-1 group-hover:block" aria-label="Kitchen station" title="Kitchen station" onClick={() => { const station = prompt('Kitchen station for this category (e.g. grill, fryer, drinks). Leave empty for all stations.', c.station ?? ''); if (station !== null) router.patch(`/admin/catalog/categories/${c.id}`, { station: station || null }, { preserveScroll: true }); }}><ChefHat className="size-3" /></button>
                                         <button className="text-muted-foreground hover:text-foreground hidden p-1 group-hover:block" aria-label="Rename" onClick={() => { const name = prompt('Rename category', c.name); if (name) router.patch(`/admin/catalog/categories/${c.id}`, { name }, { preserveScroll: true }); }}><Pencil className="size-3" /></button>
                                         {c.items_count === 0 && <button className="text-zred hidden p-1 group-hover:block" aria-label="Delete" onClick={() => router.delete(`/admin/catalog/categories/${c.id}`, { preserveScroll: true })}><Trash2 className="size-3" /></button>}
                                     </li>
@@ -88,7 +91,7 @@ export default function Catalog(p: Props) {
                         </nav>
 
                         <div className="grid content-start gap-6">
-                            {[...byCat, ...(uncategorised.length && !p.filters.category ? [{ id: 0, name: 'Uncategorised', items_count: uncategorised.length, items: uncategorised }] : [])].filter((c) => c.items.length > 0 || p.filters.category).map((c) => (
+                            {[...byCat, ...(uncategorised.length && !p.filters.category ? [{ id: 0, name: 'Uncategorised', station: null, items_count: uncategorised.length, items: uncategorised }] : [])].filter((c) => c.items.length > 0 || p.filters.category).map((c) => (
                                 <section key={c.id}>
                                     <h2 className="mb-3 flex items-baseline gap-2 text-[15px] font-semibold">{c.name}<span className="text-muted-foreground text-xs font-normal">{c.items.length} items</span></h2>
                                     <Card className="divide-y">

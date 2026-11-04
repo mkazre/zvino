@@ -35,8 +35,28 @@ class AdminAccessTest extends TestCase
 
     public function test_every_admin_screen_renders_for_super_admin()
     {
+        $this->seed(\Database\Seeders\DemoActivitySeeder::class);
         $admin = $this->staff('super_admin');
-        foreach (['/dashboard', '/admin/orders', '/admin/catalog', '/admin/vendors', '/admin/users', '/admin/home-builder', '/admin/rewards-promos', '/admin/pos', '/admin/kitchen'] as $url) {
+        $order = \App\Models\Order::where('status', 'delivered')->first();
+        $live = \App\Models\Order::where('status', 'placed')->first();
+        $vendor = \App\Models\Vendor::first();
+        $driver = \App\Models\Driver::first();
+        $customer = User::where('role', 'customer')->has('orders')->first();
+
+        $urls = [
+            '/dashboard', '/dashboard?range=90', '/admin/orders', '/admin/orders?status=active', "/admin/orders/{$order->id}", "/admin/orders/{$live->id}",
+            '/admin/dispatch', '/admin/dispatch/live', '/admin/refunds', '/admin/support', '/admin/reviews', '/admin/catalog', '/admin/vendors', "/admin/vendors/{$vendor->id}",
+            '/admin/drivers', "/admin/drivers/{$driver->id}", '/admin/zones', '/admin/users', "/admin/users/{$customer->id}", '/admin/staff',
+            '/admin/home-builder', '/admin/rewards-promos', '/admin/campaigns', '/admin/payouts', '/admin/reports', '/admin/audit', '/admin/pos', '/admin/kitchen',
+            '/admin/search?q=ZV', '/admin/orders/export', '/admin/users/export', '/admin/reports/export/orders',
+        ];
+        foreach (array_keys(config('zvino_settings')) as $g) {
+            $urls[] = "/admin/settings/$g";
+        }
+        $urls[] = '/admin/settings/pages';
+        $urls[] = '/admin/settings/templates';
+
+        foreach ($urls as $url) {
             $this->actingAs($admin)->get($url)->assertOk();
         }
     }

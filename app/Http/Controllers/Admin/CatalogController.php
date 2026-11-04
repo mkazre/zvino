@@ -89,10 +89,8 @@ class CatalogController extends AdminController
     public function updateCategory(Request $request, Category $category)
     {
         $this->authorizeVendor($request, $category->vendor_id);
-        $data = $request->validate(['name' => ['sometimes', 'string', 'max:80'], 'order' => ['sometimes', 'array'], 'order.*' => ['integer']]);
-        if (isset($data['name'])) {
-            $category->update(['name' => $data['name']]);
-        }
+        $data = $request->validate(['name' => ['sometimes', 'string', 'max:80'], 'station' => ['sometimes', 'nullable', 'string', 'max:30'], 'order' => ['sometimes', 'array'], 'order.*' => ['integer']]);
+        $category->update(collect($data)->only('name', 'station')->map(fn ($v, $k) => $k === 'station' && $v ? strtolower(trim($v)) : $v)->all());
         // Optional: reorder items within this category.
         foreach ($data['order'] ?? [] as $i => $itemId) {
             Item::where('id', $itemId)->where('category_id', $category->id)->update(['sort_order' => $i]);
