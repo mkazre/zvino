@@ -28,6 +28,9 @@ class RecurringOrder extends Model
         $from = ($from ?? now())->copy();
         [$h, $m] = array_map('intval', explode(':', $this->time));
 
+        if ($this->kind === 'once') {
+            return $this->next_run_at && $this->next_run_at->gt($from) ? $this->next_run_at : null;
+        }
         if ($this->kind === 'monthly') {
             $day = max(1, min(28, (int) $this->day_of_month));
             $at = $from->copy()->setDate($from->year, $from->month, $day)->setTime($h, $m);

@@ -24,6 +24,7 @@ Schedule::call(function () {
 })->everyMinute()->name('order-engine')->withoutOverlapping();
 
 Schedule::command('zvino:backup')->dailyAt('02:30')->name('backup');
+Schedule::call(fn () => app(\App\Services\CompanyService::class)->invoiceAll())->monthlyOn(1, '07:00')->name('company-invoices');
 
 Schedule::call(fn () => app(CampaignService::class)->sendDue())->everyFiveMinutes()->name('campaigns')->withoutOverlapping();
 

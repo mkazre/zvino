@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
  */
 class OrderService
 {
-    public const METHODS = ['ecocash', 'onemoney', 'innbucks', 'card', 'wallet', 'cash'];
+    public const METHODS = ['ecocash', 'onemoney', 'innbucks', 'card', 'wallet', 'cash', 'company'];
 
     public const TRANSITIONS = [
         'pending_payment' => ['scheduled', 'placed', 'cancelled'],
@@ -151,6 +151,10 @@ class OrderService
         }
 
         app(RiskService::class)->assertCanPlace($user, $data['payment_method'], $due);
+        if ($data['payment_method'] === 'company') {
+            [$t['wallet_applied'], $t['cash_part'], $due] = [0.0, 0.0, $t['total']]; // the company pays the whole order
+        }
+        $companyMember = $data['payment_method'] === 'company' ? app(CompanyService::class)->assertCanCharge($user, $due) : null;
         if ($data['payment_method'] === 'wallet' && $user->walletBalance() < $t['total']) {
             throw ValidationException::withMessages(['payment_method' => 'Insufficient wallet balance.']);
         }
@@ -158,12 +162,13 @@ class OrderService
             throw ValidationException::withMessages(['payment_method' => 'Cash on delivery is limited to ZiG '.Setting::get('delivery.cash_on_delivery_limit_zig').'. Please choose another method.']);
         }
 
-        [$order, $payment] = DB::transaction(function () use ($user, $cart, $vendor, $t, $data, $scheduledFor) {
+        [$order, $payment] = DB::transaction(function () use ($user, $cart, $vendor, $t, $data, $scheduledFor, $companyMember) {
             $rate = ExchangeRate::current();
             $commissionPct = $data['fulfilment'] === 'pickup' ? Setting::get('fees.pickup_commission_pct') : $vendor->commission_pct;
 
             $order = Order::create([
                 'user_id' => $user->id,
+                'company_id' => $companyMember?->company_id,
                 'vendor_id' => $vendor->id,
                 'zone_id' => $t['zone_id'],
                 'address_id' => $data['address_id'] ?? null,
@@ -359,7 +364,11 @@ class OrderService
             'amount_zig' => round($order->total_zig - $order->wallet_applied_zig - $order->cash_part_zig - collect($shares)->sum('amount'), 2),
         ]);
 
-        if ($method === 'wallet') {
+        if ($method === 'company') {
+            $payment->update(['provider' => 'company', 'status' => 'paid']);
+            $order->update(['payment_status' => 'paid']);
+            $this->release($order);
+        } elseif ($method === 'wallet') {
             $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'debit', 'amount_zig' => $order->total_zig, 'reason' => 'Order '.$order->reference]);
             $payment->update(['status' => 'paid']);
             $order->update(['payment_status' => 'paid']);
@@ -478,6 +487,12 @@ class OrderService
         // Only what was actually paid comes back (cash not yet handed over is simply not collected).
         $order->payments()->where('method', 'cash')->where('status', 'pending')->update(['status' => 'cancelled']);
         if ($order->refunded_zig > 0) {
+            return;
+        }
+        if ($order->payment_method === 'company') {
+            $order->payments()->where('provider', 'company')->update(['status' => 'cancelled']);
+            $order->update(['payment_status' => 'refunded', 'refunded_zig' => $order->total_zig]);
+
             return;
         }
         $paidPayments = $order->payments()->where('status', 'paid')->get();

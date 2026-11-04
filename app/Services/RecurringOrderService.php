@@ -39,7 +39,9 @@ class RecurringOrderService
                 $plan->update(['last_error' => $msg]);
                 $this->push->toUser($plan->user, 'plan_failed', "{$plan->name} wasn’t placed", $msg, ['plan_id' => $plan->id]);
             }
-            $plan->update(['next_run_at' => $plan->computeNext($deliverAt), 'reminded_for' => null]);
+            $plan->kind === 'once'
+                ? $plan->update(['next_run_at' => null, 'is_active' => false])
+                : $plan->update(['next_run_at' => $plan->computeNext($deliverAt), 'reminded_for' => null]);
         }
 
         return $placed;
@@ -73,13 +75,16 @@ class RecurringOrderService
                     'address_id' => $plan->fulfilment === 'delivery' ? $plan->address_id : null,
                     'payment_method' => $method,
                     'phone' => $plan->phone ?? $user->phone,
-                    'notes' => trim(($plan->notes ?? '')."\n[{$plan->name}]"),
+                    'notes' => trim(($plan->notes ?? '')."\n[{$plan->name}]".($plan->recipient_name ? "\nDeliver to {$plan->recipient_name} {$plan->recipient_phone}".($plan->gift_message ? "\nCard: “{$plan->gift_message}”" : '') : '')),
                     // Far enough ahead → a normal scheduled order; if the scheduler ran late, send it now.
                     'scheduled_for' => $deliverAt->gt(now()->addMinutes(35)) ? $deliverAt->toDateTimeString() : null,
                     'use_wallet' => $method !== 'wallet',
                     'source' => 'plan',
                 ]);
                 $order->update(['recurring_order_id' => $plan->id]);
+                if ($plan->recipient_phone) {
+                    app(SmsService::class)->send($plan->recipient_phone, "Zvino: {$user->name} is sending you a {$plan->name}. It arrives ".($order->scheduled_for ?? now())->format('D j M H:i').'. Order '.$order->reference);
+                }
 
                 return $order;
             });

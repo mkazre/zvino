@@ -29,12 +29,15 @@ class CheckoutController extends Controller
         $user = $request->user();
         $cart = $this->carts->for($user);
 
+        $company = app(\App\Services\CompanyService::class)->summary($user);
+
         return Inertia::render('site/checkout', [
             'seo' => ['title' => 'Checkout | Zvino'],
             'cart' => $this->carts->present($cart),
             'addresses' => $user->addresses()->orderByDesc('is_default')->get(),
             'wallet' => Money::both($user->walletBalance()),
-            'methods' => collect(OrderService::METHODS)->filter(fn ($m) => Setting::get("payments.$m"))->values(),
+            'methods' => collect(OrderService::METHODS)->filter(fn ($m) => Setting::get("payments.$m") && ($m !== 'company' || $company))->values(),
+            'company' => $company,
             'tipPresets' => Setting::get('orders.allow_tips') ? Setting::get('orders.tip_presets_pct') : [],
             'scheduleDays' => Setting::get('orders.allow_scheduled') ? Setting::get('orders.schedule_days_ahead') : 0,
             'store' => $cart->vendor ? ['availability' => $availability->status($cart->vendor), 'offers_delivery' => $cart->vendor->offers_delivery, 'offers_pickup' => $cart->vendor->offers_pickup && Setting::get('orders.allow_pickup'), 'accepts_scheduled' => $cart->vendor->accepts_scheduled, 'address' => $cart->vendor->address] : null,

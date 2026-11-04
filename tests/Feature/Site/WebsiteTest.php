@@ -45,7 +45,7 @@ class WebsiteTest extends TestCase
     public function test_public_pages_render_with_seo()
     {
         $vendor = Vendor::first();
-        foreach (['/', '/stores', '/stores?q=sadza', '/stores?cuisine=Grills&sort=rating', "/store/{$vendor->slug}", '/p/terms', '/plus', '/gift-cards', '/partners', '/drive', '/signin'] as $url) {
+        foreach (['/', '/stores', '/stores?q=sadza', '/stores?cuisine=Grills&sort=rating', "/store/{$vendor->slug}", '/p/terms', '/plus', '/gift-cards', '/partners', '/drive', '/signin', '/hampers', '/catering'] as $url) {
             $this->get($url)->assertOk();
         }
         $this->get("/store/{$vendor->slug}")->assertSee(": order online in", false)->assertSee('"@type":"Restaurant"', false);

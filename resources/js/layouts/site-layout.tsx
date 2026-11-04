@@ -208,7 +208,7 @@ function MobileCartBar({ hidden, onOpen }: { hidden: boolean; onOpen: () => void
 function Footer() {
     const { site, brand } = usePage<SiteProps>().props;
     const cols: [string, [string, string][]][] = [
-        ['Zvino', [['About us', '/p/about'], ['Zvino+', '/plus'], ['Gift cards', '/gift-cards'], ['Help & FAQ', '/p/faq']]],
+        ['Zvino', [['About us', '/p/about'], ['Zvino+', '/plus'], ['Gift cards', '/gift-cards'], ['Send groceries home', '/hampers'], ['Catering', '/catering'], ['Help & FAQ', '/p/faq']]],
         ['Work with us', [['Add your restaurant', '/partners'], ['Drive with Zvino', '/drive'], ['Corporate accounts', '/p/about']]],
         ['Legal', [['Terms of service', '/p/terms'], ['Privacy policy', '/p/privacy']]],
     ];

@@ -106,6 +106,7 @@ class OrderController extends Controller
         $dest = $address ? ['lat' => $address->lat, 'lng' => $address->lng] : array_filter(['lat' => $data['lat'] ?? null, 'lng' => $data['lng'] ?? null]);
 
         $cart = $carts->for($request->user());
+        $company = app(\App\Services\CompanyService::class)->summary($request->user());
         $t = $carts->totals($cart, $data['fulfilment'], $dest, (float) ($data['tip'] ?? 0));
         $money = ['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'vat', 'total', 'member_savings'];
 
@@ -115,7 +116,8 @@ class OrderController extends Controller
             'distance_km' => $t['distance_km'],
             'eta_minutes' => $t['eta_minutes'],
             'tip_presets_pct' => \App\Models\Setting::get('orders.tip_presets_pct'),
-            'payment_methods' => collect(OrderService::METHODS)->filter(fn ($m) => \App\Models\Setting::get("payments.$m"))->values(),
+            'payment_methods' => collect(OrderService::METHODS)->filter(fn ($m) => \App\Models\Setting::get("payments.$m") && ($m !== 'company' || $company))->values(),
+            'company' => $company,
             'wallet_balance' => \App\Support\Money::both($request->user()->walletBalance()),
             'batch' => ($bz = $data['fulfilment'] === 'delivery' ? \App\Models\Zone::batchFor($dest['lat'] ?? null, $dest['lng'] ?? null) : null) && $cart->vendor && ($slot = $bz->batchSlot($cart->vendor))
                 ? ['zone' => $slot['zone'], 'departs_at' => $slot['departs_at'], 'arrives_at' => $slot['arrives_at']] : null,

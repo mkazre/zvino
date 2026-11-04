@@ -353,8 +353,7 @@ class DriverController extends Controller
 
         if ($paynow->fake()) {
             $payment->update(['status' => 'paid']);
-            $driver->ledger()->create(['type' => 'cash_collected', 'amount_zig' => $held, 'description' => 'Cash remitted via '.$data['method']]);
-            $driver->ledger()->where('type', 'cash_collected')->whereNull('payout_id')->update(['payout_id' => 0]); // settled
+            \App\Services\GrowthService::settleRemittance($driver, $payment->fresh());
         }
 
         return response()->json(['payment_id' => $payment->id, 'status' => $payment->fresh()->status, 'amount' => Money::both($held)]);

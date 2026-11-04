@@ -17,6 +17,15 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
     Route::get('p/{slug}', [SiteController::class, 'page'])->name('page');
     Route::get('plus', [SiteController::class, 'plus'])->name('plus');
     Route::get('gift-cards', [SiteController::class, 'giftCards'])->name('gift-cards');
+    Route::get('hampers', [SiteController::class, 'hampers'])->name('hampers');
+    Route::get('catering', [SiteController::class, 'catering'])->name('catering');
+    Route::middleware(['auth', 'throttle:20,1'])->group(function () {
+        Route::post('hampers/{hamper}/send', [\App\Http\Controllers\Api\HamperController::class, 'send'])->name('hampers.send');
+        Route::post('wallet/topup', [\App\Http\Controllers\Api\GrowthController::class, 'topUp'])->name('wallet.topup');
+        Route::post('catering', [\App\Http\Controllers\Api\CateringController::class, 'store'])->name('catering.store');
+        Route::post('catering/{catering}/pay', [\App\Http\Controllers\Api\CateringController::class, 'pay'])->name('catering.pay');
+        Route::post('catering/{catering}/cancel', [\App\Http\Controllers\Api\CateringController::class, 'cancel'])->name('catering.cancel');
+    });
     Route::get('partners', [SiteController::class, 'partners'])->name('partners');
     Route::get('drive', [SiteController::class, 'drivers'])->name('drivers');
     Route::get('group/{code}', [SiteController::class, 'group'])->name('group');

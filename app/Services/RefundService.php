@@ -20,7 +20,9 @@ class RefundService
             $order = $refund->order;
             $amount = round(min($amount ?? $refund->amount_zig, $order->total_zig - $order->refunded_zig), 2);
 
-            if ($refund->destination === 'wallet' && $order->user) {
+            if ($order->payment_method === 'company') {
+                $status = 'paid'; // credited against the company's invoice, not the employee
+            } elseif ($refund->destination === 'wallet' && $order->user) {
                 $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'credit', 'amount_zig' => $amount, 'reason' => "Refund {$order->reference}"]);
                 $status = 'paid';
             } else {

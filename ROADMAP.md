@@ -56,8 +56,8 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 5. 🇿🇼 **Voice-note directions** for the driver, in Shona, Ndebele or English ✅
 6. 🇿🇼 **Shona and Ndebele** languages (also in the driver and merchant apps) ✅ (draft translations: native-speaker review needed)
 7. 🇿🇼 **Diaspora "Send a meal home"**: pay from the UK/SA/US by card for family in Zimbabwe ✅
-8. 🇿🇼 **Diaspora grocery hampers**: monthly hamper subscription delivered to family
-9. 🇿🇼 **Funeral and gathering catering**: bulk orders with deposit, headcount and event date
+8. 🇿🇼 **Diaspora grocery hampers**: monthly hamper subscription delivered to family ✅
+9. 🇿🇼 **Funeral and gathering catering**: bulk orders with deposit, headcount and event date ✅
 10. 🇿🇼 **Month-end shop planner**: scheduled big grocery order with payday reminders ✅
 11. **"Your usual"**: one-tap reorder of the last order from a store ✅
 12. **Hot-meal guarantee**: automatic wallet credit when delivery runs past the promised ETA ✅
@@ -108,7 +108,7 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 47. 🇿🇼 **Seasonal campaign presets**: Independence, Heroes, Christmas and month-end templates ✅
 48. **Fraud shield**: velocity checks, device limits, COD blacklist, OTP confirm for large COD orders ✅
 49. **Weather-aware surge**: rainy-season demand suggests surge per zone ✅ (one-tap rain mode)
-50. **Ops command centre**: live map of orders and drivers, late-order alerts, one-click reassign, sponsored-listing and corporate-account management ✅
+50. **Ops command centre**: live map of orders and drivers, late-order alerts, one-click reassign, sponsored-listing and corporate-account management ✅ (corporate accounts with allowances & monthly invoices ✅)
 
 ## Needed from Zvino before go-live
 Paynow keys · SMS provider · Google Maps API key · Apple & Google developer accounts ·

@@ -8,7 +8,7 @@ import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { type Money } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Banknote, Bike, CalendarClock, Check, CreditCard, Footprints, Heart, Home, Leaf, Loader2, MapPin, Plus, Smartphone, Tag, Wallet, Zap } from 'lucide-react';
+import { Banknote, Bike, CalendarClock, Check, CreditCard, Building2, Footprints, Heart, Home, Leaf, Loader2, MapPin, Plus, Smartphone, Tag, Wallet, Zap } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -40,6 +40,7 @@ interface Props {
     splitTender: boolean;
     splitBill: number;
     charity: { name: string; step: number } | null;
+    company: { company: string; left_today_zig: number | null } | null;
 }
 
 const METHOD_META: Record<string, { icon: typeof Smartphone; hint: string }> = {
@@ -49,6 +50,7 @@ const METHOD_META: Record<string, { icon: typeof Smartphone; hint: string }> = {
     card: { icon: CreditCard, hint: 'Visa or Mastercard via Paynow' },
     wallet: { icon: Wallet, hint: '' },
     cash: { icon: Banknote, hint: 'USD or ZiG. Your driver has change, or we’ll credit it to your wallet' },
+    company: { icon: Building2, hint: '' },
 };
 
 export default function Checkout(p: Props) {
@@ -222,8 +224,8 @@ export default function Checkout(p: Props) {
                                 return (
                                     <button key={m} disabled={disabled} onClick={() => form.setData('payment_method', m)} className={cn('flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition disabled:opacity-45', form.data.payment_method === m ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
                                         <span className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-white/10"><meta.icon className="size-5" /></span>
-                                        <span className="flex-1"><span className="block font-semibold">{m === 'card' ? 'Visa / Mastercard' : m === 'wallet' ? 'Zvino wallet' : m === 'cash' ? 'Cash on delivery' : label(m)}</span>
-                                            <span className="text-muted-foreground block text-xs">{m === 'wallet' ? `Balance ${zig(p.wallet.zig)}` : m === 'cash' && due > p.codLimit ? `Not available over ${zig(p.codLimit)}` : meta.hint}</span></span>
+                                        <span className="flex-1"><span className="block font-semibold">{m === 'card' ? 'Visa / Mastercard' : m === 'wallet' ? 'Zvino wallet' : m === 'cash' ? 'Cash on delivery' : m === 'company' ? `${p.company?.company ?? 'Company'} account` : label(m)}</span>
+                                            <span className="text-muted-foreground block text-xs">{m === 'company' ? (p.company?.left_today_zig != null ? `${zig(p.company.left_today_zig)} left today` : 'Billed to your company') : m === 'wallet' ? `Balance ${zig(p.wallet.zig)}` : m === 'cash' && due > p.codLimit ? `Not available over ${zig(p.codLimit)}` : meta.hint}</span></span>
                                         {form.data.payment_method === m && <Check className="size-5" />}
                                     </button>
                                 );

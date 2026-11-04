@@ -80,6 +80,7 @@ class MerchantController extends Controller
             'prep_minutes' => ['integer', 'between:5,120'],
             'offers_delivery' => ['boolean'],
             'offers_pickup' => ['boolean'],
+            'accepts_catering' => ['boolean'],
         ]);
 
         if (array_key_exists('pause_minutes', $data)) {
@@ -300,6 +301,36 @@ class MerchantController extends Controller
         }
 
         return response()->json($payment->fresh()->only('id', 'status', 'method', 'amount_zig'));
+    }
+
+    // ── Catering (#9) ────────────────────────────────────────────────
+
+    public function catering(Request $request, \App\Services\CateringService $svc)
+    {
+        $v = $this->store($request);
+
+        return response()->json([
+            'accepts_catering' => (bool) $v->accepts_catering,
+            'requests' => \App\Models\CateringRequest::with('user', 'vendor')->where('vendor_id', $v->id)->whereNotIn('status', ['cancelled', 'declined'])
+                ->where('event_at', '>=', now()->subDays(7))->orderBy('event_at')->get()->map(fn ($c) => $svc->present($c)),
+        ]);
+    }
+
+    public function cateringAction(Request $request, \App\Models\CateringRequest $catering, \App\Services\CateringService $svc)
+    {
+        abort_unless($catering->vendor_id === $this->managerOnly($request)->id, 404);
+        $data = $request->validate([
+            'action' => ['required', 'in:quote,complete,decline'],
+            'quote_zig' => ['required_if:action,quote', 'nullable', 'numeric', 'min:1'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+        $c = match ($data['action']) {
+            'quote' => $svc->quote($catering, (float) $data['quote_zig'], $data['note'] ?? null),
+            'complete' => $svc->complete($catering),
+            'decline' => $svc->close($catering, 'store', $data['note'] ?? 'The store can’t cater this event.'),
+        };
+
+        return response()->json($svc->present($c->load('user', 'vendor')));
     }
 
     // ── Self-serve promotions (#33) ──────────────────────────────────

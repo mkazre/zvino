@@ -4,10 +4,7 @@ import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Command } from 'cmdk';
-import {
-    BarChart3, Bell, Bike, Calculator, ChefHat, ChevronDown, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone,
-    Menu, Moon, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon,
-} from 'lucide-react';
+import { BarChart3, Bell, Bike, Building2, Calculator, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 
@@ -37,6 +34,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
             { title: 'Refunds', href: '/admin/refunds', icon: RotateCcw, can: 'refunds.approve', badge: 'refunds', badgeTone: 'red' },
             { title: 'Support', href: '/admin/support', icon: LifeBuoy, can: 'support.manage', badge: 'support' },
             { title: 'Reviews', href: '/admin/reviews', icon: Star, can: 'orders.view' },
+            { title: 'Catering', href: '/admin/catering', icon: CookingPot, can: 'orders.manage' },
         ],
     },
     {
@@ -44,6 +42,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
         items: [
             { title: 'Stores', href: '/admin/vendors', icon: Store, can: 'vendors.manage', marketplaceOnly: true },
             { title: 'Menu', href: '/admin/catalog', icon: UtensilsCrossed, can: 'catalog.manage' },
+            { title: 'Hampers', href: '/admin/hampers', icon: Package, can: 'catalog.manage' },
         ],
     },
     {
@@ -65,6 +64,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
         group: 'People',
         items: [
             { title: 'Customers', href: '/admin/users', icon: Users, can: 'customers.manage' },
+            { title: 'Companies', href: '/admin/companies', icon: Building2, can: 'customers.manage' },
             { title: 'Staff & roles', href: '/admin/staff', icon: ShieldCheck, can: 'staff.manage' },
         ],
     },

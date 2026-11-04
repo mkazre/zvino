@@ -23,6 +23,7 @@ Route::get('categories', [CatalogController::class, 'categories']);
 Route::get('vendors', [CatalogController::class, 'vendors']);
 Route::get('vendors/{vendor}', [CatalogController::class, 'vendor']);
 Route::get('vendors/{vendor}/menu', [CatalogController::class, 'menu']);
+Route::get('hampers', [\App\Http\Controllers\Api\HamperController::class, 'index']);
 Route::get('items/{item}', [CatalogController::class, 'item']);
 Route::get('specials', [CatalogController::class, 'specials']);
 Route::get('search', [CatalogController::class, 'search']);
@@ -94,6 +95,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('favorites', [EngagementController::class, 'favorites']);
     Route::get('watches', [EngagementController::class, 'watches']);
+    Route::get('catering', [\App\Http\Controllers\Api\CateringController::class, 'index']);
+    Route::post('catering', [\App\Http\Controllers\Api\CateringController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('catering/{catering}/pay', [\App\Http\Controllers\Api\CateringController::class, 'pay']);
+    Route::post('catering/{catering}/cancel', [\App\Http\Controllers\Api\CateringController::class, 'cancel']);
+    Route::post('hampers/{hamper}/send', [\App\Http\Controllers\Api\HamperController::class, 'send']);
+    Route::get('company', fn (\Illuminate\Http\Request $r) => response()->json(app(\App\Services\CompanyService::class)->summary($r->user())));
     Route::post('items/{item}/watch', [EngagementController::class, 'watch']);
     Route::delete('items/{item}/watch', [EngagementController::class, 'unwatch']);
     Route::post('vendors/{vendor}/favorite', [EngagementController::class, 'toggleFavorite']);
@@ -152,6 +159,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('items/{item}/availability', [MerchantController::class, 'setAvailability']);
         Route::get('earnings', [MerchantController::class, 'earnings']);
         Route::get('promos', [MerchantController::class, 'promos']);
+        Route::get('catering', [MerchantController::class, 'catering']);
+        Route::post('catering/{catering}', [MerchantController::class, 'cateringAction']);
         Route::post('payout-now', [MerchantController::class, 'payoutNow'])->middleware('throttle:5,1');
         Route::get('orders/{order}/prescription', [MerchantController::class, 'prescription']);
         Route::get('payments/{payment}', [MerchantController::class, 'paymentStatus']);

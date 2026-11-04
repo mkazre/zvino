@@ -153,6 +153,32 @@ class SiteController extends Controller
         ]);
     }
 
+    /** Diaspora: send a grocery hamper home (#8). */
+    public function hampers(Request $request)
+    {
+        return Inertia::render('site/hampers', [
+            'seo' => $this->seo('Send groceries home to Zimbabwe | Zvino hampers', 'From the UK, South Africa or the US: send a monthly grocery hamper to family anywhere we deliver in Zimbabwe. Pay by card.'),
+            'enabled' => (bool) Setting::get('orders.hampers'),
+            'hampers' => \App\Models\Hamper::with('vendor:id,name,city')->where('is_active', true)->orderBy('sort_order')->get()->map(fn ($h) => \App\Http\Controllers\Api\HamperController::present($h)),
+            'wallet' => $request->user() ? \App\Support\Money::both($request->user()->walletBalance()) : null,
+            'cities' => Setting::get('general.cities'),
+            'sent' => $request->user() ? \App\Models\RecurringOrder::where('user_id', $request->user()->id)->whereNotNull('hamper_id')->latest()->get(['id', 'name', 'kind', 'day_of_month', 'next_run_at', 'is_active', 'recipient_name']) : [],
+        ]);
+    }
+
+    /** Funeral, wedding & gathering catering (#9). */
+    public function catering(Request $request)
+    {
+        return Inertia::render('site/catering', [
+            'seo' => $this->seo('Catering for funerals, weddings & gatherings | Zvino', 'Sadza, stews, rice and more for big groups, delivered. Get a quote from trusted local caterers.'),
+            'enabled' => (bool) Setting::get('orders.catering'),
+            'stores' => \App\Models\Vendor::where('status', 'active')->where('accepts_catering', true)->orderBy('name')->get(['id', 'name', 'city', 'cuisine', 'logo_path']),
+            'requests' => $request->user() ? \App\Models\CateringRequest::with('vendor')->where('user_id', $request->user()->id)->latest()->get()->map(fn ($c) => app(\App\Services\CateringService::class)->present($c)) : [],
+            'minHeadcount' => (int) Setting::get('orders.catering_min_headcount'),
+            'wallet' => $request->user() ? \App\Support\Money::both($request->user()->walletBalance()) : null,
+        ]);
+    }
+
     public function partners()
     {
         return Inertia::render('site/partners', ['seo' => $this->seo('Partner with Zvino: grow your restaurant', 'Reach thousands of new customers in Harare and Bulawayo. Zvino handles delivery, payments and marketing.'), 'commission' => Setting::get('fees.default_commission_pct')]);

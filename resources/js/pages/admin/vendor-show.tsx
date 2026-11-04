@@ -11,7 +11,7 @@ interface Hour { weekday: number; opens_at: string; closes_at: string }
 interface Vendor {
     id: number; name: string; slug: string; cuisine: string | null; kind?: string; description: string | null; city: string; zone_id: number | null; address: string | null; phone: string | null; email: string | null;
     lat: number | null; lng: number | null; status: string; commission_pct: number; prep_minutes: number; price_level: number; delivery_fee_zig: number; min_order_zig: number; delivery_radius_km: number;
-    is_featured: boolean; offers_delivery: boolean; offers_pickup: boolean; accepts_scheduled: boolean; auto_accept: boolean; is_busy: boolean; power_out: boolean; logo_path: string | null; cover_path: string | null;
+    is_featured: boolean; offers_delivery: boolean; offers_pickup: boolean; accepts_scheduled: boolean; accepts_catering?: boolean; auto_accept: boolean; is_busy: boolean; power_out: boolean; logo_path: string | null; cover_path: string | null;
     payout_method: string | null; payout_details: Record<string, string> | null; rating: number; rating_count: number; balance_zig: number;
     hours: Hour[]; closures: { date: string; reason: string | null }[]; staff: { id: number; name: string; email: string; role: string; last_seen_at: string | null }[];
     availability: { is_open: boolean; reason: string | null; prep_minutes: number; next_open_at: string | null };
@@ -113,7 +113,7 @@ function ProfileForm({ v, cities, zones }: { v: Vendor; cities: string[]; zones:
         name: v.name, cuisine: v.cuisine ?? '', kind: v.kind ?? 'restaurant', description: v.description ?? '', city: v.city, zone_id: v.zone_id ?? '', address: v.address ?? '', phone: v.phone ?? '', email: v.email ?? '',
         lat: v.lat ?? '', lng: v.lng ?? '', status: v.status, commission_pct: v.commission_pct, prep_minutes: v.prep_minutes, price_level: v.price_level, delivery_fee_zig: v.delivery_fee_zig,
         min_order_zig: v.min_order_zig, delivery_radius_km: v.delivery_radius_km, is_featured: v.is_featured, offers_delivery: v.offers_delivery, offers_pickup: v.offers_pickup,
-        accepts_scheduled: v.accepts_scheduled, auto_accept: v.auto_accept, payout_method: v.payout_method ?? 'ecocash', payout_details: v.payout_details ?? { number: '', name: '' },
+        accepts_scheduled: v.accepts_scheduled, accepts_catering: v.accepts_catering ?? false, auto_accept: v.auto_accept, payout_method: v.payout_method ?? 'ecocash', payout_details: v.payout_details ?? { number: '', name: '' },
         logo: null as File | null, cover: null as File | null,
     });
     const b = (k: keyof typeof data) => (x: boolean) => setData(k, x as never);
@@ -162,6 +162,7 @@ function ProfileForm({ v, cities, zones }: { v: Vendor; cities: string[]; zones:
                     <Switch checked={data.offers_delivery} onChange={b('offers_delivery')} label="Delivery" />
                     <Switch checked={data.offers_pickup} onChange={b('offers_pickup')} label="Pickup" />
                     <Switch checked={data.accepts_scheduled} onChange={b('accepts_scheduled')} label="Scheduled orders" />
+                    <Switch checked={data.accepts_catering} onChange={b('accepts_catering')} label="Catering (funerals, weddings, gatherings)" />
                     <Switch checked={data.auto_accept} onChange={b('auto_accept')} label="Auto-accept orders" description="Skip the store confirming each order. Best for high-volume stores with a kitchen screen." />
                 </FormSection>
                 <FormSection title="Commercials & payouts" description="What Zvino keeps, and where the store’s money goes.">

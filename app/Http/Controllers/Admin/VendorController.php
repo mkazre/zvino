@@ -144,6 +144,7 @@ class VendorController extends AdminController
             'offers_delivery' => ['boolean'],
             'offers_pickup' => ['boolean'],
             'accepts_scheduled' => ['boolean'],
+            'accepts_catering' => ['boolean'],
             'auto_accept' => ['boolean'],
             'payout_method' => ['nullable', 'in:ecocash,onemoney,innbucks,bank'],
             'payout_details' => ['nullable', 'array'],

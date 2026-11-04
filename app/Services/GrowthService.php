@@ -135,10 +135,20 @@ class GrowthService
         match (true) {
             $payable instanceof GiftCard => $payable->update(['status' => 'active']),
             $payable instanceof Subscription => $this->activate($payable),
-            default => User::find($payment->raw['user_id'] ?? null)?->walletTransactions()->create([
+            $payable instanceof \App\Models\CateringRequest => app(CateringService::class)->onPaid($payment),
+            $payable instanceof \App\Models\Driver => self::settleRemittance($payable, $payment),
+            ($payment->raw['purpose'] ?? 'topup') === 'topup' => User::find($payment->raw['user_id'] ?? null)?->walletTransactions()->create([
                 'type' => 'credit', 'amount_zig' => $payment->amount_zig, 'reason' => 'Wallet top-up',
             ]),
+            default => \Illuminate\Support\Facades\Log::warning("Paid payment {$payment->id} has no handler", $payment->raw ?? []),
         };
+    }
+
+    /** Driver paid in COD cash they were holding: clear it from what they owe. */
+    public static function settleRemittance(\App\Models\Driver $driver, Payment $payment): void
+    {
+        $driver->ledger()->create(['type' => 'cash_collected', 'amount_zig' => $payment->amount_zig, 'description' => 'Cash remitted via '.$payment->method]);
+        $driver->ledger()->where('type', 'cash_collected')->whereNull('payout_id')->update(['payout_id' => 0]); // settled
     }
 
     private function activate(Subscription $sub): void

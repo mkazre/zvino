@@ -47,6 +47,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::get('reviews', [ReviewController::class, 'index'])->name('reviews');
         });
         Route::middleware('can:orders.manage')->group(function () {
+            Route::get('catering', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'catering'])->name('catering');
+            Route::post('catering/{catering}', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'cateringAction'])->name('catering.action');
             Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
             Route::post('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
             Route::post('orders/{order}/note', [OrderController::class, 'note'])->name('orders.note');
@@ -76,6 +78,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
         });
 
         Route::middleware('can:catalog.manage')->group(function () {
+            Route::get('hampers', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'hampers'])->name('hampers');
+            Route::post('hampers/{hamper?}', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'saveHamper'])->name('hampers.save');
             Route::get('catalog', [CatalogController::class, 'index'])->name('catalog');
             Route::post('catalog/items', [CatalogController::class, 'store'])->name('catalog.store');
             Route::post('catalog/items/{item}', [CatalogController::class, 'update'])->name('catalog.update'); // POST for multipart
@@ -105,6 +109,12 @@ Route::middleware(['auth', 'staff'])->group(function () {
         });
 
         Route::middleware('can:customers.manage')->group(function () {
+            Route::get('companies', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'companies'])->name('companies');
+            Route::post('companies/{company?}', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'saveCompany'])->name('companies.save');
+            Route::post('companies/{company}/members', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'addMembers'])->name('companies.members');
+            Route::patch('company-members/{member}', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'updateMember'])->name('companies.member');
+            Route::post('company-invoices', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'invoice'])->name('companies.invoice');
+            Route::post('company-invoices/{invoice}/paid', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'invoicePaid'])->name('companies.invoice.paid');
             Route::get('users', [CustomerController::class, 'index'])->name('users');
             Route::get('users/export', [CustomerController::class, 'export'])->name('users.export');
             Route::get('users/{user}', [CustomerController::class, 'show'])->name('users.show');

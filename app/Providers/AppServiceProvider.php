@@ -39,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
             'zone' => \App\Models\Zone::class,
             'setting' => \App\Models\Setting::class,
             'promo_code' => \App\Models\PromoCode::class,
+            'catering_request' => \App\Models\CateringRequest::class,
+            'company' => \App\Models\Company::class,
+            'company_invoice' => \App\Models\CompanyInvoice::class,
+            'hamper' => \App\Models\Hamper::class,
+            'safety_zone' => \App\Models\SafetyZone::class,
         ]);
 
         // Every permission in Permissions::ALL is usable as a gate: @can('refunds.approve'), ->can('refunds.approve').
