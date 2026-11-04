@@ -42,7 +42,8 @@ admin panel, Laravel API on shared hosting, Pusher, Paynow, Google Maps, Inter, 
 - [x] Zvino Merchant: Store manager, POS and Kitchen modes (one app, mode chosen by staff role)
 
 ## Phase 6: Launch hardening
-- [ ] Load & security review, error monitoring, backups, store listings, production deploy
+- [x] Security headers, readiness check (zvino:doctor), daily backups, go-live runbook
+- [ ] Load testing, error monitoring (Sentry), store listings, production deploy
 
 ## Zvino originals: 50 features beyond DoorDash / Uber Eats
 Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an external account or approval (in brackets).
@@ -50,19 +51,19 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 ### Customer app & website (18)
 1. 🇿🇼 **Data-light mode**: compressed images and lean screens for users on expensive bundles
 2. 🇿🇼 **Split tender**: pay part in USD cash and part in ZiG by EcoCash on one order
-3. 🇿🇼 **Live ZiG/USD rate banner** at checkout so totals are never a surprise
-4. 🇿🇼 **Landmark addresses**: "opposite OK Mart, blue gate" plus a pin plus a gate photo
+3. 🇿🇼 **Live ZiG/USD rate banner** at checkout so totals are never a surprise ✅
+4. 🇿🇼 **Landmark addresses**: "opposite OK Mart, blue gate" plus a pin plus a gate photo ✅
 5. 🇿🇼 **Voice-note directions** for the driver, in Shona, Ndebele or English
 6. 🇿🇼 **Shona and Ndebele** languages (also in the driver and merchant apps)
-7. 🇿🇼 **Diaspora "Send a meal home"**: pay from the UK/SA/US by card for family in Zimbabwe
+7. 🇿🇼 **Diaspora "Send a meal home"**: pay from the UK/SA/US by card for family in Zimbabwe ✅
 8. 🇿🇼 **Diaspora grocery hampers**: monthly hamper subscription delivered to family
 9. 🇿🇼 **Funeral and gathering catering**: bulk orders with deposit, headcount and event date
 10. 🇿🇼 **Month-end shop planner**: scheduled big grocery order with payday reminders
-11. **"Your usual"**: one-tap reorder of the last order from a store
-12. **Hot-meal guarantee**: automatic wallet credit when delivery runs past the promised ETA
+11. **"Your usual"**: one-tap reorder of the last order from a store ✅
+12. **Hot-meal guarantee**: automatic wallet credit when delivery runs past the promised ETA ✅
 13. **Split the bill**: friends pay their share by EcoCash link before the order is placed
 14. **Gift a meal to any phone number**: recipient gets an SMS and picks their meal ✅
-15. **Photo reviews** with dish-level ratings, plus **price-drop alerts** on favourites
+15. **Photo reviews** with dish-level ratings, plus **price-drop alerts** on favourites (reviews ✅)
 16. **Dietary and allergen filters**: halal, vegetarian, no pork, nut-free, spice level
 17. **School and office lunch plans**: recurring weekday deliveries
 18. **Round-up for charity, eco "no cutlery" toggle, and accessibility** (large text, screen reader, high contrast)
@@ -89,25 +90,25 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 ### Merchant app: POS mode (5)
 34. 🇿🇼 ⚠ **ZIMRA fiscal export**: daily sales and VAT report for fiscalisation [ZIMRA FDMS / fiscal device]
 35. 🇿🇼 **EcoCash / InnBucks QR at the counter**: customer scans and pays, the sale closes automatically
-36. 🇿🇼 **Multi-currency till**: take USD and ZiG cash, with change calculated in either
+36. 🇿🇼 **Multi-currency till**: take USD and ZiG cash, with change calculated in either ✅
 37. **Offline sales**: keep selling when the network drops; syncs when it's back
 38. **Bluetooth receipt printer** and cash drawer support
 
 ### Merchant app: Kitchen mode (4)
-39. **Rush mode**: when tickets pile up, automatically add prep time and slow incoming app orders
-40. **Station routing**: grill, fryer and drinks each see only their items
+39. **Rush mode**: when tickets pile up, automatically add prep time and slow incoming app orders ✅
+40. **Station routing**: grill, fryer and drinks each see only their items ✅
 41. **Bluetooth kitchen printer** with loud new-order alerts that repeat until acknowledged
-42. **Prep timers** per item that learn real cook times, so the app's ETAs improve
+42. **Prep timers** per item that learn real cook times, so the app's ETAs improve ✅
 
 ### Admin panel (8)
 43. 🇿🇼 ⚠ **USSD ordering** (`*xxx#`): reorder and track without data [Econet/NetOne short code]
 44. 🇿🇼 ⚠ **WhatsApp ordering and tracking bot** [Meta WhatsApp Business API]
-45. 🇿🇼 **SMS tracking fallback**: status updates by SMS when the customer has no data
-46. 🇿🇼 **Fuel-indexed delivery fees**: per-km rate tracks the ZERA fuel price, with admin approval
-47. 🇿🇼 **Seasonal campaign presets**: Independence, Heroes, Christmas and month-end templates
-48. **Fraud shield**: velocity checks, device limits, COD blacklist, OTP confirm for large COD orders
-49. **Weather-aware surge**: rainy-season demand suggests surge per zone
-50. **Ops command centre**: live map of orders and drivers, late-order alerts, one-click reassign, sponsored-listing and corporate-account management
+45. 🇿🇼 **SMS tracking fallback**: status updates by SMS when the customer has no data ✅
+46. 🇿🇼 **Fuel-indexed delivery fees**: per-km rate tracks the ZERA fuel price, with admin approval ✅
+47. 🇿🇼 **Seasonal campaign presets**: Independence, Heroes, Christmas and month-end templates ✅
+48. **Fraud shield**: velocity checks, device limits, COD blacklist, OTP confirm for large COD orders ✅
+49. **Weather-aware surge**: rainy-season demand suggests surge per zone ✅ (one-tap rain mode)
+50. **Ops command centre**: live map of orders and drivers, late-order alerts, one-click reassign, sponsored-listing and corporate-account management ✅
 
 ## Needed from Zvino before go-live
 Paynow keys · SMS provider · Google Maps API key · Apple & Google developer accounts ·
