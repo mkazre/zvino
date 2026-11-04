@@ -1,56 +1,54 @@
-# Welcome to your Expo app 👋
+# Zvino mobile apps
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+One Expo (SDK 58) codebase that builds **three store apps**:
 
-## Get started
+| App | `APP_VARIANT` | Bundle ID | Who |
+|---|---|---|---|
+| **Zvino** | `customer` | `zw.co.zvino` | Customers: browse, order, pay, track |
+| **Zvino Driver** | `driver` | `zw.co.zvino.driver` | Drivers: go online, accept jobs, deliver, earnings |
+| **Zvino Merchant** | `merchant` | `zw.co.zvino.merchant` | Store staff: manager / POS (cashier) / kitchen modes by role |
 
-1. Install dependencies
+The variant picks the name, icon colours, permissions and which screens are reachable
+(`src/app/_layout.tsx` uses `Stack.Protected`). Everything else is shared:
+`src/ui` (design system), `src/lib` (API client, session, push, basket), `src/features`.
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run locally
 
 ```bash
-npm run reset-project
+npm install
+# Point the app at your Laravel server (Android emulator reaches the host at 10.0.2.2)
+set EXPO_PUBLIC_API_URL=http://10.0.2.2:8001      # Windows cmd
+npm run customer     # or: npm run driver / npm run merchant
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Start the API first: `cd ../api && php artisan serve --host=0.0.0.0 --port=8001`.
+On a physical phone, use your PC's LAN IP, e.g. `http://192.168.1.20:8001`.
 
-### Other setup steps
+Demo logins (after `php artisan db:seed`):
+- Customer / driver app: any phone number, code **123456** (non-production only). Driver demo: `0772000001`.
+- Merchant app: `manager@zvino.co.zw`, `cashier@zvino.co.zw`, `kitchen@zvino.co.zw`, password `password`.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+> Push notifications and maps need a **development build** (Expo Go can't receive remote push on Android):
+> `npx eas-cli@latest build --profile customer-dev --platform android`
 
-## Learn more
+## Build for the stores
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest init                      # creates the EAS project → set EAS_PROJECT_ID
+npx eas-cli@latest build --profile customer --platform all
+npx eas-cli@latest build --profile driver   --platform all
+npx eas-cli@latest build --profile merchant --platform all
+npx eas-cli@latest submit --profile customer --platform android
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Production profiles point at `https://zvino.co.zw` (`eas.json` → `base.env`). Set
+`GOOGLE_MAPS_ANDROID_KEY` as an EAS secret for maps on Android.
 
-## Join the community
+## Still to add before store submission
+- Real app icons & splash artwork per app (`assets/images/`), Inter font files
+- `assets/sounds/new-order.mp3` for a loud merchant alert (vibration is used today)
+- Background location for drivers (foreground sharing works while the app is open)
+- Pusher client for instant updates (apps poll every 5–10 s today; the API already broadcasts)
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The template folders `src/components`, `src/constants` and `src/hooks` are unused leftovers and can be deleted.
