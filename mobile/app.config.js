@@ -53,7 +53,19 @@ module.exports = ({ config }) => ({
       ? { locationWhenInUsePermission: locationText, locationAlwaysAndWhenInUsePermission: locationText, isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: true, isIosBackgroundLocationEnabled: true }
       : { locationWhenInUsePermission: locationText }],
     // Test builds talk to a laptop server over plain http on the local Wi-Fi; store builds are https-only.
-    ['expo-build-properties', { android: { usesCleartextTraffic: process.env.ALLOW_HTTP === '1' } }],
+    ['expo-build-properties', {
+      android: {
+        usesCleartextTraffic: process.env.ALLOW_HTTP === '1',
+        // Test builds skip code shrinking (faster to debug); store builds shrink but must keep
+        // WorkManager's Room database (used by notifications/background tasks) or the app crashes at launch.
+        enableMinifyInReleaseBuilds: process.env.ALLOW_HTTP !== '1',
+        extraProguardRules: [
+          '-keep class * extends androidx.room.RoomDatabase { <init>(); }',
+          '-keep class androidx.work.impl.WorkDatabase_Impl { *; }',
+          '-keep class androidx.work.** { *; }',
+        ].join('\n'),
+      },
+    }],
     // Crash & error reports (only active when EXPO_PUBLIC_SENTRY_DSN is set at build time).
     ['@sentry/react-native/expo', { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT }],
     ['expo-image-picker', { cameraPermission: VARIANT === 'driver' ? 'Take photos of your documents and proof of delivery.' : 'Take photos of your gate so drivers can find you.', photosPermission: 'Choose photos from your library.' }],
