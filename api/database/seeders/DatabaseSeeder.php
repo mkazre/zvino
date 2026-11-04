@@ -90,7 +90,7 @@ class DatabaseSeeder extends Seeder
         User::create(['name' => 'Demo Customer', 'phone' => '+263771234567', 'role' => 'customer']);
 
         $blocks = [
-            ['hero', 'Lunch is on us', 'Get 20% off your first order with code ZVINO20', 'Order now', 'specials', ['background' => '#0B6E4F']],
+            ['hero', 'Lunch is on us', 'Get 20% off your first order with code ZVINO20', 'Order now', 'specials', ['background' => '#1C1C1C']],
             ['categories', 'What are you craving?', null, null, null, null],
             ['specials', 'Today\'s specials', 'Limited-time deals near you', 'See all', 'specials', ['limit' => 8]],
             ['vendors', 'Popular near you', null, 'See all', 'vendors', ['limit' => 10]],

@@ -7,8 +7,9 @@ import { CartBar, Cover, StoreCard, type MenuItem, type Store } from '@/features
 import { api } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Loading, Row, SectionTitle, Text, useTheme, Logo } from '@/ui';
+import { Button, Empty, Loading, Logo, Row, Screen, SectionTitle, Text, useTheme } from '@/ui';
 import { Bell } from '@/features/bell';
+import { useOnReconnect } from '@/lib/network';
 
 interface Block { id: number; type: string; title: string | null; subtitle: string | null; cta_label: string | null; link_to: string | null; payload: Record<string, unknown>; data: unknown }
 interface Layout { platform_mode: 'single' | 'marketplace'; single_vendor: { data: Store } | Store | null; blocks: Block[] }
@@ -19,14 +20,23 @@ export default function Home() {
     const { me } = useSession();
     const [layout, setLayout] = useState<Layout | null>(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [failed, setFailed] = useState(false);
 
     const load = useCallback(async () => {
         try {
             setLayout(await api.get<Layout>('/home-layout'));
+            setFailed(false);
         } catch {
-            /* keep last */
+            setFailed(true); // keep the last good layout if we have one
         }
     }, []);
+    // A slow or dropped first load must not leave the spinner forever: retry, and again when back online.
+    useEffect(() => {
+        if (!failed || layout) return;
+        const timer = setTimeout(load, 5000);
+        return () => clearTimeout(timer);
+    }, [failed, layout, load]);
+    useOnReconnect(load);
     useEffect(() => {
         load();
     }, [load]);
@@ -38,7 +48,13 @@ export default function Home() {
         if (layout?.platform_mode === 'single' && id) router.replace(`/store/${id}`);
     }, [layout]);
 
-    if (!layout) return <Loading />;
+    if (!layout) {
+        return failed ? (
+            <Screen>
+                <Empty emoji="📶" title="Couldn’t load Zvino" body="Check your connection. We’ll keep trying." action={<Button title="Try again" size="md" onPress={load} />} />
+            </Screen>
+        ) : <Loading />;
+    }
 
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
@@ -53,7 +69,7 @@ export default function Home() {
                         {me ? (
                             <Pressable onPress={() => router.push('/wallet')} style={{ backgroundColor: t.subtle, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 8 }}><Text variant="label">{zig(me.wallet_balance_zig)}</Text></Pressable>
                         ) : (
-                            <Pressable onPress={() => router.push('/sign-in')} style={{ backgroundColor: t.inverse, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 9 }}><Text variant="label" color="onInverse">Sign in</Text></Pressable>
+                            <Pressable onPress={() => router.push('/sign-in')} style={{ backgroundColor: t.brand, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 9 }}><Text variant="label" color="onBrand">Sign in</Text></Pressable>
                         )}
                     </Row>
                     <Pressable onPress={() => router.push('/search')} style={{ height: 50, borderRadius: 99, backgroundColor: t.subtle, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
