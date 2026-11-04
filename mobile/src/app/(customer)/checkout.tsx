@@ -7,7 +7,7 @@ import { api, ApiError, type Money } from '@/lib/api';
 import { useCart } from '@/lib/cart';
 import { label, normalisePhone, usd, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Button, Card, Chip, Row, Text, useTheme } from '@/ui';
+import { Button, Card, Chip, Row, Text, Toggle, useTheme } from '@/ui';
 
 interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean }
 interface Quote {
@@ -17,6 +17,8 @@ interface Quote {
     tip_presets_pct: number[];
     payment_methods: string[];
     wallet_balance: Money;
+    split_tender: boolean;
+    round_up: { charity: string; amount: Money } | null;
 }
 
 const METHOD_LABEL: Record<string, string> = { ecocash: 'EcoCash', innbucks: 'InnBucks', onemoney: 'OneMoney', card: 'Visa / Mastercard', wallet: 'Zvino wallet', cash: 'Cash on delivery' };
@@ -36,6 +38,10 @@ export default function Checkout() {
     const [promo, setPromo] = useState('');
     const [notes, setNotes] = useState('');
     const [dropoff, setDropoff] = useState<'hand_to_me' | 'leave_at_door'>('hand_to_me');
+    const [useWallet, setUseWallet] = useState(false);
+    const [cashPartText, setCashPartText] = useState('');
+    const [roundUp, setRoundUp] = useState(false);
+    const [noCutlery, setNoCutlery] = useState(true);
     const [quote, setQuote] = useState<Quote | null>(null);
     const [placing, setPlacing] = useState(false);
     const [waiting, setWaiting] = useState<{ paymentId: number; orderId: number } | null>(null);
@@ -78,6 +84,7 @@ export default function Checkout() {
             const res = await api.post<{ order: { data?: { id: number }; id?: number }; payment: { id: number; status: string; redirect_url: string | null }; next: string }>('/orders', {
                 fulfilment, address_id: fulfilment === 'delivery' ? addressId : null, payment_method: method,
                 phone: ['ecocash', 'onemoney', 'innbucks'].includes(method) ? normalisePhone(phone) : null, tip, notes, dropoff,
+                use_wallet: useWallet && method !== 'wallet', cash_part: cashPart || null, round_up: roundUp, no_cutlery: noCutlery,
             });
             const orderId = res.order.data?.id ?? res.order.id!;
             cart.clear();
@@ -104,18 +111,26 @@ export default function Checkout() {
         return () => clearInterval(timer);
     }, [waiting]);
 
+    const donation = roundUp ? quote?.round_up?.amount.zig ?? 0 : 0;
+    const usdPerZig = quote && quote.totals.total.zig > 0 ? quote.totals.total.usd / quote.totals.total.zig : 0;
+    const total = quote ? { zig: quote.totals.total.zig + donation, usd: (quote.totals.total.zig + donation) * usdPerZig } : undefined;
+    const walletPart = useWallet && method !== 'wallet' ? Math.min(quote?.wallet_balance.zig ?? 0, total?.zig ?? 0) : 0;
+    const online = ['ecocash', 'onemoney', 'innbucks', 'card'].includes(method);
+    const cashAllowed = !!quote?.split_tender && online && fulfilment === 'delivery' && (quote?.payment_methods ?? []).includes('cash');
+    const cashPart = cashAllowed ? Math.min(Number(cashPartText) || 0, Math.max(0, (total?.zig ?? 0) - walletPart - 1)) : 0;
+    const due = (total?.zig ?? 0) - walletPart - cashPart;
+
     if (waiting) {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 }}>
                 <Text style={{ fontSize: 56 }}>📲</Text>
                 <Text variant="title" center>Check your phone</Text>
-                <Text color="muted" center>Approve the {label(method)} payment of {zig(quote?.totals.total.zig)} on {phone}. Enter your PIN when prompted.</Text>
+                <Text color="muted" center>Approve the {label(method)} payment of {zig(due)} on {phone}. Enter your PIN when prompted.</Text>
                 <ActivityIndicator color={t.brand} size="large" style={{ marginTop: 12 }} />
             </SafeAreaView>
         );
     }
 
-    const total = quote?.totals.total;
     const canPlace = synced && quote && (fulfilment === 'pickup' || addressId) && (!['ecocash', 'onemoney', 'innbucks'].includes(method) || phone.replace(/\D/g, '').length >= 9);
 
     return (
@@ -159,6 +174,16 @@ export default function Checkout() {
                             </Pressable>
                         );
                     })}
+                    {quote?.split_tender && (quote.wallet_balance.zig ?? 0) > 0 && method !== 'wallet' && (
+                        <Toggle value={useWallet} onChange={setUseWallet} label={`Use wallet balance (${zig(quote.wallet_balance.zig)})`} description={walletPart > 0 ? `${zig(walletPart)} from wallet · ${zig(due)} by ${METHOD_LABEL[method] ?? label(method)}` : 'Pay part with your wallet'} />
+                    )}
+                    {cashAllowed && (
+                        <View style={{ marginTop: 8, gap: 6 }}>
+                            <Text variant="label">💵  Pay part in cash? (optional)</Text>
+                            <TextInput value={cashPartText} onChangeText={setCashPartText} keyboardType="decimal-pad" placeholder="ZiG 0" placeholderTextColor={t.faint} style={{ height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink }} />
+                            {cashPart > 0 && <Text variant="caption">Hand {zig(cashPart)} to your driver · {zig(due)} by {METHOD_LABEL[method] ?? label(method)}</Text>}
+                        </View>
+                    )}
                     {['ecocash', 'onemoney', 'innbucks'].includes(method) && <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="077 123 4567" placeholderTextColor={t.faint} style={{ height: 50, borderRadius: 12, borderWidth: 1.5, borderColor: t.border, paddingHorizontal: 14, fontSize: 16, color: t.ink, marginTop: 6 }} />}
                 </Card>
 
@@ -177,9 +202,16 @@ export default function Checkout() {
                     <TextInput value={notes} onChangeText={setNotes} placeholder="Notes for the restaurant" placeholderTextColor={t.faint} style={{ height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink, marginTop: 10 }} />
                 </Card>
 
+                <Card>
+                    <Toggle value={noCutlery} onChange={setNoCutlery} label="🌿  No cutlery or straws" description="Less plastic. Thank you!" />
+                    {quote?.round_up && (quote.round_up.amount.zig > 0 || roundUp) && (
+                        <Toggle value={roundUp} onChange={setRoundUp} label={`❤️  Round up for ${quote.round_up.charity}`} description={`Add ${zig(quote.round_up.amount.zig)}. Every cent goes to the charity`} />
+                    )}
+                </Card>
+
                 {quote && (
                     <Card tone="subtle">
-                        {([['Subtotal', quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, ['Service fee', quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? ['Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
+                        {([['Subtotal', quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, ['Service fee', quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? ['Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
                             <Row key={l} justify="space-between" style={{ paddingVertical: 4 }}><Text color="muted">{l}</Text><Text color={v < 0 ? 'brand' : 'ink'}>{v < 0 ? `−${zig(-v)}` : zig(v)}</Text></Row>
                         ))}
                         {quote.totals.member_savings.zig > 0 && <Text variant="caption" color="brand">Zvino+ saved you {zig(quote.totals.member_savings.zig)} 🎉</Text>}
@@ -191,7 +223,7 @@ export default function Checkout() {
                     <Text variant="heading">Total</Text>
                     <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 22 }}>{total ? zig(total.zig) : '…'}</Text>{total && <Text variant="caption">{usd(total.usd)} · VAT incl.</Text>}</View>
                 </Row>
-                <Button title={`Place order${total ? ` · ${zig(total.zig)}` : ''}`} loading={placing} disabled={!canPlace} onPress={place} />
+                <Button title={`Place order${total ? ` · ${zig(due)}` : ''}`} loading={placing} disabled={!canPlace} onPress={place} />
             </SafeAreaView>
         </SafeAreaView>
     );

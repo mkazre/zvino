@@ -50,7 +50,7 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 
 ### Customer app & website (18)
 1. 🇿🇼 **Data-light mode**: compressed images and lean screens for users on expensive bundles
-2. 🇿🇼 **Split tender**: pay part in USD cash and part in ZiG by EcoCash on one order
+2. 🇿🇼 **Split tender**: pay part in USD cash and part in ZiG by EcoCash on one order (also wallet + any method) ✅
 3. 🇿🇼 **Live ZiG/USD rate banner** at checkout so totals are never a surprise ✅
 4. 🇿🇼 **Landmark addresses**: "opposite OK Mart, blue gate" plus a pin plus a gate photo ✅
 5. 🇿🇼 **Voice-note directions** for the driver, in Shona, Ndebele or English
@@ -64,9 +64,9 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 13. **Split the bill**: friends pay their share by EcoCash link before the order is placed
 14. **Gift a meal to any phone number**: recipient gets an SMS and picks their meal ✅
 15. **Photo reviews** with dish-level ratings, plus **price-drop alerts** on favourites (reviews ✅)
-16. **Dietary and allergen filters**: halal, vegetarian, no pork, nut-free, spice level
+16. **Dietary and allergen filters**: halal, vegetarian, no pork, nut-free, spice level (vegetarian, vegan, halal, spicy ✅; allergens to do)
 17. **School and office lunch plans**: recurring weekday deliveries
-18. **Round-up for charity, eco "no cutlery" toggle, and accessibility** (large text, screen reader, high contrast)
+18. **Round-up for charity, eco "no cutlery" toggle, and accessibility** (large text, screen reader, high contrast) (round-up and no-cutlery ✅)
 
 ### Driver app (9)
 19. 🇿🇼 **Cash remittance via EcoCash** for cash-on-delivery money held, in-app ✅
@@ -75,15 +75,15 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 22. **SOS and trip sharing**: panic button alerts ops and shares live location ✅
 23. **Night safety zones**: warnings and optional opt-out for flagged areas after dark
 24. **Demand heatmap and earnings goals**: where to wait, with daily and weekly targets
-25. **Instant cash-out** of earnings to EcoCash (small fee)
-26. **Driver tiers**: priority offers for high-rated, reliable drivers
+25. **Instant cash-out** of earnings to EcoCash (small fee) ✅
+26. **Driver tiers**: priority offers for high-rated, reliable drivers (Bronze/Silver/Gold with pay bonus) ✅
 27. ⚠ **Fuel advance and micro-insurance** offers [insurance / lending partner]
 
 ### Merchant app: Store manager mode (6)
 28. 🇿🇼 **Load-shedding mode**: "Power out / on generator" hides oven and fryer items and adds prep time ✅
 29. 🇿🇼 **Fresh market selling**: Mbare and market vendors list produce by weight
 30. 🇿🇼 **Pharmacy orders**: prescription photo review and approve/decline before payment
-31. **Self-serve promotions**: BOGO, happy hour, % off, free item
+31. **Self-serve promotions**: BOGO, happy hour, % off, free item (% off, ZiG off, free delivery with results ✅; BOGO/happy hour to do)
 32. **Menu insights**: best sellers, items often removed from carts, prep time per item ✅
 33. **Same-day payout** to EcoCash (small fee)
 

@@ -102,6 +102,7 @@ export default function Board() {
                                     </View>
                                 ))}
                             </View>
+                            {o.no_cutlery && <Text variant="caption" color="brand">🌿 No cutlery</Text>}
                             {o.notes && <Text variant="caption" color="gold">📝 {o.notes}</Text>}
                             {o.driver && <Text variant="caption">🛵 {o.driver.name}</Text>}
 

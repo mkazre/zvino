@@ -9,7 +9,16 @@ interface Earnings {
     earned: Money; tips: Money; trips: number; balance: Money; cash_held: Money; cash_limit: Money;
     entries: { id: number; type: string; amount_zig: number; description: string; created_at: string }[];
     daily: Record<string, number>;
+    available_to_cash_out: Money;
+    instant_cashout: { fee_pct: number; min: Money } | null;
+    tier: 'bronze' | 'silver' | 'gold';
 }
+interface Tier {
+    tier: 'bronze' | 'silver' | 'gold'; bonus_pct: number;
+    next: { tier: string; trips_needed: number; min_rating: number; min_acceptance: number | null; bonus_pct: number } | null;
+    stats: { trips: number; rating: number; acceptance: number };
+}
+const TIER_COLOR = { bronze: '#B4793F', silver: '#9AA3AD', gold: '#D9A520' } as const;
 
 export default function EarningsScreen() {
     const t = useTheme();
@@ -17,10 +26,35 @@ export default function EarningsScreen() {
     const [e, setE] = useState<Earnings | null>(null);
     const [phone, setPhone] = useState('');
     const [remitting, setRemitting] = useState(false);
+    const [cashingOut, setCashingOut] = useState(false);
+    const [tier, setTier] = useState<Tier | null>(null);
 
     const load = useCallback(() => {
         api.get<Earnings>(`/driver/earnings?period=${period}`).then(setE);
+        api.get<Tier>('/driver/tier').then(setTier).catch(() => null);
     }, [period]);
+
+    const cashOut = () => {
+        const gross = e?.available_to_cash_out.zig ?? 0;
+        const fee = Math.round(gross * (e?.instant_cashout?.fee_pct ?? 0)) / 100;
+        Alert.alert('Cash out now?', `You’ll receive ${zig(gross - fee)} today (fee ${zig(fee)}).`, [
+            { text: 'Not now', style: 'cancel' },
+            {
+                text: 'Cash out', onPress: async () => {
+                    setCashingOut(true);
+                    try {
+                        const r = await api.post<{ message: string }>('/driver/cashout', {});
+                        Alert.alert('Done ✓', r.message);
+                        load();
+                    } catch (err) {
+                        Alert.alert('Cash out', err instanceof ApiError ? err.friendly : '');
+                    } finally {
+                        setCashingOut(false);
+                    }
+                },
+            },
+        ]);
+    };
     useFocusEffect(load);
 
     const remit = async () => {
@@ -57,6 +91,33 @@ export default function EarningsScreen() {
                 <Card style={{ flex: 1 }}><Text variant="caption">Next payout</Text><Text variant="heading">{zig(Math.max(0, (e?.balance.zig ?? 0) + (e?.cash_held.zig ?? 0)))}</Text></Card>
                 <Card style={{ flex: 1 }} tone={(e?.cash_held.zig ?? 0) > 0 ? 'gold' : 'surface'}><Text variant="caption">Cash held</Text><Text variant="heading">{zig(e?.cash_held.zig)}</Text></Card>
             </Row>
+
+            {e?.instant_cashout && (e.available_to_cash_out.zig ?? 0) > 0 && (e?.cash_held.zig ?? 0) <= 0 && (
+                <Card style={{ marginTop: 12, gap: 8 }}>
+                    <Row justify="space-between"><Text variant="heading">Instant cash-out</Text><Text variant="heading">{zig(e.available_to_cash_out.zig)}</Text></Row>
+                    <Text variant="caption">Get your money today instead of waiting for payday. {e.instant_cashout.fee_pct}% fee, minimum {zig(e.instant_cashout.min.zig)}.</Text>
+                    <Button title="Cash out now" tone="primary" loading={cashingOut} disabled={e.available_to_cash_out.zig < e.instant_cashout.min.zig} onPress={cashOut} />
+                </Card>
+            )}
+
+            {tier && (
+                <Card style={{ marginTop: 12, gap: 8 }}>
+                    <Row justify="space-between">
+                        <Row gap={8}><View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: TIER_COLOR[tier.tier] }} /><Text variant="heading">{tier.tier[0].toUpperCase() + tier.tier.slice(1)} driver</Text></Row>
+                        {tier.bonus_pct > 0 && <Text variant="label" color="brand">+{tier.bonus_pct}% pay</Text>}
+                    </Row>
+                    {tier.next ? (
+                        <>
+                            <Text variant="caption">
+                                {tier.next.trips_needed > 0 ? `${tier.next.trips_needed} more deliveries` : 'Deliveries ✓'} · rating {tier.next.min_rating}+ (you: {tier.stats.rating.toFixed(2)}){tier.next.min_acceptance ? ` · acceptance ${tier.next.min_acceptance}%+` : ''} to reach {tier.next.tier} (+{tier.next.bonus_pct}% and first pick of jobs).
+                            </Text>
+                            <View style={{ height: 6, borderRadius: 3, backgroundColor: t.subtle, overflow: 'hidden' }}>
+                                <View style={{ height: 6, width: `${Math.min(100, (tier.stats.trips / Math.max(1, tier.stats.trips + tier.next.trips_needed)) * 100)}%`, backgroundColor: TIER_COLOR[tier.next.tier as keyof typeof TIER_COLOR] ?? t.brand }} />
+                            </View>
+                        </>
+                    ) : <Text variant="caption">Top tier. You get first pick of nearby jobs. Keep it up!</Text>}
+                </Card>
+            )}
 
             {(e?.cash_held.zig ?? 0) > 0 && (
                 <Card style={{ marginTop: 12, gap: 10 }}>

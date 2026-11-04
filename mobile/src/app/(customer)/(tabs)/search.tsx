@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { Chip, Empty, Row, SectionTitle, Text, useTheme } from '@/ui';
 
+const DIETS = [['vegetarian', '🥬 Vegetarian'], ['vegan', '🌱 Vegan'], ['halal', 'Halal'], ['spicy', '🌶️ Spicy']] as const;
 const FILTERS = [['', 'All'], ['offers', '🔥 Offers'], ['free_delivery', 'Free delivery'], ['fastest', 'Fastest'], ['rating', 'Top rated']] as const;
 
 export default function Search() {
@@ -15,6 +16,8 @@ export default function Search() {
     const params = useLocalSearchParams<{ cuisine?: string }>();
     const [q, setQ] = useState(params.cuisine ?? '');
     const [filter, setFilter] = useState('');
+    const [diets, setDiets] = useState<string[]>([]);
+    const toggleDiet = (d: string) => setDiets((cur) => (cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d]));
     const [stores, setStores] = useState<Store[]>([]);
     const [items, setItems] = useState<MenuItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -23,8 +26,8 @@ export default function Search() {
         const timer = setTimeout(async () => {
             setLoading(true);
             try {
-                if (q.length >= 2) {
-                    const r = await api.get<{ vendors: Store[]; items: MenuItem[] }>(`/search?q=${encodeURIComponent(q)}`);
+                if (q.length >= 2 || diets.length) {
+                    const r = await api.get<{ vendors: Store[]; items: MenuItem[] }>(`/search?q=${encodeURIComponent(q)}${diets.length ? `&dietary=${diets.join(',')}` : ''}`);
                     setStores(r.vendors);
                     setItems(r.items);
                 } else {
@@ -37,7 +40,7 @@ export default function Search() {
             }
         }, 250);
         return () => clearTimeout(timer);
-    }, [q, filter]);
+    }, [q, filter, diets]);
 
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
@@ -48,11 +51,14 @@ export default function Search() {
                     <TextInput value={q} onChangeText={setQ} autoFocus={!params.cuisine} placeholder="Food, stores, groceries" placeholderTextColor={t.faint} returnKeyType="search" style={{ flex: 1, fontSize: 16, color: t.ink }} />
                     {!!q && <Pressable onPress={() => setQ('')}><Ionicons name="close-circle" size={18} color={t.muted} /></Pressable>}
                 </Row>
-                {q.length < 2 && (
+                {q.length < 2 && !diets.length && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                         {FILTERS.map(([v, l]) => <Chip key={v} label={l} active={filter === v} onPress={() => setFilter(v)} />)}
                     </ScrollView>
                 )}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {DIETS.map(([v, l]) => <Chip key={v} label={l} active={diets.includes(v)} onPress={() => toggleDiet(v)} />)}
+                </ScrollView>
             </View>
             <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
                 {loading && <ActivityIndicator style={{ marginTop: 32 }} color={t.brand} />}

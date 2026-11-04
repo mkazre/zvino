@@ -6,6 +6,7 @@ export default function MerchantLayout() {
     return (
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="promos" />
         </Stack>
     );
 }

@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { api, type Money } from '@/lib/api';
@@ -45,6 +45,7 @@ export default function More() {
                     {e.payouts.map((p) => <Row key={p.id} justify="space-between" style={{ paddingVertical: 8 }}><Text>{new Date(p.period_end).toLocaleDateString()}</Text><Text variant="label">{zig(p.amount_zig)} · {label(p.status)}</Text></Row>)}
                 </>
             )}
+            {manager && <Button title="🏷️  Promotions" tone="soft" onPress={() => router.push('/promos')} style={{ marginTop: 16 }} />}
             {manager && ins && (
                 <>
                     <SectionTitle>Best sellers (30 days)</SectionTitle>

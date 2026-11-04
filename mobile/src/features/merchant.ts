@@ -17,6 +17,7 @@ export interface StoreOrder {
     fulfilment: 'delivery' | 'pickup' | 'dine_in';
     payment_method: string;
     notes: string | null;
+    no_cutlery?: boolean;
     created_at: string;
     scheduled_for: string | null;
     estimated_delivery_at: string | null;
