@@ -10,6 +10,11 @@ import { SessionProvider, useSession } from '@/lib/session';
 import { Loading, useTheme } from '@/ui';
 import { SENTRY_ENABLED, Sentry } from '@/lib/sentry';
 import { useLoadBrand } from '@/lib/brand';
+import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
+import { Startup } from '@/features/startup';
+import { OfflineBanner } from '@/features/offline-banner';
+import { openLink } from '@/lib/links';
 import '@/features/driver-background'; // registers the background GPS task
 
 /**
@@ -19,6 +24,14 @@ import '@/features/driver-background'; // registers the background GPS task
 function RootNavigator() {
     const { ready, me } = useSession();
     useLoadBrand();
+    // Tapping a push notification: open the store / promo / page / order it points to.
+    useEffect(() => {
+        const sub = Notifications.addNotificationResponseReceivedListener((r) => {
+            const data = r.notification.request.content.data as Record<string, unknown>;
+            openLink(data?.link_to as string | undefined, data);
+        });
+        return () => sub.remove();
+    }, []);
     const t = useTheme();
     if (!ready) return <Loading />;
 
@@ -26,6 +39,10 @@ function RootNavigator() {
     return (
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
             <Stack.Screen name="index" />
+
+            <Stack.Protected guard={signedIn}>
+                <Stack.Screen name="inbox" />
+            </Stack.Protected>
 
             <Stack.Protected guard={!signedIn}>
                 <Stack.Screen name="sign-in" />
@@ -57,7 +74,10 @@ function RootLayout() {
                         <PrefsProvider>
                             <CartProvider>
                                 <StatusBar style="auto" />
-                                <RootNavigator />
+                                <Startup>
+                                    <RootNavigator />
+                                </Startup>
+                                <OfflineBanner />
                             </CartProvider>
                         </PrefsProvider>
                     </I18nProvider>

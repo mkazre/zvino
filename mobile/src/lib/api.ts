@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from './config';
+import { enqueue, setQueueSender } from './network';
 
 const TOKEN_KEY = 'zvino.token';
 let token: string | null = null;
@@ -65,6 +66,15 @@ async function request<T>(method: string, path: string, body?: Body): Promise<T>
 }
 
 export const api = {
+    /** Fire-and-forget background call: if offline it's queued and resent when the connection is back. */
+    background: async (method: 'POST' | 'PATCH', path: string, body?: Record<string, unknown>) => {
+        try {
+            return await request(method, path, body);
+        } catch (e) {
+            if (e instanceof ApiError && e.status === 0) await enqueue({ method, path, body });
+            return undefined;
+        }
+    },
     get: <T>(path: string) => request<T>('GET', path),
     post: <T>(path: string, body?: Body) => request<T>('POST', path, body),
     patch: <T>(path: string, body?: Body) => request<T>('PATCH', path, body),
@@ -76,3 +86,5 @@ export interface Money {
     zig: number;
     usd: number;
 }
+
+setQueueSender((q) => request(q.method, q.path, q.body));

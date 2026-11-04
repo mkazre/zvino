@@ -78,7 +78,7 @@ export function useLocationSharing(enabled: boolean, intervalSeconds = 10) {
             sub.current = await Location.watchPositionAsync(
                 { accuracy: Location.Accuracy.High, timeInterval: intervalSeconds * 1000, distanceInterval: 25 },
                 (p) => {
-                    api.post('/driver/location', { lat: p.coords.latitude, lng: p.coords.longitude, heading: p.coords.heading ?? null }).catch(() => {});
+                    api.background('POST', '/driver/location', { lat: p.coords.latitude, lng: p.coords.longitude, heading: p.coords.heading ?? null });
                 },
             );
         })();

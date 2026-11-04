@@ -15,7 +15,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
     const p = locations[locations.length - 1];
     if (!p) return;
     if (!auth.get()) await auth.load(); // the app may have been woken from the background
-    await api.post('/driver/location', { lat: p.coords.latitude, lng: p.coords.longitude, heading: p.coords.heading ?? null }).catch(() => {});
+    await api.background('POST', '/driver/location', { lat: p.coords.latitude, lng: p.coords.longitude, heading: p.coords.heading ?? null });
 });
 
 /** Start background sharing if the driver allows "always"; returns false to fall back to foreground-only. */

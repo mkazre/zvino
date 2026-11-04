@@ -11,6 +11,7 @@ import { zig } from '@/lib/money';
 import { Badge, Button, Card, Loading, Row, Text, useTheme, Logo } from '@/ui';
 import { useT } from '@/lib/i18n';
 import { useChannel } from '@/lib/realtime';
+import { Bell } from '@/features/bell';
 
 export default function Shift() {
     const tr = useT();
@@ -104,7 +105,7 @@ export default function Shift() {
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: me.is_online ? t.bg : t.canvas }}>
             <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}>
-                <Logo height={26} />
+                <Row justify="space-between"><Logo height={26} /><Bell /></Row>
                 <Row justify="space-between">
                     <View><Text variant="caption">Today</Text><Text variant="display">{zig(me.today.zig)}</Text></View>
                     <Pressable onPress={sos} style={{ backgroundColor: t.red, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 10 }}><Text variant="label" style={{ color: '#fff' }}>SOS</Text></Pressable>

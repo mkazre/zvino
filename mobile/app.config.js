@@ -23,6 +23,9 @@ const locationText = {
 
 module.exports = ({ config }) => ({
   ...config,
+  // Expo project: https://expo.dev/accounts/khuphukiles-team/projects/zvino (one project, three app variants)
+  owner: 'khuphukiles-team',
+  slug: 'zvino',
   name: v.name,
   scheme: v.scheme,
   icon: `./assets/brand/icon-${VARIANT}.png`,

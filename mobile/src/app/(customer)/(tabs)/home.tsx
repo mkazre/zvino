@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Loading, Row, SectionTitle, Text, useTheme, Logo } from '@/ui';
+import { Bell } from '@/features/bell';
 
 interface Block { id: number; type: string; title: string | null; subtitle: string | null; cta_label: string | null; link_to: string | null; payload: Record<string, unknown>; data: unknown }
 interface Layout { platform_mode: 'single' | 'marketplace'; single_vendor: { data: Store } | Store | null; blocks: Block[] }
@@ -43,7 +44,7 @@ export default function Home() {
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }} refreshControl={undefined} onScrollEndDrag={undefined}>
                 <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 14 }}>
-                    <Logo height={30} />
+                    <Row justify="space-between"><Logo height={30} /><Bell /></Row>
                     <Row justify="space-between">
                         <Pressable onPress={() => router.push('/addresses')}>
                             <Text variant="caption">Deliver to</Text>

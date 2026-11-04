@@ -12,6 +12,8 @@ import { API_URL } from '@/lib/config';
 import { Image } from 'expo-image';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useChannel } from '@/lib/realtime';
+import { Bell } from '@/features/bell';
+import { useOnReconnect } from '@/lib/network';
 
 type Tab = 'incoming' | 'active' | 'scheduled' | 'done';
 const PREP = [10, 15, 20, 30, 45];
@@ -39,6 +41,7 @@ export default function Board() {
     }, [tab]);
     useFocusEffect(useCallback(() => { load(); }, [load]));
 
+    useOnReconnect(() => load());
     useChannel(me?.store?.id ? `vendor.${me.store.id}.orders` : null, 'order.updated', () => load());
     useEffect(() => {
         const timer = setInterval(load, 8000);
@@ -94,7 +97,7 @@ export default function Board() {
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
             <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 12 }}>
-                <Logo height={24} />
+                <Row justify="space-between"><Logo height={24} /><Bell /></Row>
                 <Row justify="space-between">
                     <View>
                         <Text variant="title">{me?.store.name ?? 'Orders'}</Text>
