@@ -1,15 +1,98 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
-    "base": { "env": { "EXPO_PUBLIC_API_URL": "https://zvino.co.zw" } },
-
-    "customer-dev": { "extends": "base", "developmentClient": true, "distribution": "internal", "env": { "APP_VARIANT": "customer", "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001" } },
-    "driver-dev": { "extends": "base", "developmentClient": true, "distribution": "internal", "env": { "APP_VARIANT": "driver", "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001" } },
-    "merchant-dev": { "extends": "base", "developmentClient": true, "distribution": "internal", "env": { "APP_VARIANT": "merchant", "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001" } },
-
-    "customer": { "extends": "base", "autoIncrement": true, "env": { "APP_VARIANT": "customer" } },
-    "driver": { "extends": "base", "autoIncrement": true, "env": { "APP_VARIANT": "driver" } },
-    "merchant": { "extends": "base", "autoIncrement": true, "env": { "APP_VARIANT": "merchant" } }
+    "base": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://zvino.co.zw"
+      }
+    },
+    "customer-dev": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "customer",
+        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001"
+      }
+    },
+    "driver-dev": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "driver",
+        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001"
+      }
+    },
+    "merchant-dev": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "merchant",
+        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001"
+      }
+    },
+    "customer": {
+      "extends": "base",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "customer"
+      }
+    },
+    "driver": {
+      "extends": "base",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "driver"
+      }
+    },
+    "merchant": {
+      "extends": "base",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "merchant"
+      }
+    },
+    "customer-preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "customer",
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.55:8001",
+        "ALLOW_HTTP": "1"
+      }
+    },
+    "driver-preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "driver",
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.55:8001",
+        "ALLOW_HTTP": "1"
+      }
+    },
+    "merchant-preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "merchant",
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.55:8001",
+        "ALLOW_HTTP": "1"
+      }
+    }
   },
   "submit": {
     "customer": {},

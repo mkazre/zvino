@@ -52,6 +52,8 @@ module.exports = ({ config }) => ({
     ['expo-location', VARIANT === 'driver'
       ? { locationWhenInUsePermission: locationText, locationAlwaysAndWhenInUsePermission: locationText, isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: true, isIosBackgroundLocationEnabled: true }
       : { locationWhenInUsePermission: locationText }],
+    // Test builds talk to a laptop server over plain http on the local Wi-Fi; store builds are https-only.
+    ['expo-build-properties', { android: { usesCleartextTraffic: process.env.ALLOW_HTTP === '1' } }],
     // Crash & error reports (only active when EXPO_PUBLIC_SENTRY_DSN is set at build time).
     ['@sentry/react-native/expo', { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT }],
     ['expo-image-picker', { cameraPermission: VARIANT === 'driver' ? 'Take photos of your documents and proof of delivery.' : 'Take photos of your gate so drivers can find you.', photosPermission: 'Choose photos from your library.' }],
@@ -59,6 +61,6 @@ module.exports = ({ config }) => ({
   extra: {
     variant: VARIANT,
     apiUrl: API_URL,
-    eas: { projectId: process.env.EAS_PROJECT_ID },
+    eas: { projectId: process.env.EAS_PROJECT_ID ?? 'a1854f97-5f84-484c-96a3-25b74b89d37e' },
   },
 });
