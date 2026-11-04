@@ -17,7 +17,10 @@ class LoyaltyService
 
     public function account(User $user): LoyaltyAccount
     {
-        return LoyaltyAccount::firstOrCreate(['user_id' => $user->id]);
+        $account = LoyaltyAccount::firstOrCreate(['user_id' => $user->id]);
+
+        // Freshly created rows don't carry DB defaults (points = 0) until reloaded.
+        return $account->wasRecentlyCreated ? $account->refresh() : $account;
     }
 
     public function tierFor(int $lifetime): array

@@ -1,0 +1,293 @@
+import { Button } from '@/components/ui/button';
+import { Input, Modal, Select, Textarea } from '@/components/z';
+import { AddressModal } from '@/components/site-address';
+import SiteLayout, { type SiteProps } from '@/layouts/site-layout';
+import { cart as browserCart, useCart } from '@/lib/cart';
+import { label, usd, zig } from '@/lib/money';
+import { cn } from '@/lib/utils';
+import { type Money } from '@/types';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Banknote, Bike, CalendarClock, Check, CreditCard, Footprints, Home, Loader2, MapPin, Plus, Smartphone, Tag, Wallet, Zap } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
+interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; instructions: string | null; is_default: boolean }
+interface ServerCart {
+    vendor: { id: number; name: string; slug: string } | null;
+    items: { id: number; name: string; quantity: number; options: { variant?: string; modifiers?: string[] } | null; line_total: Money }[];
+    voucher: { code: string } | null;
+    totals: Record<'subtotal' | 'delivery' | 'service' | 'small_order' | 'discount' | 'tip' | 'vat' | 'total' | 'member_savings', Money>;
+    surge: { multiplier: number; reason: string | null } | null;
+    distance_km: number | null;
+    eta_minutes: [number, number] | null;
+    tip_totals?: Record<string, Money>;
+}
+interface Props {
+    cart: ServerCart;
+    addresses: Address[];
+    wallet: Money;
+    methods: string[];
+    tipPresets: number[];
+    scheduleDays: number;
+    store: { availability: { is_open: boolean; next_open_at: string | null }; offers_delivery: boolean; offers_pickup: boolean; accepts_scheduled: boolean; address: string | null } | null;
+    cities: string[];
+    codLimit: number;
+    phone: string;
+}
+
+const METHOD_META: Record<string, { icon: typeof Smartphone; hint: string }> = {
+    ecocash: { icon: Smartphone, hint: 'Approve the prompt on your phone' },
+    innbucks: { icon: Smartphone, hint: 'Approve in the InnBucks app' },
+    onemoney: { icon: Smartphone, hint: 'Approve the prompt on your phone' },
+    card: { icon: CreditCard, hint: 'Visa or Mastercard via Paynow' },
+    wallet: { icon: Wallet, hint: '' },
+    cash: { icon: Banknote, hint: 'USD or ZiG. Your driver has change, or we’ll credit it to your wallet' },
+};
+
+export default function Checkout(p: Props) {
+    const { zigPerUsd } = usePage<SiteProps>().props;
+    const browser = useCart();
+    const [server, setServer] = useState<ServerCart>(p.cart);
+    const [syncing, setSyncing] = useState(false);
+    const [addrOpen, setAddrOpen] = useState(false);
+    const [promo, setPromo] = useState(p.cart.voucher?.code ?? browser.promo ?? '');
+    const [tipPct, setTipPct] = useState<number | 'custom'>(p.tipPresets[1] ?? 0);
+    const [customTip, setCustomTip] = useState('');
+    const [when, setWhen] = useState<'asap' | 'later'>(p.store?.availability.is_open === false ? 'later' : 'asap');
+
+    const form = useForm({
+        fulfilment: p.store?.offers_delivery === false ? 'pickup' : 'delivery',
+        address_id: p.addresses.find((a) => a.is_default)?.id ?? p.addresses[0]?.id ?? null,
+        payment_method: p.methods.includes('ecocash') ? 'ecocash' : p.methods[0],
+        phone: p.phone?.replace('+263', '0') ?? '',
+        notes: '',
+        tip: 0,
+        scheduled_for: '',
+        dropoff: 'hand_to_me',
+    });
+    const subtotal = server.totals.subtotal.zig;
+    const tip = tipPct === 'custom' ? Number(customTip) || 0 : Math.round(subtotal * (tipPct / 100));
+
+    // 1. push the browser basket to the server cart (prices/availability re-checked server-side)
+    useEffect(() => {
+        if (!browser.vendor || !browser.lines.length) return;
+        setSyncing(true);
+        fetch('/checkout/sync', { method: 'POST', headers: headers(), body: JSON.stringify({ vendor_id: browser.vendor.id, promo: browser.promo, lines: browser.lines.map((l) => ({ item_id: l.item_id, quantity: l.quantity, variant: l.variant, modifiers: l.modifiers, notes: l.notes })) }) })
+            .then(async (r) => (r.ok ? setServer(await r.json()) : toast.error((await r.json()).message ?? 'Some items are no longer available.')))
+            .finally(() => setSyncing(false));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [browser.lines.length, browser.vendor?.id]);
+
+    // 2. live quote when address / fulfilment / tip / promo change
+    const quote = useCallback(
+        (withPromo?: string) => {
+            fetch('/checkout/quote', { method: 'POST', headers: headers(), body: JSON.stringify({ fulfilment: form.data.fulfilment, address_id: form.data.address_id, tip, ...(withPromo !== undefined ? { promo: withPromo } : {}) }) })
+                .then(async (r) => {
+                    const d = await r.json();
+                    if (r.ok) setServer(d);
+                    else toast.error(d.message);
+                    if (withPromo !== undefined) {
+                        browserCart.setPromo(r.ok && withPromo ? withPromo : undefined);
+                        if (r.ok && withPromo) toast.success('Promo applied 🎉');
+                    }
+                });
+        },
+        [form.data.fulfilment, form.data.address_id, tip],
+    );
+    useEffect(() => {
+        const t = setTimeout(() => quote(), 250);
+        return () => clearTimeout(t);
+    }, [quote]);
+
+    const totals = server.tip_totals ?? server.totals;
+    const total = totals.total.zig;
+    const slots = scheduleSlots(p.scheduleDays);
+    const canPay = server.items.length > 0 && (form.data.fulfilment === 'pickup' || form.data.address_id) && (when === 'asap' ? p.store?.availability.is_open !== false : form.data.scheduled_for);
+
+    const place = () => {
+        form.transform((d) => ({ ...d, tip, scheduled_for: when === 'later' ? d.scheduled_for : null }));
+        form.post('/checkout', { onSuccess: () => browserCart.clear(), preserveScroll: true });
+    };
+
+    if (!server.items.length && !syncing && !browser.lines.length) {
+        return (
+            <SiteLayout hideCart>
+                <div className="mx-auto max-w-md py-24 text-center">
+                    <div className="text-5xl">🛍️</div>
+                    <h1 className="mt-4 text-2xl font-bold">Your basket is empty</h1>
+                    <Button variant="dark" className="mt-6 rounded-full" asChild><Link href="/stores">Find something tasty</Link></Button>
+                </div>
+            </SiteLayout>
+        );
+    }
+
+    return (
+        <SiteLayout hideCart>
+            <Head title="Checkout · Zvino" />
+            <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1fr_400px]">
+                <div className="grid content-start gap-6">
+                    <h1 className="text-[32px] font-extrabold tracking-[-0.04em]">Checkout</h1>
+
+                    {/* Fulfilment */}
+                    <Block title="How do you want it?">
+                        <div className="grid grid-cols-2 gap-2">
+                            {p.store?.offers_delivery !== false && <Tile active={form.data.fulfilment === 'delivery'} onClick={() => form.setData('fulfilment', 'delivery')} icon={Bike} title="Delivery" sub={server.eta_minutes ? `${server.eta_minutes[0]}–${server.eta_minutes[1]} min` : ''} />}
+                            {p.store?.offers_pickup && <Tile active={form.data.fulfilment === 'pickup'} onClick={() => form.setData('fulfilment', 'pickup')} icon={Footprints} title="Pickup" sub="No delivery fee" />}
+                        </div>
+                        {form.data.fulfilment === 'pickup' && p.store?.address && <p className="text-muted-foreground mt-3 text-sm">Collect from {server.vendor?.name}, {p.store.address}</p>}
+                    </Block>
+
+                    {form.data.fulfilment === 'delivery' && (
+                        <Block title="Delivery address" action={<button onClick={() => setAddrOpen(true)} className="flex items-center gap-1 text-sm font-semibold"><Plus className="size-4" /> New address</button>}>
+                            {p.addresses.length === 0 ? (
+                                <button onClick={() => setAddrOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border-2 border-dashed p-5 text-left"><MapPin className="size-5" /><span className="font-semibold">Add your delivery address</span></button>
+                            ) : (
+                                <div className="grid gap-2">
+                                    {p.addresses.map((a) => (
+                                        <button key={a.id} onClick={() => form.setData('address_id', a.id)} className={cn('flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition', form.data.address_id === a.id ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
+                                            <Home className="mt-0.5 size-5 shrink-0" />
+                                            <span className="min-w-0 flex-1"><span className="block font-semibold">{a.label}</span><span className="text-muted-foreground block text-sm">{a.line1}{a.suburb && `, ${a.suburb}`}, {a.city}</span>{a.landmark && <span className="text-muted-foreground block text-xs">📍 {a.landmark}</span>}</span>
+                                            {form.data.address_id === a.id && <Check className="size-5" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {server.distance_km && <p className="text-muted-foreground mt-3 text-xs">{server.distance_km} km from the store</p>}
+                            <div className="mt-4 grid grid-cols-2 gap-2">
+                                <Tile small active={form.data.dropoff === 'hand_to_me'} onClick={() => form.setData('dropoff', 'hand_to_me')} title="Hand it to me" />
+                                <Tile small active={form.data.dropoff === 'leave_at_door'} onClick={() => form.setData('dropoff', 'leave_at_door')} title="Leave at gate / door" sub="Driver sends a photo" />
+                            </div>
+                        </Block>
+                    )}
+
+                    <Block title="When?">
+                        <div className="grid grid-cols-2 gap-2">
+                            <Tile active={when === 'asap'} disabled={p.store?.availability.is_open === false} onClick={() => setWhen('asap')} icon={Zap} title="As soon as possible" sub={p.store?.availability.is_open === false ? 'Store is closed now' : ''} />
+                            {p.scheduleDays > 0 && p.store?.accepts_scheduled && <Tile active={when === 'later'} onClick={() => setWhen('later')} icon={CalendarClock} title="Schedule for later" sub={`Up to ${p.scheduleDays} days ahead`} />}
+                        </div>
+                        {when === 'later' && (
+                            <Select className="mt-3 h-12" value={form.data.scheduled_for} onChange={(e) => form.setData('scheduled_for', e.target.value)}>
+                                <option value="">Choose a time</option>
+                                {slots.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                            </Select>
+                        )}
+                        {form.errors.scheduled_for && <p className="mt-2 text-sm text-[#c8102e]">{form.errors.scheduled_for}</p>}
+                    </Block>
+
+                    <Block title="Payment">
+                        <div className="grid gap-2">
+                            {p.methods.map((m) => {
+                                const meta = METHOD_META[m];
+                                const disabled = (m === 'wallet' && p.wallet.zig < total) || (m === 'cash' && total > p.codLimit);
+                                return (
+                                    <button key={m} disabled={disabled} onClick={() => form.setData('payment_method', m)} className={cn('flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition disabled:opacity-45', form.data.payment_method === m ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
+                                        <span className="flex size-10 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-white/10"><meta.icon className="size-5" /></span>
+                                        <span className="flex-1"><span className="block font-semibold">{m === 'card' ? 'Visa / Mastercard' : m === 'wallet' ? 'Zvino wallet' : m === 'cash' ? 'Cash on delivery' : label(m)}</span>
+                                            <span className="text-muted-foreground block text-xs">{m === 'wallet' ? `Balance ${zig(p.wallet.zig)}` : m === 'cash' && total > p.codLimit ? `Not available over ${zig(p.codLimit)}` : meta.hint}</span></span>
+                                        {form.data.payment_method === m && <Check className="size-5" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {['ecocash', 'onemoney', 'innbucks'].includes(form.data.payment_method) && (
+                            <div className="mt-4"><label className="text-sm font-semibold">{label(form.data.payment_method)} number</label><Input className="mt-1.5 h-12" inputMode="tel" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder="077 123 4567" /></div>
+                        )}
+                    </Block>
+
+                    {p.tipPresets.length > 0 && form.data.fulfilment === 'delivery' && (
+                        <Block title="Tip your driver" action={<span className="text-muted-foreground text-xs">100% goes to them</span>}>
+                            <div className="flex flex-wrap gap-2">
+                                {[0, ...p.tipPresets].map((t) => <button key={t} onClick={() => setTipPct(t)} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === t ? 'bg-[#111412] text-white dark:bg-white dark:text-black' : 'bg-muted dark:bg-white/10')}>{t === 0 ? 'Not now' : `${t}% · ${zig(Math.round(subtotal * t / 100))}`}</button>)}
+                                <button onClick={() => setTipPct('custom')} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === 'custom' ? 'bg-[#111412] text-white' : 'bg-muted dark:bg-white/10')}>Other</button>
+                            </div>
+                            {tipPct === 'custom' && <Input className="mt-3 h-12 w-48" type="number" prefix="ZiG" value={customTip} onChange={(e) => setCustomTip(e.target.value)} />}
+                        </Block>
+                    )}
+
+                    <Block title="Notes for the restaurant">
+                        <Textarea value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="Allergies, cutlery, extra napkins…" />
+                    </Block>
+                </div>
+
+                {/* Summary */}
+                <aside className="lg:sticky lg:top-24 lg:self-start">
+                    <div className="rounded-3xl border p-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold">{server.vendor?.name}</h2>
+                            {syncing && <Loader2 className="size-4 animate-spin" />}
+                        </div>
+                        <ul className="mt-4 grid gap-3 border-b pb-4 text-sm">
+                            {server.items.map((i) => (
+                                <li key={i.id} className="flex gap-3"><span className="tabular font-semibold">{i.quantity}×</span><span className="flex-1">{i.name}{(i.options?.variant || i.options?.modifiers?.length) && <span className="text-muted-foreground block text-xs">{[i.options?.variant, ...(i.options?.modifiers ?? [])].filter(Boolean).join(' · ')}</span>}</span><span className="tabular">{zig(i.line_total.zig)}</span></li>
+                            ))}
+                        </ul>
+                        <form onSubmit={(e) => { e.preventDefault(); quote(promo); }} className="mt-4 flex gap-2">
+                            <div className="relative flex-1"><Tag className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" /><input value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} placeholder="Promo code" className="bg-muted h-11 w-full rounded-xl pr-3 pl-9 font-mono text-sm uppercase outline-none dark:bg-white/10" /></div>
+                            <Button variant="outline" className="h-11 rounded-xl">{server.voucher ? 'Applied ✓' : 'Apply'}</Button>
+                        </form>
+                        <dl className="mt-5 grid gap-2 text-sm">
+                            <Row l="Subtotal" v={totals.subtotal.zig} />
+                            {form.data.fulfilment === 'delivery' && <Row l={<>Delivery{server.surge && <span className="ml-1 text-xs text-[#c99412]">({server.surge.multiplier}× {server.surge.reason ?? 'busy'})</span>}</>} v={totals.delivery.zig} free={totals.delivery.zig === 0} />}
+                            <Row l="Service fee" v={totals.service.zig} />
+                            {totals.small_order.zig > 0 && <Row l="Small order fee" v={totals.small_order.zig} />}
+                            {totals.discount.zig > 0 && <Row l="Promo" v={-totals.discount.zig} green />}
+                            {totals.tip.zig > 0 && <Row l="Driver tip" v={totals.tip.zig} />}
+                            {totals.member_savings.zig > 0 && <div className="rounded-lg bg-[#e8f3ee] px-3 py-2 text-xs font-medium text-[#0b6e4f]">Zvino+ saved you {zig(totals.member_savings.zig)} 🎉</div>}
+                        </dl>
+                        <div className="mt-4 flex items-end justify-between border-t pt-4">
+                            <span className="font-bold">Total</span>
+                            <span className="text-right"><span className="tabular block text-2xl font-extrabold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{usd(totals.total.usd || total / zigPerUsd)} · VAT incl.</span></span>
+                        </div>
+                        <p className="text-muted-foreground mt-1 text-right text-[11px]">Rate today: 1 USD = {zigPerUsd} ZiG</p>
+                        {Object.values(form.errors).length > 0 && <div className="mt-4 rounded-xl bg-[#fdecee] p-3 text-sm text-[#c8102e]">{Object.values(form.errors)[0]}</div>}
+                        <Button variant="dark" className="mt-5 h-14 w-full rounded-full text-base" disabled={!canPay || form.processing || syncing} onClick={place}>
+                            {form.processing ? <Loader2 className="size-5 animate-spin" /> : `Place order · ${zig(total)}`}
+                        </Button>
+                        {!canPay && <p className="text-muted-foreground mt-2 text-center text-xs">{form.data.fulfilment === 'delivery' && !form.data.address_id ? 'Add a delivery address to continue' : when === 'later' && !form.data.scheduled_for ? 'Pick a delivery time' : ''}</p>}
+                    </div>
+                </aside>
+            </div>
+            <AddressModal open={addrOpen} onClose={() => setAddrOpen(false)} cities={p.cities} />
+        </SiteLayout>
+    );
+}
+
+function headers() {
+    return { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') };
+}
+
+function scheduleSlots(days: number) {
+    const out: { value: string; label: string }[] = [];
+    const start = new Date(Date.now() + 45 * 60000);
+    start.setMinutes(Math.ceil(start.getMinutes() / 30) * 30, 0, 0);
+    for (let t = start.getTime(); t < Date.now() + days * 864e5; t += 30 * 60000) {
+        const d = new Date(t);
+        if (d.getHours() < 7 || d.getHours() > 22) continue;
+        const pad = (n: number) => String(n).padStart(2, '0');
+        out.push({ value: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`, label: d.toLocaleString('en-ZW', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) });
+    }
+    return out;
+}
+
+function Block({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+    return (
+        <section className="rounded-3xl border p-6">
+            <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-bold tracking-tight">{title}</h2>{action}</div>
+            {children}
+        </section>
+    );
+}
+
+function Tile({ active, onClick, icon: Icon, title, sub, disabled, small }: { active: boolean; onClick: () => void; icon?: typeof Bike; title: string; sub?: string; disabled?: boolean; small?: boolean }) {
+    return (
+        <button type="button" disabled={disabled} onClick={onClick} className={cn('flex items-center gap-3 rounded-2xl border-2 text-left transition disabled:opacity-40', small ? 'p-3' : 'p-4', active ? 'border-[#111412] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
+            {Icon && <Icon className="size-5 shrink-0" />}
+            <span><span className={cn('block font-semibold', small && 'text-sm')}>{title}</span>{sub && <span className="text-muted-foreground block text-xs">{sub}</span>}</span>
+        </button>
+    );
+}
+
+function Row({ l, v, free, green }: { l: React.ReactNode; v: number; free?: boolean; green?: boolean }) {
+    return <div className="flex justify-between"><dt className="text-muted-foreground">{l}</dt><dd className={cn('tabular', green && 'font-semibold text-[#0b6e4f]')}>{free ? <span className="font-semibold text-[#0b6e4f]">Free</span> : v < 0 ? `−${zig(-v)}` : zig(v)}</dd></div>;
+}
+

@@ -27,7 +27,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/dashboard')->name('home');
+// Customer website at "/" (routes/site.php). Starter-kit code that redirects to route('home') lands there.
+require __DIR__.'/site.php';
+Route::redirect('/home', '/')->name('home');
 
 // Every admin route is guarded by a permission from App\Support\Permissions (editable per role).
 Route::middleware(['auth', 'staff'])->group(function () {

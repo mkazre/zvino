@@ -10,10 +10,11 @@ declare global {
     const route: typeof routeFn;
 }
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Zvino';
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    // Website pages pass full SEO titles ("Mama Rudo's Kitchen · Order online | Zvino"); admin pages pass short ones.
+    title: (title) => (!title ? appName : title.includes('Zvino') ? title : `${title} · ${appName}`),
     resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, import.meta.glob('./pages/**/*.tsx')),
     setup({ el, App, props }) {
         const root = createRoot(el);
@@ -21,7 +22,7 @@ createInertiaApp({
         root.render(<App {...props} />);
     },
     progress: {
-        color: '#4B5563',
+        color: '#0B6E4F',
     },
 });
 

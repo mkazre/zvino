@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias(['staff' => EnsureStaffRole::class]);
+
+        // Customers go to phone sign-in; staff screens go to the email login.
+        $middleware->redirectGuestsTo(fn ($request) => $request->is('dashboard', 'admin', 'admin/*', 'settings/*') ? route('login') : route('site.signin'));
+        $middleware->redirectUsersTo(fn ($request) => $request->user()?->isStaff() ? '/dashboard' : '/');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

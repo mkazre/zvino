@@ -46,6 +46,19 @@ class HandleInertiaRequests extends Middleware
             'can' => fn () => $request->user() ? \App\Support\Permissions::for($request->user()->role ?? 'customer') : [],
             'badges' => fn () => $request->user()?->isStaff() ? $this->badges($request) : [],
             'brand' => fn () => ['name' => Setting::get('general.business_name'), 'logo' => Setting::get('branding.logo')],
+            // Website chrome: footer, city picker, app links. Cheap (settings are cached).
+            'site' => fn () => [
+                'cities' => Setting::get('general.cities'),
+                'city' => $request->session()->get('city'),
+                'tagline' => Setting::get('branding.tagline'),
+                'support_phone' => Setting::get('general.support_phone'),
+                'support_whatsapp' => Setting::get('general.support_whatsapp'),
+                'support_email' => Setting::get('general.support_email'),
+                'social' => ['facebook' => Setting::get('branding.social_facebook'), 'instagram' => Setting::get('branding.social_instagram'), 'tiktok' => Setting::get('branding.social_tiktok')],
+                'apps' => ['ios' => Setting::get('apps.ios_store_url'), 'android' => Setting::get('apps.android_store_url')],
+                'web_ordering' => Setting::get('apps.web_ordering_enabled'),
+                'platform_mode' => Setting::platformMode(),
+            ],
             'platformMode' => fn () => Setting::platformMode(),
             'zigPerUsd' => fn () => ExchangeRate::current(),
             'pusher' => [
@@ -55,6 +68,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'reorder' => fn () => $request->session()->get('reorder'),
             ],
         ]);
     }
