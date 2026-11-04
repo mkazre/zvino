@@ -1,10 +1,11 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Alert, FlatList, Pressable, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, ApiError, type Money } from '@/lib/api';
 import { normalisePhone, usd, zig } from '@/lib/money';
 import { Button, Chip, Row, Text, useTheme } from '@/ui';
+import { QrView } from '@/features/qr';
 
 interface Item { id: number; name: string; price: Money; special_price: Money | null; is_available: boolean; category_id: number | null }
 interface Menu { categories: { id: number; name: string; items: Item[] | { data: Item[] } }[] }
@@ -27,11 +28,26 @@ export default function Pos() {
     const add = (i: Item) => setLines((ls) => (ls.find((l) => l.item.id === i.id) ? ls.map((l) => (l.item.id === i.id ? { ...l, qty: l.qty + 1 } : l)) : [...ls, { item: i, qty: 1 }]));
     const cols = width > 700 ? 4 : 3;
 
+    const [qr, setQr] = useState<{ url: string; paymentId: number; reference: string; total: Money } | null>(null);
+    useEffect(() => {
+        if (!qr) return;
+        const timer = setInterval(async () => {
+            const p = await api.get<{ status: string }>(`/merchant/payments/${qr.paymentId}`).catch(() => null);
+            if (p?.status === 'paid') { clearInterval(timer); setQr(null); setLines([]); Alert.alert('Paid ✓', `${qr.reference} · ${zig(qr.total.zig)}`); }
+            if (p && ['failed', 'cancelled'].includes(p.status)) { clearInterval(timer); setQr(null); Alert.alert('Payment declined', 'Try again or take cash.'); }
+        }, 2500);
+        return () => clearInterval(timer);
+    }, [qr]);
+
     const charge = async (method: string) => {
         if (['ecocash', 'innbucks', 'onemoney'].includes(method) && phone.replace(/\D/g, '').length < 9) return Alert.alert('Mobile money', 'Enter the customer’s number first.');
         setBusy(true);
         try {
-            const r = await api.post<{ reference: string; total: Money; payment_status: string }>('/merchant/pos/sales', { method, phone: phone ? normalisePhone(phone) : null, lines: lines.map((l) => ({ item_id: l.item.id, quantity: l.qty })) });
+            const r = await api.post<{ reference: string; total: Money; payment_status: string; payment_id: number | null; qr_url: string | null }>('/merchant/pos/sales', { method, phone: phone ? normalisePhone(phone) : null, lines: lines.map((l) => ({ item_id: l.item.id, quantity: l.qty })) });
+            if (method === 'qr') {
+                if (!r.qr_url || !r.payment_id) throw new Error('No QR');
+                return setQr({ url: r.qr_url, paymentId: r.payment_id, reference: r.reference, total: r.total });
+            }
             Alert.alert('Sale complete ✓', `${r.reference} · ${zig(r.total.zig)} (${r.payment_status})`);
             setLines([]);
             setPhone('');
@@ -41,6 +57,18 @@ export default function Pos() {
             setBusy(false);
         }
     };
+
+    if (qr) {
+        return (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: t.bg }}>
+                <Text variant="title">Scan to pay</Text>
+                <Text variant="display">{zig(qr.total.zig)}</Text>
+                <QrView value={qr.url} size={280} />
+                <Text color="muted" center>Customer scans with their phone camera and pays with EcoCash, InnBucks, OneMoney or card. This closes by itself once paid.</Text>
+                <Button title="Cancel" tone="ghost" onPress={() => setQr(null)} />
+            </View>
+        );
+    }
 
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
@@ -69,6 +97,7 @@ export default function Pos() {
                     <Button title="Cash" tone="primary" style={{ flex: 1 }} loading={busy} disabled={!lines.length} onPress={() => charge('cash')} />
                     <Button title="Card" tone="dark" style={{ flex: 1 }} disabled={!lines.length || busy} onPress={() => charge('card')} />
                     <Button title="EcoCash" tone="outline" style={{ flex: 1 }} disabled={!lines.length || busy} onPress={() => charge('ecocash')} />
+                    <Button title="QR" tone="outline" style={{ flex: 1 }} disabled={!lines.length || busy} onPress={() => charge('qr')} />
                 </Row>
             </View>
         </SafeAreaView>

@@ -3,11 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { REJECT_REASONS, type MerchantMe, type StoreOrder } from '@/features/merchant';
-import { api, ApiError } from '@/lib/api';
+import { auth, api, ApiError } from '@/lib/api';
 import { label, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Badge, Button, Card, Chip, Empty, Row, Text, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
+import { API_URL } from '@/lib/config';
+import { Image } from 'expo-image';
 
 type Tab = 'incoming' | 'active' | 'scheduled' | 'done';
 const PREP = [10, 15, 20, 30, 45];
@@ -17,6 +19,7 @@ const PREP = [10, 15, 20, 30, 45];
  * reject with reason, progress and hand over. Kitchen staff see the same board as kitchen stages.
  */
 export default function Board() {
+    const [rx, setRx] = useState<number | null>(null);
     const tr = useT();
     const t = useTheme();
     const { me: user } = useSession();
@@ -70,6 +73,15 @@ export default function Board() {
 
     const tabs: [Tab, string][] = kitchen ? [['active', 'Kitchen']] : [['incoming', `New${incoming ? ` (${incoming})` : ''}`], ['active', 'In progress'], ['scheduled', 'Scheduled'], ['done', 'Done']];
 
+    if (rx) {
+        return (
+            <View style={{ flex: 1, backgroundColor: '#000' }}>
+                <Image source={{ uri: `${API_URL}/api/merchant/orders/${rx}/prescription`, headers: { Authorization: `Bearer ${auth.get()}` } }} style={{ flex: 1 }} contentFit="contain" />
+                <Button title="Close" tone="dark" onPress={() => setRx(null)} style={{ margin: 16 }} />
+            </View>
+        );
+    }
+
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
             <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 12 }}>
@@ -105,6 +117,7 @@ export default function Board() {
                                 ))}
                             </View>
                             {o.no_cutlery && <Text variant="caption" color="brand">🌿 No cutlery</Text>}
+                            {o.has_prescription && <Pressable onPress={() => setRx(o.id)}><Text variant="label" color="red">💊 View prescription before accepting</Text></Pressable>}
                             {o.notes && <Text variant="caption" color="gold">📝 {o.notes}</Text>}
                             {o.driver && <Text variant="caption">🛵 {o.driver.name}</Text>}
 

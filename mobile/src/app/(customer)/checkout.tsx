@@ -9,6 +9,7 @@ import { label, normalisePhone, usd, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Chip, Row, Text, Toggle, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
+import * as ImagePicker from 'expo-image-picker';
 
 interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean }
 interface Quote {
@@ -19,6 +20,8 @@ interface Quote {
     payment_methods: string[];
     wallet_balance: Money;
     split_tender: boolean;
+    split_bill: { max_people: number } | null;
+    needs_prescription: boolean;
     round_up: { charity: string; amount: Money } | null;
 }
 
@@ -42,6 +45,24 @@ export default function Checkout() {
     const [dropoff, setDropoff] = useState<'hand_to_me' | 'leave_at_door'>('hand_to_me');
     const [useWallet, setUseWallet] = useState(false);
     const [cashPartText, setCashPartText] = useState('');
+    const [friends, setFriends] = useState<{ name: string; phone: string; amount: string }[]>([]);
+    const [prescription, setPrescription] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const addPrescription = async () => {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        const r = perm.granted ? await ImagePicker.launchCameraAsync({ quality: 0.7 }) : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
+        if (r.canceled) return;
+        setUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append('photo', { uri: r.assets[0].uri, name: 'prescription.jpg', type: 'image/jpeg' } as unknown as Blob);
+            setPrescription((await api.post<{ token: string }>('/prescriptions', fd)).token);
+        } catch (e) {
+            Alert.alert('Prescription', e instanceof ApiError ? e.friendly : 'Upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
     const [roundUp, setRoundUp] = useState(false);
     const [noCutlery, setNoCutlery] = useState(true);
     const [quote, setQuote] = useState<Quote | null>(null);
@@ -86,7 +107,9 @@ export default function Checkout() {
             const res = await api.post<{ order: { data?: { id: number }; id?: number }; payment: { id: number; status: string; redirect_url: string | null }; next: string }>('/orders', {
                 fulfilment, address_id: fulfilment === 'delivery' ? addressId : null, payment_method: method,
                 phone: ['ecocash', 'onemoney', 'innbucks'].includes(method) ? normalisePhone(phone) : null, tip, notes, dropoff,
-                use_wallet: useWallet && method !== 'wallet', cash_part: cashPart || null, round_up: roundUp, no_cutlery: noCutlery,
+                use_wallet: useWallet && method !== 'wallet', cash_part: cashPart || null,
+                split_with: shares.length ? shares.map((f) => ({ name: f.name || null, phone: normalisePhone(f.phone), amount: Number(f.amount) })) : null,
+                prescription, round_up: roundUp, no_cutlery: noCutlery,
             });
             const orderId = res.order.data?.id ?? res.order.id!;
             cart.clear();
@@ -120,7 +143,10 @@ export default function Checkout() {
     const online = ['ecocash', 'onemoney', 'innbucks', 'card'].includes(method);
     const cashAllowed = !!quote?.split_tender && online && fulfilment === 'delivery' && (quote?.payment_methods ?? []).includes('cash');
     const cashPart = cashAllowed ? Math.min(Number(cashPartText) || 0, Math.max(0, (total?.zig ?? 0) - walletPart - 1)) : 0;
-    const due = (total?.zig ?? 0) - walletPart - cashPart;
+    const splitOk = !!quote?.split_bill && ['ecocash', 'onemoney', 'innbucks'].includes(method);
+    const shares = splitOk ? friends.filter((f) => Number(f.amount) > 0 && f.phone.replace(/\D/g, '').length >= 9) : [];
+    const sharesTotal = shares.reduce((s, f) => s + Number(f.amount), 0);
+    const due = (total?.zig ?? 0) - walletPart - cashPart - sharesTotal;
 
     if (waiting) {
         return (
@@ -133,7 +159,7 @@ export default function Checkout() {
         );
     }
 
-    const canPlace = synced && quote && (fulfilment === 'pickup' || addressId) && (!['ecocash', 'onemoney', 'innbucks'].includes(method) || phone.replace(/\D/g, '').length >= 9);
+    const canPlace = synced && quote && due > 0 && (!quote.needs_prescription || !!prescription) && (fulfilment === 'pickup' || addressId) && (!['ecocash', 'onemoney', 'innbucks'].includes(method) || phone.replace(/\D/g, '').length >= 9);
 
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
@@ -179,6 +205,26 @@ export default function Checkout() {
                     {quote?.split_tender && (quote.wallet_balance.zig ?? 0) > 0 && method !== 'wallet' && (
                         <Toggle value={useWallet} onChange={setUseWallet} label={`Use wallet balance (${zig(quote.wallet_balance.zig)})`} description={walletPart > 0 ? `${zig(walletPart)} from wallet · ${zig(due)} by ${METHOD_LABEL[method] ?? label(method)}` : 'Pay part with your wallet'} />
                     )}
+                    {splitOk && (
+                        <View style={{ marginTop: 10, gap: 8 }}>
+                            <Row justify="space-between">
+                                <Text variant="label">👥  Split the bill</Text>
+                                <Row gap={14}>
+                                    {friends.length > 0 && <Pressable onPress={() => { const each = Math.floor((((total?.zig ?? 0) - walletPart - cashPart) / (friends.length + 1)) * 100) / 100; setFriends(friends.map((f) => ({ ...f, amount: String(each) }))); }}><Text variant="label" color="brand">Split evenly</Text></Pressable>}
+                                    {friends.length < (quote?.split_bill?.max_people ?? 0) && <Pressable onPress={() => setFriends([...friends, { name: '', phone: '', amount: '' }])}><Text variant="label" color="brand">+ Friend</Text></Pressable>}
+                                </Row>
+                            </Row>
+                            {friends.map((f, i) => (
+                                <Row key={i} gap={6}>
+                                    <TextInput value={f.name} onChangeText={(v) => setFriends(friends.map((x, j) => (j === i ? { ...x, name: v } : x)))} placeholder="Name" placeholderTextColor={t.faint} style={{ flex: 1, height: 42, borderRadius: 10, backgroundColor: t.subtle, paddingHorizontal: 10, color: t.ink }} />
+                                    <TextInput value={f.phone} onChangeText={(v) => setFriends(friends.map((x, j) => (j === i ? { ...x, phone: v } : x)))} keyboardType="phone-pad" placeholder="077…" placeholderTextColor={t.faint} style={{ flex: 1.2, height: 42, borderRadius: 10, backgroundColor: t.subtle, paddingHorizontal: 10, color: t.ink }} />
+                                    <TextInput value={f.amount} onChangeText={(v) => setFriends(friends.map((x, j) => (j === i ? { ...x, amount: v } : x)))} keyboardType="decimal-pad" placeholder="ZiG" placeholderTextColor={t.faint} style={{ width: 70, height: 42, borderRadius: 10, backgroundColor: t.subtle, paddingHorizontal: 10, color: t.ink }} />
+                                    <Pressable onPress={() => setFriends(friends.filter((_, j) => j !== i))}><Ionicons name="close" size={18} color={t.muted} /></Pressable>
+                                </Row>
+                            ))}
+                            {shares.length > 0 && <Text variant="caption">Each friend gets a prompt on their phone. The order goes to the store once everyone has paid. You pay {zig(due)}.</Text>}
+                        </View>
+                    )}
                     {cashAllowed && (
                         <View style={{ marginTop: 8, gap: 6 }}>
                             <Text variant="label">💵  Pay part in cash? (optional)</Text>
@@ -204,6 +250,14 @@ export default function Checkout() {
                     <TextInput value={notes} onChangeText={setNotes} placeholder={tr('Notes for the restaurant')} placeholderTextColor={t.faint} style={{ height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink, marginTop: 10 }} />
                 </Card>
 
+                {quote?.needs_prescription && (
+                    <Card style={{ gap: 8 }}>
+                        <Text variant="heading">💊  Prescription</Text>
+                        <Text variant="caption">Your basket has prescription medicine. The pharmacist checks your prescription before accepting (full refund if declined).</Text>
+                        <Button title={uploading ? 'Uploading…' : prescription ? 'Prescription added ✓ · replace' : 'Add prescription photo'} tone={prescription ? 'soft' : 'primary'} size="md" onPress={addPrescription} disabled={uploading} />
+                    </Card>
+                )}
+
                 <Card>
                     <Toggle value={noCutlery} onChange={setNoCutlery} label={`🌿  ${tr('No cutlery or straws')}`} description={tr('Less plastic. Thank you!')} />
                     {quote?.round_up && (quote.round_up.amount.zig > 0 || roundUp) && (
@@ -213,7 +267,7 @@ export default function Checkout() {
 
                 {quote && (
                     <Card tone="subtle">
-                        {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? ['Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
+                        {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? ['Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null, sharesTotal ? [`Friends (${shares.length})`, -sharesTotal] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
                             <Row key={l} justify="space-between" style={{ paddingVertical: 4 }}><Text color="muted">{l}</Text><Text color={v < 0 ? 'brand' : 'ink'}>{v < 0 ? `−${zig(-v)}` : zig(v)}</Text></Row>
                         ))}
                         {quote.totals.member_savings.zig > 0 && <Text variant="caption" color="brand">Zvino+ saved you {zig(quote.totals.member_savings.zig)} 🎉</Text>}

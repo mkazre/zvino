@@ -6,8 +6,10 @@ import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, ApiError } from '@/lib/api';
 import { Button, Card, Chip, Input, Row, Text, useTheme } from '@/ui';
+import * as ImagePicker from 'expo-image-picker';
+import { VoiceNoteRecorder } from '@/features/voice-note';
 
-interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean }
+interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean; voice_note_path: string | null; gate_photo_path: string | null }
 
 /** Saved addresses + add new with landmark and GPS pin (Zimbabwean addresses are tricky). */
 export default function Addresses() {
@@ -29,6 +31,16 @@ export default function Addresses() {
         setForm((f) => ({ ...f, lat: p.coords.latitude, lng: p.coords.longitude }));
         const r = await api.post<{ line1: string; suburb: string | null; city: string | null }[]>('/addresses/geocode', { lat: p.coords.latitude, lng: p.coords.longitude }).catch(() => []);
         if (r[0]) setForm((f) => ({ ...f, line1: f.line1 || r[0].line1, suburb: f.suburb || (r[0].suburb ?? ''), city: r[0].city ?? f.city }));
+    };
+
+    const gatePhoto = async (id: number) => {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) return;
+        const r = await ImagePicker.launchCameraAsync({ quality: 0.5, allowsEditing: true });
+        if (r.canceled) return;
+        const fd = new FormData();
+        fd.append('gate_photo', { uri: r.assets[0].uri, name: 'gate.jpg', type: 'image/jpeg' } as unknown as Blob);
+        await api.post(`/addresses/${id}/media`, fd).then(load).catch((e) => Alert.alert('Photo', e instanceof ApiError ? e.friendly : 'Upload failed'));
     };
 
     const save = async () => {
@@ -61,6 +73,8 @@ export default function Addresses() {
                                 <Text variant="label">{a.label}{a.is_default ? '  · Default' : ''}</Text>
                                 <Text variant="caption">{a.line1}{a.suburb ? `, ${a.suburb}` : ''}, {a.city}</Text>
                                 {a.landmark && <Text variant="caption">📍 {a.landmark}</Text>}
+                                <VoiceNoteRecorder addressId={a.id} existing={a.voice_note_path} onSaved={load} />
+                                <Pressable onPress={() => gatePhoto(a.id)} style={{ marginTop: 8 }}><Text variant="label" color="brand">{a.gate_photo_path ? '📷 Gate photo added · replace' : '📷 Add a photo of your gate'}</Text></Pressable>
                             </View>
                             <Pressable onPress={() => api.delete(`/addresses/${a.id}`).then(load)}><Ionicons name="trash-outline" size={20} color={t.muted} /></Pressable>
                         </Row>

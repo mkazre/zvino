@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CartProvider } from '@/lib/cart';
 import { VARIANT } from '@/lib/config';
 import { I18nProvider } from '@/lib/i18n';
+import { PrefsProvider } from '@/lib/prefs';
 import { SessionProvider, useSession } from '@/lib/session';
 import { Loading, useTheme } from '@/ui';
 
@@ -49,10 +50,12 @@ export default function RootLayout() {
             <SafeAreaProvider>
                 <SessionProvider>
                     <I18nProvider>
-                        <CartProvider>
-                            <StatusBar style="auto" />
-                            <RootNavigator />
-                        </CartProvider>
+                        <PrefsProvider>
+                            <CartProvider>
+                                <StatusBar style="auto" />
+                                <RootNavigator />
+                            </CartProvider>
+                        </PrefsProvider>
                     </I18nProvider>
                 </SessionProvider>
             </SafeAreaProvider>

@@ -18,6 +18,7 @@ export interface StoreOrder {
     payment_method: string;
     notes: string | null;
     no_cutlery?: boolean;
+    has_prescription?: boolean;
     created_at: string;
     scheduled_for: string | null;
     estimated_delivery_at: string | null;

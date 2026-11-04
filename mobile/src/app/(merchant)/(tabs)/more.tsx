@@ -1,13 +1,13 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
-import { api, type Money } from '@/lib/api';
+import { Alert, View } from 'react-native';
+import { api, ApiError, type Money } from '@/lib/api';
 import { label, timeAgo, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Row, Screen, SectionTitle, Text, useTheme } from '@/ui';
 import { LanguagePicker } from '@/features/language';
 
-interface Earnings { sales: Money; commission: Money; refunds: Money; net: Money; balance: Money; payouts: { id: number; amount_zig: number; status: string; period_end: string }[] }
+interface Earnings { sales: Money; commission: Money; refunds: Money; net: Money; balance: Money; payouts: { id: number; amount_zig: number; status: string; period_end: string; is_instant?: boolean }[]; available_now: Money; instant_payout: { fee_pct: number; min: Money } | null }
 interface Insights { best_sellers: { name: string; qty: number; revenue: number }[]; slow_movers: { id: number; name: string }[]; orders_by_hour: Record<string, number>; rating: { average: number; count: number } }
 interface Review { id: number; vendor_rating: number; comment: string | null; vendor_reply: string | null; created_at: string; user?: { name: string } }
 
@@ -42,7 +42,12 @@ export default function More() {
                         <Text variant="display" color="onInverse">{zig(e.net.zig)}</Text>
                         <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>Sales {zig(e.sales.zig)} · commission {zig(e.commission.zig)} · refunds {zig(e.refunds.zig)}</Text>
                     </Card>
-                    <Card style={{ marginTop: 10 }}><Text variant="caption">Owed to you (next payout)</Text><Text variant="heading">{zig(e.balance.zig)}</Text></Card>
+                    <Card style={{ marginTop: 10, gap: 8 }}>
+                        <Text variant="caption">Owed to you (next payout)</Text><Text variant="heading">{zig(e.balance.zig)}</Text>
+                        {e.instant_payout && e.available_now.zig >= e.instant_payout.min.zig && (
+                            <Button title={`Get ${zig(e.available_now.zig * (1 - e.instant_payout.fee_pct / 100))} today`} tone="primary" size="md" onPress={() => Alert.alert('Same-day payout', `${e.instant_payout!.fee_pct}% fee. Sent to your payout account today.`, [{ text: 'Not now', style: 'cancel' }, { text: 'Request', onPress: () => api.post<{ message: string }>('/merchant/payout-now').then((r) => { Alert.alert('Done ✓', r.message); api.get<Earnings>('/merchant/earnings?period=week').then(setE); }).catch((err) => Alert.alert('Payout', err instanceof ApiError ? err.friendly : '')) }])} />
+                        )}
+                    </Card>
                     {e.payouts.map((p) => <Row key={p.id} justify="space-between" style={{ paddingVertical: 8 }}><Text>{new Date(p.period_end).toLocaleDateString()}</Text><Text variant="label">{zig(p.amount_zig)} · {label(p.status)}</Text></Row>)}
                 </>
             )}

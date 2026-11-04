@@ -3,12 +3,14 @@ import { router } from 'expo-router';
 import { Alert, Pressable, View } from 'react-native';
 import { zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Button, Card, Empty, Row, Screen, Text, useTheme } from '@/ui';
+import { Button, Card, Empty, Row, Screen, Text, Toggle, useTheme } from '@/ui';
 import { LanguagePicker } from '@/features/language';
+import { usePrefs } from '@/lib/prefs';
 
 export default function Account() {
     const t = useTheme();
     const { me, signOut } = useSession();
+    const { dataLight, setDataLight } = usePrefs();
     if (!me) return <Screen><Empty emoji="👋" title="Welcome to Zvino" body="Sign in to save addresses, earn rewards and track orders." action={<Button title="Sign in" size="md" onPress={() => router.push('/sign-in')} />} /></Screen>;
 
     const Item = ({ icon, title, sub, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; sub?: string; onPress: () => void }) => (
@@ -34,11 +36,15 @@ export default function Account() {
                 </Card>
             )}
             <View style={{ marginTop: 16 }}>
-                <Item icon="location-outline" title="Addresses" onPress={() => router.push('/addresses')} />
+                <Item icon="location-outline" title="Addresses" sub="Landmarks, gate photo, voice directions" onPress={() => router.push('/addresses')} />
+                <Item icon="repeat-outline" title="Regular orders" sub="Weekday lunch, month-end shop" onPress={() => router.push('/plans')} />
                 <Item icon="gift-outline" title="Rewards, wallet & gift cards" onPress={() => router.push('/wallet')} />
                 <Item icon="share-social-outline" title="Invite friends, get credit" onPress={() => router.push('/wallet')} />
                 <Item icon="help-buoy-outline" title="Help & support" sub="WhatsApp, call or chat" onPress={() => Alert.alert('Zvino support', 'WhatsApp or call +263 242 000 000')} />
             </View>
+            <Card style={{ marginTop: 16 }}>
+                <Toggle value={dataLight} onChange={setDataLight} label="📶  Data-light mode" description="Smaller photos, no map tiles on tracking. Saves your bundle." />
+            </Card>
             <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
         </Screen>

@@ -47,7 +47,7 @@ export interface Job {
     status: string;
     store: { name: string; phone: string | null; address: string | null; lat: number; lng: number };
     customer: { name: string | null; phone: string | null };
-    dropoff: { line1: string; landmark: string | null; suburb: string | null; city: string; lat: number | null; lng: number | null; instructions: string | null } | null;
+    dropoff: { line1: string; landmark: string | null; suburb: string | null; city: string; lat: number | null; lng: number | null; instructions: string | null; voice_note_path?: string | null; gate_photo_path?: string | null } | null;
     dropoff_type: 'hand_to_me' | 'leave_at_door';
     requires_pin: boolean;
     collect_cash: Money | null;

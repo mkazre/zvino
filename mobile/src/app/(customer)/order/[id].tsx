@@ -8,6 +8,7 @@ import { api, ApiError, type Money } from '@/lib/api';
 import { label, zig } from '@/lib/money';
 import { Button, Card, Loading, Row, Text, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
+import { usePrefs } from '@/lib/prefs';
 
 interface Order {
     id: number; reference: string; status: string; fulfilment: string; payment_method: string; payment_status: string;
@@ -23,24 +24,27 @@ const ORDER = ['pending_payment', 'scheduled', 'placed', 'accepted', 'preparing'
 const HEADLINE: Record<string, string> = { placed: 'Waiting for the restaurant…', accepted: 'Confirmed! Getting started', preparing: 'Your food is being prepared', ready: 'Ready, driver on the way to collect', picked_up: 'On the way to you', arriving: 'Almost there!', delivered: 'Delivered. Enjoy! 🎉', cancelled: 'Order cancelled', rejected: 'The restaurant couldn’t take your order', pending_payment: 'Waiting for payment', scheduled: 'Scheduled' };
 
 export default function OrderTracking() {
+    const { dataLight } = usePrefs();
     const tr = useT();
     const t = useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [order, setOrder] = useState<Order & { delivery_pin?: string } | null>(null);
     const [pin, setPin] = useState<string | null>(null);
+    const [split, setSplit] = useState<{ payment_id: number; name: string | null; phone: string; amount: Money; status: string }[]>([]);
 
     const load = useCallback(async () => {
-        const r = await api.get<{ data: Order; delivery_pin?: string }>(`/orders/${id}`).catch(() => null);
+        const r = await api.get<{ data: Order; delivery_pin?: string; split?: typeof split }>(`/orders/${id}`).catch(() => null);
         if (r) {
             setOrder(r.data);
             setPin(r.delivery_pin ?? null);
+            setSplit(r.split ?? []);
         }
     }, [id]);
     useEffect(() => {
         load();
-        const timer = setInterval(load, 10000); // Pusher pushes instantly when configured; polling is the fallback
+        const timer = setInterval(load, dataLight ? 30000 : 10000); // Pusher pushes instantly when configured; polling is the fallback
         return () => clearInterval(timer);
-    }, [load]);
+    }, [load, dataLight]);
 
     if (!order) return <Loading />;
     const idx = ORDER.indexOf(order.status === 'ready' ? 'preparing' : order.status === 'arriving' ? 'picked_up' : order.status);
@@ -53,7 +57,7 @@ export default function OrderTracking() {
 
     return (
         <View style={{ flex: 1, backgroundColor: t.bg }}>
-            {order.fulfilment === 'delivery' && !done && (dest || shop) ? (
+            {order.fulfilment === 'delivery' && !done && !dataLight && (dest || shop) ? (
                 <MapView style={{ height: 300 }} initialRegion={{ ...(dest ?? shop)!, latitudeDelta: 0.04, longitudeDelta: 0.04 }}>
                     {shop && <Marker coordinate={shop} title={order.vendor.name} pinColor="#111412" />}
                     {dest && <Marker coordinate={dest} title="You" pinColor="#0B6E4F" />}
@@ -98,6 +102,23 @@ export default function OrderTracking() {
                 )}
                 {pin && !done && <Card tone="subtle"><Text variant="label">Delivery PIN</Text><Text variant="display" style={{ letterSpacing: 8 }}>{pin}</Text><Text variant="caption">Give this to your driver at the gate.</Text></Card>}
 
+                {split.length > 0 && order.status === 'pending_payment' && (
+                    <Card style={{ gap: 8 }}>
+                        <Text variant="heading">Split the bill</Text>
+                        {split.map((s) => (
+                            <Row key={s.payment_id} justify="space-between">
+                                <View style={{ flex: 1 }}><Text variant="label">{s.name || s.phone}</Text><Text variant="caption">{zig(s.amount.zig)} · {s.status === 'paid' ? 'Paid ✓' : ['failed', 'cancelled'].includes(s.status) ? 'Declined' : 'Waiting…'}</Text></View>
+                                {s.status !== 'paid' && (
+                                    <Row gap={10}>
+                                        <Pressable onPress={() => api.post(`/orders/${order.id}/split/${s.payment_id}/resend`, {}).then(load).catch((e) => Alert.alert('Resend', e instanceof ApiError ? e.friendly : ''))}><Text variant="label" color="brand">Resend</Text></Pressable>
+                                        <Pressable onPress={() => api.post(`/orders/${order.id}/split/${s.payment_id}/resend`, { pay_myself: true }).then(load).catch((e) => Alert.alert('Pay', e instanceof ApiError ? e.friendly : ''))}><Text variant="label">I’ll pay</Text></Pressable>
+                                    </Row>
+                                )}
+                            </Row>
+                        ))}
+                    </Card>
+                )}
+
                 <Card>
                     <Text variant="heading" style={{ marginBottom: 8 }}>Your order</Text>
                     {order.items.map((i, k) => <Row key={k} justify="space-between" style={{ paddingVertical: 4 }}><Text>{i.quantity}× {i.name}</Text><Text>{zig(i.line_total.zig)}</Text></Row>)}
@@ -105,6 +126,7 @@ export default function OrderTracking() {
                 </Card>
                 {['pending_payment', 'scheduled', 'placed'].includes(order.status) && <Button title={tr('Cancel order')} tone="outline" onPress={cancel} />}
                 {order.status === 'delivered' && <Button title={tr('Reorder')} onPress={() => router.push(`/store/${order.vendor.id}`)} />}
+                {['delivered', 'accepted', 'preparing', 'ready', 'picked_up', 'scheduled', 'placed'].includes(order.status) && <Button title="🔁  Make this a regular order" tone="ghost" onPress={() => router.push(`/plans?fromOrder=${order.id}`)} />}
             </ScrollView>
         </View>
     );

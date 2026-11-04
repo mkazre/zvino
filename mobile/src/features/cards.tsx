@@ -6,6 +6,7 @@ import { type Money } from '@/lib/api';
 import { useCart } from '@/lib/cart';
 import { zig } from '@/lib/money';
 import { Row, Text, useTheme } from '@/ui';
+import { useImg } from '@/lib/prefs';
 
 export interface Store {
     id: number;
@@ -44,7 +45,8 @@ export interface MenuItem {
 
 const GRADIENT = ['#0B6E4F', '#111412', '#8A6508', '#7A0A1C'];
 
-export function Cover({ uri, seed = 0, height = 150, radius = 18 }: { uri: string | null; seed?: number; height?: number; radius?: number }) {
+export function Cover({ uri: path, seed = 0, height = 150, radius = 18 }: { uri: string | null; seed?: number; height?: number; radius?: number }) {
+    const uri = useImg()(path, 640);
     return uri ? (
         <Image source={{ uri }} style={{ height, borderRadius: radius, width: '100%' }} contentFit="cover" transition={200} />
     ) : (
@@ -77,6 +79,7 @@ export function StoreCard({ s, width }: { s: Store; width?: number }) {
 }
 
 export function DishRow({ i, onPress }: { i: MenuItem; onPress: () => void }) {
+    const img = useImg();
     const t = useTheme();
     const price = i.special_price?.zig ?? i.price.zig;
     return (
@@ -91,7 +94,7 @@ export function DishRow({ i, onPress }: { i: MenuItem; onPress: () => void }) {
                 </Row>
             </View>
             <View>
-                {i.image ? <Image source={{ uri: i.image }} style={{ width: 96, height: 96, borderRadius: 14 }} contentFit="cover" /> : <View style={{ width: 96, height: 96, borderRadius: 14, backgroundColor: t.subtle }} />}
+                {i.image ? <Image source={{ uri: img(i.image, 320)! }} style={{ width: 96, height: 96, borderRadius: 14 }} contentFit="cover" /> : <View style={{ width: 96, height: 96, borderRadius: 14, backgroundColor: t.subtle }} />}
                 <View style={{ position: 'absolute', right: 6, bottom: 6, width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 }}>
                     <Ionicons name="add" size={20} color="#111412" />
                 </View>

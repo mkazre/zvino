@@ -39,7 +39,8 @@ module.exports = ({ config }) => ({
     config: process.env.GOOGLE_MAPS_ANDROID_KEY ? { googleMaps: { apiKey: process.env.GOOGLE_MAPS_ANDROID_KEY } } : undefined,
   },
   plugins: [
-    ...config.plugins,
+    ...config.plugins.filter((p) => p !== 'expo-audio'),
+    ['expo-audio', { microphonePermission: 'Record voice-note directions for your driver.' }],
     ['expo-splash-screen', { backgroundColor: v.splash, image: './assets/images/splash-icon.png', imageWidth: 96 }],
     ['expo-notifications', { color: '#0B6E4F' }],
     ['expo-location', { locationWhenInUsePermission: locationText }],

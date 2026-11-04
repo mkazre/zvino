@@ -10,6 +10,9 @@ import { zig } from '@/lib/money';
 import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
 import { SafetyBanner } from '@/features/safety';
+import { VoiceNotePlayer } from '@/features/voice-note';
+import { API_URL } from '@/lib/config';
+import { Image } from 'expo-image';
 
 /** One delivery: go to store → pick up → go to customer → deliver (PIN / photo / cash). */
 export default function JobScreen() {
@@ -93,6 +96,8 @@ export default function JobScreen() {
                     {job.items.map((i, k) => <Text key={k}>{i.quantity}× {i.name}</Text>)}
                     {job.notes && <Text variant="caption" style={{ marginTop: 6 }}>Note: {job.notes}</Text>}
                     {job.safety && <View style={{ marginTop: 8 }}><SafetyBanner s={job.safety} /></View>}
+                    {delivering && job.dropoff?.voice_note_path && <View style={{ marginTop: 8 }}><VoiceNotePlayer path={job.dropoff.voice_note_path} /></View>}
+                    {delivering && job.dropoff?.gate_photo_path && <Image source={{ uri: `${API_URL}${job.dropoff.gate_photo_path}` }} style={{ marginTop: 8, height: 160, borderRadius: 12 }} contentFit="cover" />}
                 </Card>
 
                 {job.collect_cash && <Card tone="gold"><Text variant="heading" style={{ color: '#3d2c03' }}>Collect {zig(job.collect_cash.zig)} cash</Text><Text variant="caption" style={{ color: '#6b4e05' }}>USD or ZiG accepted. No small change? Credit it to the customer’s wallet below.</Text></Card>}
