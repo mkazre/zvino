@@ -18,7 +18,13 @@ export interface DriverMe {
     cash_held: Money;
     today: Money;
     location_interval_seconds: number;
+    tier: string;
+    preferences: { avoid_night_zones: boolean; daily_goal_zig: number | null; weekly_goal_zig: number | null };
+    night_zones_enabled: boolean;
 }
+
+export interface Safety { zone: string; note: string | null; until: string }
+export interface HeatCell { lat: number; lng: number; intensity: number; orders_last_hour: number; label: string; km: number | null }
 
 export interface Offer {
     id: number;
@@ -32,6 +38,7 @@ export interface Offer {
     store: { name: string; address: string | null; lat: number; lng: number };
     dropoff_area: string | null;
     items_count: number;
+    safety: Safety | null;
 }
 
 export interface Job {
@@ -47,6 +54,7 @@ export interface Job {
     items: { name: string; quantity: number }[];
     pay: Money;
     notes: string | null;
+    safety: Safety | null;
 }
 
 /**

@@ -32,6 +32,8 @@ export interface MenuItem {
     image: string | null;
     price: Money;
     special_price: Money | null;
+    sold_by?: 'unit' | 'kg';
+    step_kg?: number;
     is_available: boolean;
     is_popular: boolean;
     dietary: string[];
@@ -83,7 +85,7 @@ export function DishRow({ i, onPress }: { i: MenuItem; onPress: () => void }) {
                 <Row gap={6}><Text variant="heading" style={{ fontSize: 16 }} numberOfLines={1}>{i.name}</Text>{i.is_popular && <Text variant="caption" style={{ fontWeight: '800', color: t.ink }}>· POPULAR</Text>}</Row>
                 {i.description && <Text variant="caption" numberOfLines={2}>{i.description}</Text>}
                 <Row gap={6}>
-                    <Text variant="label" color={i.special_price ? 'red' : 'ink'}>{zig(price)}</Text>
+                    <Text variant="label" color={i.special_price ? 'red' : 'ink'}>{zig(price)}{i.sold_by === 'kg' ? ' / kg' : ''}</Text>
                     {i.special_price && <Text variant="caption" style={{ textDecorationLine: 'line-through' }}>{zig(i.price.zig)}</Text>}
                     {!i.is_available && <Text variant="caption">Sold out</Text>}
                 </Row>

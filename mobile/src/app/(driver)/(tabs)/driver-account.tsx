@@ -1,15 +1,26 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { View } from 'react-native';
 import { type DriverMe } from '@/features/driver';
 import { api } from '@/lib/api';
 import { label } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Badge, Button, Card, Row, Screen, Text } from '@/ui';
+import { Badge, Button, Card, Input, Row, Screen, Text, Toggle } from '@/ui';
+import { LanguagePicker } from '@/features/language';
 
 export default function DriverAccount() {
     const { signOut } = useSession();
     const [me, setMe] = useState<DriverMe | null>(null);
-    useFocusEffect(useCallback(() => { api.get<DriverMe>('/driver/me').then(setMe).catch(() => {}); }, []));
+    const [daily, setDaily] = useState('');
+    const [weekly, setWeekly] = useState('');
+    useFocusEffect(useCallback(() => {
+        api.get<DriverMe>('/driver/me').then((d) => {
+            setMe(d);
+            setDaily(d.preferences.daily_goal_zig ? String(d.preferences.daily_goal_zig) : '');
+            setWeekly(d.preferences.weekly_goal_zig ? String(d.preferences.weekly_goal_zig) : '');
+        }).catch(() => {});
+    }, []));
+    const save = (body: Record<string, unknown>) => api.patch<DriverMe>('/driver/preferences', body).then(setMe).catch(() => {});
 
     return (
         <Screen>
@@ -26,6 +37,20 @@ export default function DriverAccount() {
                 <Text variant="heading">Safety</Text>
                 <Text variant="caption">Use the red SOS button on the Drive tab in an emergency. Zvino ops gets your live location instantly. Police 995 · Ambulance 994.</Text>
             </Card>
+            {me?.night_zones_enabled && (
+                <Card style={{ marginTop: 12 }}>
+                    <Toggle value={me.preferences.avoid_night_zones} onChange={(v) => save({ avoid_night_zones: v })} label="Skip night safety zones" description="Don’t offer me drop-offs in areas Zvino has flagged as unsafe after dark." />
+                </Card>
+            )}
+            <Card style={{ marginTop: 12, gap: 10 }}>
+                <Text variant="heading">Earnings goals</Text>
+                <Row gap={10}>
+                    <View style={{ flex: 1 }}><Input label="Daily (ZiG)" value={daily} onChangeText={setDaily} keyboardType="number-pad" placeholder="e.g. 400" /></View>
+                    <View style={{ flex: 1 }}><Input label="Weekly (ZiG)" value={weekly} onChangeText={setWeekly} keyboardType="number-pad" placeholder="e.g. 2500" /></View>
+                </Row>
+                <Button title="Save goals" size="md" tone="outline" onPress={() => save({ daily_goal_zig: daily ? Number(daily) : null, weekly_goal_zig: weekly ? Number(weekly) : null })} />
+            </Card>
+            <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
         </Screen>
     );

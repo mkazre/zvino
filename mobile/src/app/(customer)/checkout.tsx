@@ -8,6 +8,7 @@ import { useCart } from '@/lib/cart';
 import { label, normalisePhone, usd, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Chip, Row, Text, Toggle, useTheme } from '@/ui';
+import { useT } from '@/lib/i18n';
 
 interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean }
 interface Quote {
@@ -26,6 +27,7 @@ const METHOD_ICON: Record<string, keyof typeof Ionicons.glyphMap> = { ecocash: '
 
 export default function Checkout() {
     const t = useTheme();
+    const tr = useT();
     const { me } = useSession();
     const cart = useCart();
     const [synced, setSynced] = useState(false);
@@ -124,7 +126,7 @@ export default function Checkout() {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 }}>
                 <Text style={{ fontSize: 56 }}>📲</Text>
-                <Text variant="title" center>Check your phone</Text>
+                <Text variant="title" center>{tr('Check your phone')}</Text>
                 <Text color="muted" center>Approve the {label(method)} payment of {zig(due)} on {phone}. Enter your PIN when prompted.</Text>
                 <ActivityIndicator color={t.brand} size="large" style={{ marginTop: 12 }} />
             </SafeAreaView>
@@ -137,18 +139,18 @@ export default function Checkout() {
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
             <Row style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
                 <Pressable onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={t.ink} /></Pressable>
-                <Text variant="title" style={{ flex: 1, fontSize: 22 }}>Checkout</Text>
+                <Text variant="title" style={{ flex: 1, fontSize: 22 }}>{tr('Checkout')}</Text>
             </Row>
             <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 4, gap: 14, paddingBottom: 140 }}>
                 <Row gap={8}>
-                    <Chip label="🛵  Delivery" active={fulfilment === 'delivery'} onPress={() => setFulfilment('delivery')} />
-                    <Chip label="🚶  Pickup" active={fulfilment === 'pickup'} onPress={() => setFulfilment('pickup')} />
+                    <Chip label={`🛵  ${tr('Delivery')}`} active={fulfilment === 'delivery'} onPress={() => setFulfilment('delivery')} />
+                    <Chip label={`🚶  ${tr('Pickup')}`} active={fulfilment === 'pickup'} onPress={() => setFulfilment('pickup')} />
                     {quote?.eta_minutes && <Text variant="caption" style={{ marginLeft: 'auto' }}>{quote.eta_minutes[0]}–{quote.eta_minutes[1]} min</Text>}
                 </Row>
 
                 {fulfilment === 'delivery' && (
                     <Card>
-                        <Row justify="space-between"><Text variant="heading">Deliver to</Text><Pressable onPress={() => router.push('/addresses')}><Text variant="label" color="brand">{addresses.length ? 'Change / add' : 'Add address'}</Text></Pressable></Row>
+                        <Row justify="space-between"><Text variant="heading">{tr('Deliver to')}</Text><Pressable onPress={() => router.push('/addresses')}><Text variant="label" color="brand">{addresses.length ? 'Change / add' : 'Add address'}</Text></Pressable></Row>
                         {addresses.map((a) => (
                             <Pressable key={a.id} onPress={() => setAddressId(a.id)} style={{ flexDirection: 'row', gap: 12, paddingVertical: 12, alignItems: 'center' }}>
                                 <Ionicons name={addressId === a.id ? 'radio-button-on' : 'radio-button-off'} size={22} color={addressId === a.id ? t.ink : t.faint} />
@@ -163,7 +165,7 @@ export default function Checkout() {
                 )}
 
                 <Card>
-                    <Text variant="heading" style={{ marginBottom: 6 }}>Payment</Text>
+                    <Text variant="heading" style={{ marginBottom: 6 }}>{tr('Payment')}</Text>
                     {(quote?.payment_methods ?? ['ecocash', 'card', 'cash']).map((m) => {
                         const disabled = m === 'wallet' && (quote?.wallet_balance.zig ?? 0) < (total?.zig ?? 0);
                         return (
@@ -189,21 +191,21 @@ export default function Checkout() {
 
                 {fulfilment === 'delivery' && (quote?.tip_presets_pct?.length ?? 0) > 0 && (
                     <Card>
-                        <Row justify="space-between"><Text variant="heading">Tip your driver</Text><Text variant="caption">100% goes to them</Text></Row>
+                        <Row justify="space-between"><Text variant="heading">{tr('Tip your driver')}</Text><Text variant="caption">{tr('100% goes to them')}</Text></Row>
                         <Row gap={8} style={{ marginTop: 10, flexWrap: 'wrap' }}>{[0, ...(quote?.tip_presets_pct ?? [])].map((p) => <Chip key={p} label={p ? `${p}%` : 'No tip'} active={tipPct === p} onPress={() => setTipPct(p)} />)}</Row>
                     </Card>
                 )}
 
                 <Card>
                     <Row gap={8}>
-                        <TextInput value={promo} onChangeText={(v) => setPromo(v.toUpperCase())} autoCapitalize="characters" placeholder="Promo code" placeholderTextColor={t.faint} style={{ flex: 1, height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink }} />
-                        <Button title="Apply" size="md" tone="outline" onPress={applyPromo} disabled={!promo} />
+                        <TextInput value={promo} onChangeText={(v) => setPromo(v.toUpperCase())} autoCapitalize="characters" placeholder={tr('Promo code')} placeholderTextColor={t.faint} style={{ flex: 1, height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink }} />
+                        <Button title={tr('Apply')} size="md" tone="outline" onPress={applyPromo} disabled={!promo} />
                     </Row>
-                    <TextInput value={notes} onChangeText={setNotes} placeholder="Notes for the restaurant" placeholderTextColor={t.faint} style={{ height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink, marginTop: 10 }} />
+                    <TextInput value={notes} onChangeText={setNotes} placeholder={tr('Notes for the restaurant')} placeholderTextColor={t.faint} style={{ height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink, marginTop: 10 }} />
                 </Card>
 
                 <Card>
-                    <Toggle value={noCutlery} onChange={setNoCutlery} label="🌿  No cutlery or straws" description="Less plastic. Thank you!" />
+                    <Toggle value={noCutlery} onChange={setNoCutlery} label={`🌿  ${tr('No cutlery or straws')}`} description={tr('Less plastic. Thank you!')} />
                     {quote?.round_up && (quote.round_up.amount.zig > 0 || roundUp) && (
                         <Toggle value={roundUp} onChange={setRoundUp} label={`❤️  Round up for ${quote.round_up.charity}`} description={`Add ${zig(quote.round_up.amount.zig)}. Every cent goes to the charity`} />
                     )}
@@ -211,7 +213,7 @@ export default function Checkout() {
 
                 {quote && (
                     <Card tone="subtle">
-                        {([['Subtotal', quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, ['Service fee', quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? ['Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
+                        {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? ['Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
                             <Row key={l} justify="space-between" style={{ paddingVertical: 4 }}><Text color="muted">{l}</Text><Text color={v < 0 ? 'brand' : 'ink'}>{v < 0 ? `−${zig(-v)}` : zig(v)}</Text></Row>
                         ))}
                         {quote.totals.member_savings.zig > 0 && <Text variant="caption" color="brand">Zvino+ saved you {zig(quote.totals.member_savings.zig)} 🎉</Text>}
@@ -220,10 +222,10 @@ export default function Checkout() {
             </ScrollView>
             <SafeAreaView edges={['bottom']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: t.bg, borderTopWidth: 0.5, borderColor: t.border, padding: 16 }}>
                 <Row justify="space-between" style={{ marginBottom: 10 }}>
-                    <Text variant="heading">Total</Text>
+                    <Text variant="heading">{tr('Total')}</Text>
                     <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 22 }}>{total ? zig(total.zig) : '…'}</Text>{total && <Text variant="caption">{usd(total.usd)} · VAT incl.</Text>}</View>
                 </Row>
-                <Button title={`Place order${total ? ` · ${zig(due)}` : ''}`} loading={placing} disabled={!canPlace} onPress={place} />
+                <Button title={`${tr('Place order')}${total ? ` · ${zig(due)}` : ''}`} loading={placing} disabled={!canPlace} onPress={place} />
             </SafeAreaView>
         </SafeAreaView>
     );

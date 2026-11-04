@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CartProvider } from '@/lib/cart';
 import { VARIANT } from '@/lib/config';
+import { I18nProvider } from '@/lib/i18n';
 import { SessionProvider, useSession } from '@/lib/session';
 import { Loading, useTheme } from '@/ui';
 
@@ -47,10 +48,12 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
                 <SessionProvider>
-                    <CartProvider>
-                        <StatusBar style="auto" />
-                        <RootNavigator />
-                    </CartProvider>
+                    <I18nProvider>
+                        <CartProvider>
+                            <StatusBar style="auto" />
+                            <RootNavigator />
+                        </CartProvider>
+                    </I18nProvider>
                 </SessionProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>

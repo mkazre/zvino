@@ -5,6 +5,7 @@ import { api, type Money } from '@/lib/api';
 import { label, timeAgo, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Row, Screen, SectionTitle, Text, useTheme } from '@/ui';
+import { LanguagePicker } from '@/features/language';
 
 interface Earnings { sales: Money; commission: Money; refunds: Money; net: Money; balance: Money; payouts: { id: number; amount_zig: number; status: string; period_end: string }[] }
 interface Insights { best_sellers: { name: string; qty: number; revenue: number }[]; slow_movers: { id: number; name: string }[]; orders_by_hour: Record<string, number>; rating: { average: number; count: number } }
@@ -71,6 +72,7 @@ export default function More() {
                     ))}
                 </>
             )}
+            <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
         </Screen>
     );

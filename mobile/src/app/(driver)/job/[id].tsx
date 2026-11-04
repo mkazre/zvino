@@ -8,9 +8,12 @@ import { navigateUrl, type Job } from '@/features/driver';
 import { api, ApiError } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
+import { useT } from '@/lib/i18n';
+import { SafetyBanner } from '@/features/safety';
 
 /** One delivery: go to store → pick up → go to customer → deliver (PIN / photo / cash). */
 export default function JobScreen() {
+    const tr = useT();
     const t = useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [job, setJob] = useState<Job | null>(null);
@@ -80,7 +83,7 @@ export default function JobScreen() {
                     {delivering && job.dropoff?.landmark && <Text style={{ color: '#5fe0b3' }}>📍 {job.dropoff.landmark}</Text>}
                     {delivering && job.dropoff?.instructions && <Text style={{ color: 'rgba(255,255,255,0.8)' }}>“{job.dropoff.instructions}”</Text>}
                     <Row gap={10} style={{ marginTop: 10 }}>
-                        {target?.lat && <Button title="Navigate" tone="primary" size="md" style={{ flex: 1 }} onPress={() => Linking.openURL(navigateUrl(target.lat!, target.lng!))} icon={<Ionicons name="navigate" size={18} color="#fff" />} />}
+                        {target?.lat && <Button title={tr('Navigate')} tone="primary" size="md" style={{ flex: 1 }} onPress={() => Linking.openURL(navigateUrl(target.lat!, target.lng!))} icon={<Ionicons name="navigate" size={18} color="#fff" />} />}
                         {(delivering ? job.customer.phone : job.store.phone) && <Button title="Call" tone="soft" size="md" onPress={() => Linking.openURL(`tel:${delivering ? job.customer.phone : job.store.phone}`)} icon={<Ionicons name="call" size={18} color={t.ink} />} />}
                     </Row>
                 </Card>
@@ -89,6 +92,7 @@ export default function JobScreen() {
                     <Text variant="heading" style={{ marginBottom: 6 }}>Order ({job.items.reduce((s, i) => s + i.quantity, 0)} items)</Text>
                     {job.items.map((i, k) => <Text key={k}>{i.quantity}× {i.name}</Text>)}
                     {job.notes && <Text variant="caption" style={{ marginTop: 6 }}>Note: {job.notes}</Text>}
+                    {job.safety && <View style={{ marginTop: 8 }}><SafetyBanner s={job.safety} /></View>}
                 </Card>
 
                 {job.collect_cash && <Card tone="gold"><Text variant="heading" style={{ color: '#3d2c03' }}>Collect {zig(job.collect_cash.zig)} cash</Text><Text variant="caption" style={{ color: '#6b4e05' }}>USD or ZiG accepted. No small change? Credit it to the customer’s wallet below.</Text></Card>}
@@ -104,9 +108,9 @@ export default function JobScreen() {
             </ScrollView>
             <View style={{ padding: 16, borderTopWidth: 0.5, borderColor: t.border }}>
                 {delivering ? (
-                    <Button title="Delivered" tone="primary" loading={busy} disabled={(job.requires_pin && pin.length !== 4) || (job.dropoff_type === 'leave_at_door' && !photo)} onPress={deliver} />
+                    <Button title={tr('Delivered')} tone="primary" loading={busy} disabled={(job.requires_pin && pin.length !== 4) || (job.dropoff_type === 'leave_at_door' && !photo)} onPress={deliver} />
                 ) : (
-                    <Button title="I’ve picked up the order" loading={busy} onPress={pickup} />
+                    <Button title={tr('Picked up')} loading={busy} onPress={pickup} />
                 )}
             </View>
         </SafeAreaView>

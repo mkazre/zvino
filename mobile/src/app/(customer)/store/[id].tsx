@@ -77,7 +77,10 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
     const [qty, setQty] = useState(1);
     const [notes, setNotes] = useState('');
     const groups = item.modifier_groups ?? [];
-    const base = item.special_price?.zig ?? item.price.zig;
+    const perKg = item.sold_by === 'kg';
+    const step = item.step_kg ?? 0.5;
+    const kg = (n: number) => `${+(n * step).toFixed(3)} kg`;
+    const base = (item.special_price?.zig ?? item.price.zig) * (perKg ? step : 1);
     const unit = base + (item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + mods.reduce((s, m) => s + (groups.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0);
     const missing = groups.find((g) => g.options.filter((o) => mods.includes(o.name)).length < g.min);
 
@@ -89,7 +92,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
     };
 
     const add = (replace = false) => {
-        const ok = cart.add({ id: store.id, name: store.name, min_order_zig: store.min_order.zig }, { item_id: item.id, name: item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
+        const ok = cart.add({ id: store.id, name: store.name, min_order_zig: store.min_order.zig }, { item_id: item.id, name: perKg ? `${item.name} (per ${step} kg)` : item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
         if (!ok) {
             Alert.alert('Start a new basket?', `Your basket has items from ${cart.store?.name}. Clear it and add from ${store.name}?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'New basket', onPress: () => add(true) }]);
             return;
@@ -134,10 +137,10 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
                 <SafeAreaView edges={['bottom']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: t.bg, borderTopWidth: 0.5, borderColor: t.border, padding: 16, flexDirection: 'row', gap: 12 }}>
                     <Row gap={0} style={{ backgroundColor: t.subtle, borderRadius: 99 }}>
                         <Pressable onPress={() => setQty(Math.max(1, qty - 1))} style={{ width: 48, height: 54, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="remove" size={20} color={t.ink} /></Pressable>
-                        <Text variant="heading">{qty}</Text>
+                        <Text variant="heading">{perKg ? kg(qty) : qty}</Text>
                         <Pressable onPress={() => setQty(qty + 1)} style={{ width: 48, height: 54, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="add" size={20} color={t.ink} /></Pressable>
                     </Row>
-                    <Button style={{ flex: 1 }} disabled={!!missing} title={missing ? `Choose ${missing.name.toLowerCase()}` : `Add ${qty} · ${zig(unit * qty)}`} onPress={() => add()} />
+                    <Button style={{ flex: 1 }} disabled={!!missing} title={missing ? `Choose ${missing.name.toLowerCase()}` : `Add ${perKg ? kg(qty) : qty} · ${zig(unit * qty)}`} onPress={() => add()} />
                 </SafeAreaView>
             </View>
         </Modal>

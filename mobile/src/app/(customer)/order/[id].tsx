@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, ApiError, type Money } from '@/lib/api';
 import { label, zig } from '@/lib/money';
 import { Button, Card, Loading, Row, Text, useTheme } from '@/ui';
+import { useT } from '@/lib/i18n';
 
 interface Order {
     id: number; reference: string; status: string; fulfilment: string; payment_method: string; payment_status: string;
@@ -22,6 +23,7 @@ const ORDER = ['pending_payment', 'scheduled', 'placed', 'accepted', 'preparing'
 const HEADLINE: Record<string, string> = { placed: 'Waiting for the restaurant…', accepted: 'Confirmed! Getting started', preparing: 'Your food is being prepared', ready: 'Ready, driver on the way to collect', picked_up: 'On the way to you', arriving: 'Almost there!', delivered: 'Delivered. Enjoy! 🎉', cancelled: 'Order cancelled', rejected: 'The restaurant couldn’t take your order', pending_payment: 'Waiting for payment', scheduled: 'Scheduled' };
 
 export default function OrderTracking() {
+    const tr = useT();
     const t = useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [order, setOrder] = useState<Order & { delivery_pin?: string } | null>(null);
@@ -78,7 +80,7 @@ export default function OrderTracking() {
                                         <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: reached ? t.brand : t.subtle, alignItems: 'center', justifyContent: 'center' }}>{reached && <Ionicons name="checkmark" size={16} color="#fff" />}</View>
                                         {i < arr.length - 1 && <View style={{ width: 2, height: 26, backgroundColor: ORDER.indexOf(arr[i + 1][0]) <= idx ? t.brand : t.subtle }} />}
                                     </View>
-                                    <View style={{ paddingTop: 2 }}><Text variant="label" color={reached ? 'ink' : 'muted'}>{l}</Text>{at && <Text variant="caption">{new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>}</View>
+                                    <View style={{ paddingTop: 2 }}><Text variant="label" color={reached ? 'ink' : 'muted'}>{tr(l)}</Text>{at && <Text variant="caption">{new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>}</View>
                                 </Row>
                             );
                         })}
@@ -101,8 +103,8 @@ export default function OrderTracking() {
                     {order.items.map((i, k) => <Row key={k} justify="space-between" style={{ paddingVertical: 4 }}><Text>{i.quantity}× {i.name}</Text><Text>{zig(i.line_total.zig)}</Text></Row>)}
                     <Row justify="space-between" style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderColor: t.border }}><Text variant="label">Total · {label(order.payment_method)}</Text><Text variant="label">{zig(order.totals.total.zig)}</Text></Row>
                 </Card>
-                {['pending_payment', 'scheduled', 'placed'].includes(order.status) && <Button title="Cancel order" tone="outline" onPress={cancel} />}
-                {order.status === 'delivered' && <Button title="Order again" onPress={() => router.push(`/store/${order.vendor.id}`)} />}
+                {['pending_payment', 'scheduled', 'placed'].includes(order.status) && <Button title={tr('Cancel order')} tone="outline" onPress={cancel} />}
+                {order.status === 'delivered' && <Button title={tr('Reorder')} onPress={() => router.push(`/store/${order.vendor.id}`)} />}
             </ScrollView>
         </View>
     );

@@ -7,6 +7,7 @@ import { api, ApiError } from '@/lib/api';
 import { label, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Badge, Button, Card, Chip, Empty, Row, Text, useTheme } from '@/ui';
+import { useT } from '@/lib/i18n';
 
 type Tab = 'incoming' | 'active' | 'scheduled' | 'done';
 const PREP = [10, 15, 20, 30, 45];
@@ -16,6 +17,7 @@ const PREP = [10, 15, 20, 30, 45];
  * reject with reason, progress and hand over. Kitchen staff see the same board as kitchen stages.
  */
 export default function Board() {
+    const tr = useT();
     const t = useTheme();
     const { me: user } = useSession();
     const kitchen = user?.role === 'kitchen';
@@ -112,12 +114,12 @@ export default function Board() {
                                     <Row gap={8} style={{ flexWrap: 'wrap' }}>
                                         {PREP.map((p) => <Pressable key={p} disabled={busyId === o.id} onPress={() => act(o, 'accept', { prep_minutes: p })} style={{ height: 46, paddingHorizontal: 16, borderRadius: 12, backgroundColor: p === (me?.store.prep_minutes ?? 20) ? t.brand : t.subtle, justifyContent: 'center' }}><Text variant="label" style={{ color: p === (me?.store.prep_minutes ?? 20) ? '#fff' : t.ink }}>{p} min</Text></Pressable>)}
                                     </Row>
-                                    <Button title="Decline" tone="ghost" size="sm" onPress={() => reject(o)} />
+                                    <Button title={tr('Decline')} tone="ghost" size="sm" onPress={() => reject(o)} />
                                 </View>
                             )}
                             {!isNew && ['accepted', 'preparing'].includes(o.status) && (
                                 <Row gap={8}>
-                                    <Button style={{ flex: 1 }} tone={o.kitchen_stage === 'new' ? 'dark' : 'primary'} loading={busyId === o.id} title={o.kitchen_stage === 'new' ? 'Start cooking' : 'Mark ready'} onPress={() => act(o, 'advance')} />
+                                    <Button style={{ flex: 1 }} tone={o.kitchen_stage === 'new' ? 'dark' : 'primary'} loading={busyId === o.id} title={tr(o.kitchen_stage === 'new' ? 'Start cooking' : 'Mark ready')} onPress={() => act(o, 'advance')} />
                                     {!kitchen && <Button tone="outline" title="+10 min" onPress={() => act(o, 'delay', { minutes: 10 })} />}
                                 </Row>
                             )}

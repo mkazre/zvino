@@ -12,6 +12,7 @@ interface Earnings {
     available_to_cash_out: Money;
     instant_cashout: { fee_pct: number; min: Money } | null;
     tier: 'bronze' | 'silver' | 'gold';
+    goals: { daily: { target: number; earned: number } | null; weekly: { target: number; earned: number } | null };
 }
 interface Tier {
     tier: 'bronze' | 'silver' | 'gold'; bonus_pct: number;
@@ -91,6 +92,23 @@ export default function EarningsScreen() {
                 <Card style={{ flex: 1 }}><Text variant="caption">Next payout</Text><Text variant="heading">{zig(Math.max(0, (e?.balance.zig ?? 0) + (e?.cash_held.zig ?? 0)))}</Text></Card>
                 <Card style={{ flex: 1 }} tone={(e?.cash_held.zig ?? 0) > 0 ? 'gold' : 'surface'}><Text variant="caption">Cash held</Text><Text variant="heading">{zig(e?.cash_held.zig)}</Text></Card>
             </Row>
+
+            {(e?.goals?.daily || e?.goals?.weekly) && (
+                <Card style={{ marginTop: 12, gap: 10 }}>
+                    {(['daily', 'weekly'] as const).map((k) => {
+                        const g = e?.goals[k];
+                        if (!g) return null;
+                        const pct = Math.min(100, (g.earned / Math.max(1, g.target)) * 100);
+                        return (
+                            <View key={k} style={{ gap: 4 }}>
+                                <Row justify="space-between"><Text variant="label">{k === 'daily' ? 'Today’s goal' : 'This week’s goal'}</Text><Text variant="label">{zig(g.earned)} / {zig(g.target)}</Text></Row>
+                                <View style={{ height: 8, borderRadius: 4, backgroundColor: t.subtle, overflow: 'hidden' }}><View style={{ height: 8, width: `${pct}%`, backgroundColor: pct >= 100 ? '#D9A520' : t.brand }} /></View>
+                                {pct >= 100 && <Text variant="caption" color="brand">Goal reached 🎉</Text>}
+                            </View>
+                        );
+                    })}
+                </Card>
+            )}
 
             {e?.instant_cashout && (e.available_to_cash_out.zig ?? 0) > 0 && (e?.cash_held.zig ?? 0) <= 0 && (
                 <Card style={{ marginTop: 12, gap: 8 }}>

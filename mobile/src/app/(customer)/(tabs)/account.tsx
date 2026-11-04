@@ -4,6 +4,7 @@ import { Alert, Pressable, View } from 'react-native';
 import { zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Empty, Row, Screen, Text, useTheme } from '@/ui';
+import { LanguagePicker } from '@/features/language';
 
 export default function Account() {
     const t = useTheme();
@@ -38,6 +39,7 @@ export default function Account() {
                 <Item icon="share-social-outline" title="Invite friends, get credit" onPress={() => router.push('/wallet')} />
                 <Item icon="help-buoy-outline" title="Help & support" sub="WhatsApp, call or chat" onPress={() => Alert.alert('Zvino support', 'WhatsApp or call +263 242 000 000')} />
             </View>
+            <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
         </Screen>
     );

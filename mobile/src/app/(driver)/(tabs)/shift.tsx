@@ -2,14 +2,17 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Vibration, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Switch, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { currentPosition, useLocationSharing, type DriverMe, type Job, type Offer } from '@/features/driver';
+import { currentPosition, useLocationSharing, type DriverMe, type HeatCell, type Job, type Offer } from '@/features/driver';
+import { SafetyBanner } from '@/features/safety';
 import { api, ApiError } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
+import { useT } from '@/lib/i18n';
 
 export default function Shift() {
+    const tr = useT();
     const t = useTheme();
     const [me, setMe] = useState<DriverMe | null>(null);
     const [offers, setOffers] = useState<Offer[]>([]);
@@ -106,7 +109,7 @@ export default function Shift() {
                 <Card tone={me.is_online ? 'brand' : 'inverse'} style={{ paddingVertical: 20 }}>
                     <Row justify="space-between">
                         <View style={{ flex: 1 }}>
-                            <Text variant="title" style={{ color: '#fff' }}>{me.is_online ? 'You’re online' : 'You’re offline'}</Text>
+                            <Text variant="title" style={{ color: '#fff' }}>{tr(me.is_online ? 'You’re online' : 'You’re offline')}</Text>
                             <Text variant="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>{me.is_online ? 'Looking for deliveries near you…' : 'Go online to start receiving jobs.'}</Text>
                         </View>
                         <Switch value={me.is_online} disabled={toggling} onValueChange={toggle} trackColor={{ true: '#5fe0b3', false: '#3b403d' }} thumbColor="#fff" style={{ transform: [{ scale: 1.25 }] }} />
@@ -130,13 +133,16 @@ export default function Shift() {
                             <Row gap={10}><Ionicons name="storefront-outline" size={18} color={t.ink} /><Text variant="label" style={{ flex: 1 }}>{o.store.name}</Text><Text variant="caption">{o.pickup_km ?? '?'} km away</Text></Row>
                             <Row gap={10}><Ionicons name="location-outline" size={18} color={t.ink} /><Text variant="label" style={{ flex: 1 }}>{o.dropoff_area ?? 'Customer'}</Text><Text variant="caption">{o.dropoff_km ?? '?'} km trip</Text></Row>
                             {o.collect_cash && <Badge tone="gold">{`Collect ${zig(o.collect_cash.zig)} cash`}</Badge>}
+                            {o.safety && <SafetyBanner s={o.safety} />}
                             <Row gap={10} style={{ marginTop: 6 }}>
-                                <Button title="Decline" tone="outline" style={{ flex: 1 }} onPress={() => respond(o, false)} />
-                                <Button title="Accept" tone="primary" style={{ flex: 2 }} onPress={() => respond(o, true)} />
+                                <Button title={tr('Decline')} tone="outline" style={{ flex: 1 }} onPress={() => respond(o, false)} />
+                                <Button title={tr('Accept')} tone="primary" style={{ flex: 2 }} onPress={() => respond(o, true)} />
                             </Row>
                         </Card>
                     );
                 })}
+
+                {me.is_online && offers.length === 0 && jobs.length === 0 && <Heatmap />}
 
                 {jobs.length > 0 && <Text variant="heading" style={{ marginTop: 6 }}>Active deliveries</Text>}
                 {jobs.map((j) => (
@@ -153,5 +159,34 @@ export default function Shift() {
                 </Row>
             </ScrollView>
         </SafeAreaView>
+    );
+}
+
+/** Demand heatmap: the busiest pickup areas right now, nearest first among the hottest. */
+function Heatmap() {
+    const t = useTheme();
+    const tr = useT();
+    const [cells, setCells] = useState<HeatCell[]>([]);
+    useEffect(() => {
+        const load = () => api.get<{ cells: HeatCell[] }>('/driver/heatmap').then((r) => setCells(r.cells)).catch(() => {});
+        load();
+        const timer = setInterval(load, 120000);
+        return () => clearInterval(timer);
+    }, []);
+    if (!cells.length) return null;
+    return (
+        <Card style={{ gap: 10 }}>
+            <Text variant="heading">🔥 {tr('Busy areas right now')}</Text>
+            {cells.slice(0, 5).map((c) => (
+                <Pressable key={`${c.lat},${c.lng}`} onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`)}>
+                    <Row gap={10}>
+                        <View style={{ width: 44, height: 8, borderRadius: 4, backgroundColor: t.subtle, overflow: 'hidden' }}><View style={{ width: `${Math.max(10, c.intensity * 100)}%`, height: 8, backgroundColor: c.intensity > 0.66 ? '#c8102e' : c.intensity > 0.33 ? '#D9A520' : t.brand }} /></View>
+                        <Text variant="label" style={{ flex: 1 }} numberOfLines={1}>{c.label || 'Busy area'}</Text>
+                        <Text variant="caption">{c.km != null ? `${c.km} km` : ''}</Text>
+                    </Row>
+                </Pressable>
+            ))}
+            <Text variant="caption">Based on orders in the last hour and this time on recent weeks. Tap to navigate.</Text>
+        </Card>
     );
 }
