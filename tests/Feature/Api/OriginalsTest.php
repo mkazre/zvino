@@ -125,6 +125,19 @@ class OriginalsTest extends TestCase
         $this->assertTrue(Zone::all()->every(fn ($z) => $z->surge_multiplier == 1));
     }
 
+    public function test_forged_paynow_webhook_is_rejected_in_production()
+    {
+        $order = $this->order('cash');
+        $payment = $order->payments()->create(['provider' => 'paynow', 'method' => 'ecocash', 'amount_zig' => $order->total_zig, 'status' => 'pending']);
+        $order->update(['payment_status' => 'pending']);
+
+        $this->app['env'] = 'production';
+        config(['zvino.paynow.fake' => true]); // even with fake left on by mistake
+
+        $this->post('/api/payments/webhook/paynow', ['reference' => $order->reference, 'status' => 'Paid', 'hash' => 'FORGED'])->assertStatus(400);
+        $this->assertSame('pending', $payment->fresh()->status);
+    }
+
     public function test_sms_fallback_for_customers_without_the_app()
     {
         Log::spy();

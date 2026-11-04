@@ -15,13 +15,26 @@ class PaynowGateway
     private const INIT_URL = 'https://www.paynow.co.zw/interface/initiatetransaction';
     private const MOBILE_URL = 'https://www.paynow.co.zw/interface/remotetransaction';
 
+    /**
+     * Simulated payments for local/demo use only. Never in production: there, a fake gateway
+     * would let any webhook mark orders as paid.
+     */
     public function fake(): bool
     {
+        if (app()->isProduction()) {
+            return false;
+        }
+
         return config('zvino.paynow.fake') || ! config('zvino.paynow.integration_id');
     }
 
     public function initiate(Payment $payment): Payment
     {
+        if (! $this->fake() && ! config('zvino.paynow.integration_id')) {
+            $payment->update(['status' => 'failed', 'raw' => ['error' => 'Paynow is not configured']]);
+
+            return $payment;
+        }
         if ($this->fake()) {
             $payment->update(['status' => 'pending', 'provider_reference' => 'FAKE-'.$payment->id]);
 
