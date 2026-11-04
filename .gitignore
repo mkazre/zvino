@@ -1,0 +1,8 @@
+# Zvino monorepo: api/ (Laravel website, admin & API) and mobile/ (Expo apps) keep their own ignore files too.
+.DS_Store
+Thumbs.db
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
