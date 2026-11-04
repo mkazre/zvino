@@ -19,7 +19,10 @@ Schedule::call(function () {
     $orders->cancelUnaccepted();
     $orders->expireUnpaid();
     app(DispatchService::class)->sweep();
+    \Illuminate\Support\Facades\Cache::put('zvino.scheduler_heartbeat', now(), now()->addHour()); // zvino:doctor checks this
 })->everyMinute()->name('order-engine')->withoutOverlapping();
+
+Schedule::command('zvino:backup')->dailyAt('02:30')->name('backup');
 
 Schedule::call(fn () => app(CampaignService::class)->sendDue())->everyFiveMinutes()->name('campaigns')->withoutOverlapping();
 

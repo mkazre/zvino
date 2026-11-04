@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->alias(['staff' => EnsureStaffRole::class]);
 
         // Customers go to phone sign-in; staff screens go to the email login.
