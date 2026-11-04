@@ -43,7 +43,7 @@ export interface MenuItem {
     vendor?: { id: number; name: string; slug: string };
 }
 
-const GRADIENT = ['#0B6E4F', '#111412', '#8A6508', '#7A0A1C'];
+const GRADIENT = ['#17C74A', '#222222', '#8A6508', '#7A0A1C'];
 
 export function Cover({ uri: path, seed = 0, height = 150, radius = 18 }: { uri: string | null; seed?: number; height?: number; radius?: number }) {
     const uri = useImg()(path, 640);
@@ -64,7 +64,7 @@ export function StoreCard({ s, width }: { s: Store; width?: number }) {
                 <Cover uri={s.cover} seed={s.id} height={width ? width * 0.58 : 170} />
                 <Row gap={6} style={{ position: 'absolute', top: 10, left: 10 }}>
                     {s.has_offers && <View style={{ backgroundColor: t.red, borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}><Text variant="caption" color="onBrand" style={{ fontWeight: '800', color: '#fff' }}>Offers</Text></View>}
-                    {s.delivery_fee.zig === 0 && <View style={{ backgroundColor: '#fff', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}><Text variant="caption" style={{ fontWeight: '800', color: '#111412' }}>Free delivery</Text></View>}
+                    {s.delivery_fee.zig === 0 && <View style={{ backgroundColor: '#fff', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}><Text variant="caption" style={{ fontWeight: '800', color: '#222222' }}>Free delivery</Text></View>}
                 </Row>
             </View>
             <Row justify="space-between" align="flex-start" style={{ marginTop: 10 }}>
@@ -96,7 +96,7 @@ export function DishRow({ i, onPress }: { i: MenuItem; onPress: () => void }) {
             <View>
                 {i.image ? <Image source={{ uri: img(i.image, 320)! }} style={{ width: 96, height: 96, borderRadius: 14 }} contentFit="cover" /> : <View style={{ width: 96, height: 96, borderRadius: 14, backgroundColor: t.subtle }} />}
                 <View style={{ position: 'absolute', right: 6, bottom: 6, width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 }}>
-                    <Ionicons name="add" size={20} color="#111412" />
+                    <Ionicons name="add" size={20} color="#222222" />
                 </View>
             </View>
         </Pressable>

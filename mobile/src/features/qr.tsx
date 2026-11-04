@@ -16,7 +16,7 @@ export function QrView({ value, size = 240 }: { value: string; size?: number }) 
         <View style={{ padding: cell * 2, backgroundColor: '#fff', borderRadius: 12 }}>
             {rows.map((row, r) => (
                 <View key={r} style={{ flexDirection: 'row' }}>
-                    {row.map((dark, c) => <View key={c} style={{ width: cell, height: cell, backgroundColor: dark ? '#111412' : '#fff' }} />)}
+                    {row.map((dark, c) => <View key={c} style={{ width: cell, height: cell, backgroundColor: dark ? '#222222' : '#fff' }} />)}
                 </View>
             ))}
         </View>

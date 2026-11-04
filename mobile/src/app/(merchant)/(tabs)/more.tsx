@@ -4,8 +4,9 @@ import { Alert, View } from 'react-native';
 import { api, ApiError, type Money } from '@/lib/api';
 import { label, timeAgo, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Button, Card, Row, Screen, SectionTitle, Text, useTheme } from '@/ui';
+import { Button, Card, Row, Screen, SectionTitle, Text, useTheme, Logo } from '@/ui';
 import { LanguagePicker } from '@/features/language';
+import { appVersion } from '@/lib/brand';
 
 interface Earnings { sales: Money; commission: Money; refunds: Money; net: Money; balance: Money; payouts: { id: number; amount_zig: number; status: string; period_end: string; is_instant?: boolean }[]; available_now: Money; instant_payout: { fee_pct: number; min: Money } | null }
 interface Insights { best_sellers: { name: string; qty: number; revenue: number }[]; slow_movers: { id: number; name: string }[]; orders_by_hour: Record<string, number>; rating: { average: number; count: number } }
@@ -80,6 +81,10 @@ export default function More() {
             )}
             <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
+            <View style={{ alignItems: 'center', gap: 6, marginTop: 28 }}>
+                <Logo height={28} />
+                <Text variant="caption">Version {appVersion()}</Text>
+            </View>
         </Screen>
     );
 }

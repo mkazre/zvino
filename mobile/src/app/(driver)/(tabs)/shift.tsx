@@ -8,7 +8,7 @@ import { currentPosition, useLocationSharing, type DriverMe, type HeatCell, type
 import { SafetyBanner } from '@/features/safety';
 import { api, ApiError } from '@/lib/api';
 import { zig } from '@/lib/money';
-import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
+import { Badge, Button, Card, Loading, Row, Text, useTheme, Logo } from '@/ui';
 import { useT } from '@/lib/i18n';
 import { useChannel } from '@/lib/realtime';
 
@@ -104,6 +104,7 @@ export default function Shift() {
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: me.is_online ? t.bg : t.canvas }}>
             <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}>
+                <Logo height={26} />
                 <Row justify="space-between">
                     <View><Text variant="caption">Today</Text><Text variant="display">{zig(me.today.zig)}</Text></View>
                     <Pressable onPress={sos} style={{ backgroundColor: t.red, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 10 }}><Text variant="label" style={{ color: '#fff' }}>SOS</Text></Pressable>
@@ -115,7 +116,7 @@ export default function Shift() {
                             <Text variant="title" style={{ color: '#fff' }}>{tr(me.is_online ? 'You’re online' : 'You’re offline')}</Text>
                             <Text variant="caption" style={{ color: 'rgba(255,255,255,0.75)' }}>{me.is_online ? 'Looking for deliveries near you…' : 'Go online to start receiving jobs.'}</Text>
                         </View>
-                        <Switch value={me.is_online} disabled={toggling} onValueChange={toggle} trackColor={{ true: '#5fe0b3', false: '#3b403d' }} thumbColor="#fff" style={{ transform: [{ scale: 1.25 }] }} />
+                        <Switch value={me.is_online} disabled={toggling} onValueChange={toggle} trackColor={{ true: '#17C74A', false: '#3b403d' }} thumbColor="#fff" style={{ transform: [{ scale: 1.25 }] }} />
                     </Row>
                 </Card>
 

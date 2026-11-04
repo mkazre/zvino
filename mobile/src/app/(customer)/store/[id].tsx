@@ -41,8 +41,8 @@ export default function StoreScreen() {
                     <View>
                         <Cover uri={store.cover} seed={store.id} height={220} radius={0} />
                         <SafeAreaView edges={['top']} style={{ position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Pressable onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="arrow-back" size={20} color="#111412" /></Pressable>
-                            <Pressable onPress={() => Share.share({ message: `Order from ${store.name} on Zvino: https://zvino.co.zw/store/${store.slug}` })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="share-outline" size={20} color="#111412" /></Pressable>
+                            <Pressable onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="arrow-back" size={20} color="#222222" /></Pressable>
+                            <Pressable onPress={() => Share.share({ message: `Order from ${store.name} on Zvino: https://zvino.co.zw/store/${store.slug}` })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="share-outline" size={20} color="#222222" /></Pressable>
                         </SafeAreaView>
                         <View style={{ padding: 20, gap: 6 }}>
                             <Text variant="display">{store.name}</Text>
@@ -121,7 +121,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
             <View style={{ flex: 1, backgroundColor: t.bg }}>
                 <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
                     <Cover uri={item.image} seed={item.id} height={240} radius={0} />
-                    <Pressable onPress={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="close" size={20} color="#111412" /></Pressable>
+                    <Pressable onPress={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="close" size={20} color="#222222" /></Pressable>
                     <View style={{ padding: 20, gap: 8 }}>
                         <Text variant="title">{item.name}</Text>
                         <Row justify="space-between">

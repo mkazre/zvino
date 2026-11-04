@@ -7,7 +7,7 @@ import { CartBar, Cover, StoreCard, type MenuItem, type Store } from '@/features
 import { api } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Loading, Row, SectionTitle, Text, useTheme } from '@/ui';
+import { Loading, Row, SectionTitle, Text, useTheme, Logo } from '@/ui';
 
 interface Block { id: number; type: string; title: string | null; subtitle: string | null; cta_label: string | null; link_to: string | null; payload: Record<string, unknown>; data: unknown }
 interface Layout { platform_mode: 'single' | 'marketplace'; single_vendor: { data: Store } | Store | null; blocks: Block[] }
@@ -43,6 +43,7 @@ export default function Home() {
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
             <ScrollView contentContainerStyle={{ paddingBottom: 100 }} refreshControl={undefined} onScrollEndDrag={undefined}>
                 <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 14 }}>
+                    <Logo height={30} />
                     <Row justify="space-between">
                         <Pressable onPress={() => router.push('/addresses')}>
                             <Text variant="caption">Deliver to</Text>
@@ -85,7 +86,7 @@ function BlockView({ b }: { b: Block }) {
                 <Pressable onPress={() => go(b.link_to)} style={{ marginHorizontal: 20, marginTop: 20, borderRadius: 22, padding: 22, backgroundColor: (b.payload?.background as string) ?? t.brand }}>
                     <Text variant="title" style={{ color: '#fff' }}>{b.title}</Text>
                     {b.subtitle && <Text style={{ color: 'rgba(255,255,255,0.85)', marginTop: 6 }}>{b.subtitle}</Text>}
-                    {b.cta_label && <View style={{ backgroundColor: '#fff', alignSelf: 'flex-start', borderRadius: 99, paddingHorizontal: 16, paddingVertical: 9, marginTop: 16 }}><Text variant="label" style={{ color: '#111412' }}>{b.cta_label}</Text></View>}
+                    {b.cta_label && <View style={{ backgroundColor: '#fff', alignSelf: 'flex-start', borderRadius: 99, paddingHorizontal: 16, paddingVertical: 9, marginTop: 16 }}><Text variant="label" style={{ color: '#222222' }}>{b.cta_label}</Text></View>}
                 </Pressable>
             );
         case 'categories': {

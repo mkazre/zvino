@@ -6,7 +6,7 @@ import { REJECT_REASONS, type MerchantMe, type StoreOrder } from '@/features/mer
 import { auth, api, ApiError } from '@/lib/api';
 import { label, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Badge, Button, Card, Chip, Empty, Row, Text, useTheme } from '@/ui';
+import { Badge, Button, Card, Chip, Empty, Row, Text, useTheme, Logo } from '@/ui';
 import { useT } from '@/lib/i18n';
 import { API_URL } from '@/lib/config';
 import { Image } from 'expo-image';
@@ -94,6 +94,7 @@ export default function Board() {
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
             <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 12 }}>
+                <Logo height={24} />
                 <Row justify="space-between">
                     <View>
                         <Text variant="title">{me?.store.name ?? 'Orders'}</Text>

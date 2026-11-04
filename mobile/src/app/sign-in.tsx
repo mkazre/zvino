@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'reac
 import { api, ApiError } from '@/lib/api';
 import { VARIANT } from '@/lib/config';
 import { normalisePhone } from '@/lib/money';
-import { Button, Row, Screen, Text, useTheme } from '@/ui';
+import { Button, Row, Screen, Text, useTheme, Logo } from '@/ui';
 
 /** Step 1 of 2: phone number → SMS code. Used by the customer and driver apps. */
 export default function SignIn() {
@@ -32,9 +32,7 @@ export default function SignIn() {
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'space-between', paddingTop: 24 }}>
                 <View style={{ gap: 12 }}>
                     {VARIANT === 'customer' && router.canGoBack() && <Pressable onPress={() => router.back()}><Text variant="label" color="muted">✕  Not now</Text></Pressable>}
-                    <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: VARIANT === 'driver' ? t.inverse : t.brand, alignItems: 'center', justifyContent: 'center', marginTop: 16 }}>
-                        <Text variant="title" color={VARIANT === 'driver' ? 'onInverse' : 'onBrand'}>z</Text>
-                    </View>
+                    <View style={{ marginTop: 16 }}><Logo height={40} /></View>
                     <Text variant="display" style={{ marginTop: 12 }}>{VARIANT === 'driver' ? 'Drive with Zvino' : 'What’s your number?'}</Text>
                     <Text color="muted">We’ll text you a 6-digit code. No password needed.</Text>
                     <Row gap={0} style={{ marginTop: 20, height: 60, borderRadius: 16, borderWidth: 2, borderColor: error ? t.red : t.ink, overflow: 'hidden' }}>

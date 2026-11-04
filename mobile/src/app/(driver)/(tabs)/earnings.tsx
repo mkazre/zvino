@@ -84,7 +84,7 @@ export default function EarningsScreen() {
                 <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>{e?.trips ?? 0} trips · {zig(e?.tips.zig)} in tips · ${e?.earned.usd.toFixed(2) ?? '0.00'}</Text>
                 {days.length > 1 && (
                     <Row gap={6} align="flex-end" style={{ height: 70, marginTop: 16 }}>
-                        {days.map(([d, v]) => <View key={d} style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: 3, backgroundColor: '#5fe0b3', borderRadius: 4 }} />)}
+                        {days.map(([d, v]) => <View key={d} style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: 3, backgroundColor: '#17C74A', borderRadius: 4 }} />)}
                     </Row>
                 )}
             </Card>

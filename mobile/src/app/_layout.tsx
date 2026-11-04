@@ -9,6 +9,7 @@ import { PrefsProvider } from '@/lib/prefs';
 import { SessionProvider, useSession } from '@/lib/session';
 import { Loading, useTheme } from '@/ui';
 import { SENTRY_ENABLED, Sentry } from '@/lib/sentry';
+import { useLoadBrand } from '@/lib/brand';
 import '@/features/driver-background'; // registers the background GPS task
 
 /**
@@ -17,6 +18,7 @@ import '@/features/driver-background'; // registers the background GPS task
  */
 function RootNavigator() {
     const { ready, me } = useSession();
+    useLoadBrand();
     const t = useTheme();
     if (!ready) return <Loading />;
 

@@ -1,50 +1,73 @@
+import { useSyncExternalStore } from 'react';
 import { useColorScheme } from 'react-native';
 
-/** Same tokens as the website/admin: monochrome surfaces, Zvino green for primary actions. */
+/**
+ * Zvino palette from the logo: white surfaces, green actions, yellow highlights, red alerts.
+ * The brand colours can be changed in Admin → Settings → Branding; the apps load them at launch
+ * (see lib/brand.tsx) and fall back to these defaults offline.
+ */
 const light = {
     bg: '#FFFFFF',
-    canvas: '#F6F6F4',
+    canvas: '#F7F7F5',
     surface: '#FFFFFF',
-    subtle: '#F1F1EF',
-    ink: '#111412',
-    muted: '#6B716D',
-    faint: '#A4AAA6',
-    border: '#E7E7E4',
-    brand: '#0B6E4F',
-    brandSoft: '#E8F3EE',
-    gold: '#C99412',
-    goldSoft: '#FDF6E3',
-    red: '#C8102E',
-    redSoft: '#FDECEE',
-    onBrand: '#FFFFFF',
-    inverse: '#111412',
+    subtle: '#F4F4F2',
+    ink: '#222222',
+    muted: '#6B6B6B',
+    faint: '#A6A6A6',
+    border: '#ECECEA',
+    brand: '#17C74A',       // fills: buttons, toggles, active states
+    brandText: '#108B34',   // green text on white (readable)
+    brandSoft: '#E3F8E9',
+    onBrand: '#111111',
+    gold: '#FDE500',        // yellow fills
+    goldText: '#8B7E00',
+    goldSoft: '#FFFBD9',
+    red: '#DF302D',
+    redSoft: '#FCEAEA',
+    inverse: '#222222',
     onInverse: '#FFFFFF',
 };
 
 const dark: typeof light = {
-    bg: '#0C0E0D',
-    canvas: '#0C0E0D',
-    surface: '#141716',
-    subtle: '#1F2321',
-    ink: '#EEF0EF',
-    muted: '#959C98',
-    faint: '#5E6561',
-    border: '#262A28',
-    brand: '#22A27A',
-    brandSoft: '#0E2A20',
-    gold: '#E0B23A',
-    goldSoft: '#2A2210',
-    red: '#EF4459',
-    redSoft: '#2C1216',
-    onBrand: '#04130D',
-    inverse: '#EEF0EF',
-    onInverse: '#0C0E0D',
+    bg: '#111111',
+    canvas: '#111111',
+    surface: '#1A1A1A',
+    subtle: '#232323',
+    ink: '#F2F2F2',
+    muted: '#A0A0A0',
+    faint: '#666666',
+    border: '#2C2C2C',
+    brand: '#17C74A',
+    brandText: '#3DDC6B',
+    brandSoft: '#0F2E18',
+    onBrand: '#111111',
+    gold: '#FDE500',
+    goldText: '#FDE500',
+    goldSoft: '#2E2A05',
+    red: '#EF4A47',
+    redSoft: '#2E1414',
+    inverse: '#F2F2F2',
+    onInverse: '#111111',
 };
 
 export type Theme = typeof light;
 
+// Remote brand overrides (from /api/config), applied to both schemes.
+let overrides: Partial<Theme> = {};
+const listeners = new Set<() => void>();
+export function setBrandColors(next: Partial<Theme>) {
+    overrides = next;
+    listeners.forEach((l) => l());
+}
+const subscribe = (l: () => void) => {
+    listeners.add(l);
+    return () => listeners.delete(l);
+};
+
 export function useTheme(): Theme {
-    return useColorScheme() === 'dark' ? dark : light;
+    const o = useSyncExternalStore(subscribe, () => overrides);
+    const base = useColorScheme() === 'dark' ? dark : light;
+    return { ...base, ...o };
 }
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 22, full: 999 };

@@ -62,12 +62,12 @@ export default function OrderTracking() {
         <View style={{ flex: 1, backgroundColor: t.bg }}>
             {order.fulfilment === 'delivery' && !done && !dataLight && (dest || shop) ? (
                 <MapView style={{ height: 300 }} initialRegion={{ ...(dest ?? shop)!, latitudeDelta: 0.04, longitudeDelta: 0.04 }}>
-                    {shop && <Marker coordinate={shop} title={order.vendor.name} pinColor="#111412" />}
-                    {dest && <Marker coordinate={dest} title="You" pinColor="#0B6E4F" />}
+                    {shop && <Marker coordinate={shop} title={order.vendor.name} pinColor="#222222" />}
+                    {dest && <Marker coordinate={dest} title="You" pinColor="#17C74A" />}
                 </MapView>
             ) : <View style={{ height: 110, backgroundColor: t.brand }} />}
             <SafeAreaView edges={['top']} style={{ position: 'absolute', left: 16 }}>
-                <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/orders'))} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="arrow-back" size={20} color="#111412" /></Pressable>
+                <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/orders'))} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="arrow-back" size={20} color="#222222" /></Pressable>
             </SafeAreaView>
             <ScrollView style={{ marginTop: -24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: t.bg }} contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 48 }}>
                 <View>

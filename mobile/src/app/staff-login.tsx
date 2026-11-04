@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { useSession } from '@/lib/session';
-import { Button, Input, Screen, Text, useTheme } from '@/ui';
+import { Button, Input, Screen, Text, useTheme, Logo } from '@/ui';
 
 /** Merchant app: store manager, cashier (POS) and kitchen staff sign in with email + password. */
 export default function StaffLogin() {
@@ -32,7 +32,7 @@ export default function StaffLogin() {
     return (
         <Screen scroll={false}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'center', gap: 14, maxWidth: 460, width: '100%', alignSelf: 'center' }}>
-                <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: t.inverse, alignItems: 'center', justifyContent: 'center' }}><Text variant="title" color="onInverse">z</Text></View>
+                <Logo height={40} />
                 <Text variant="display">Zvino Merchant</Text>
                 <Text color="muted">Sign in with the staff account your Zvino admin created for you.</Text>
                 <View style={{ gap: 12, marginTop: 12 }}>

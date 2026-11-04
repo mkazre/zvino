@@ -3,6 +3,8 @@ import { type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch as RNSwitch, Text as RNText, TextInput, View, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { radius, useTheme } from './theme';
+import { Image as ExpoImage } from 'expo-image';
+import { useBrandLogo } from '@/lib/brand';
 
 export { useTheme } from './theme';
 
@@ -20,7 +22,7 @@ const SIZES: Record<TextVariant, TextStyle> = {
 export function Text({ children, variant = 'body', color, style, numberOfLines, center }: { children: ReactNode; variant?: TextVariant; color?: 'ink' | 'muted' | 'brand' | 'red' | 'gold' | 'onInverse' | 'onBrand' | 'faint'; style?: TextStyle; numberOfLines?: number; center?: boolean }) {
     const t = useTheme();
     return (
-        <RNText numberOfLines={numberOfLines} style={[SIZES[variant], { color: t[color ?? (variant === 'caption' ? 'muted' : 'ink')], fontVariant: ['tabular-nums'] }, center && { textAlign: 'center' }, style]}>
+        <RNText numberOfLines={numberOfLines} style={[SIZES[variant], { color: t[color === 'brand' ? 'brandText' : color === 'gold' ? 'goldText' : (color ?? (variant === 'caption' ? 'muted' : 'ink'))], fontVariant: ['tabular-nums'] }, center && { textAlign: 'center' }, style]}>
             {children}
         </RNText>
     );
@@ -42,11 +44,12 @@ export function Screen({ children, scroll = true, padded = true, onRefresh, refr
     );
 }
 
-type ButtonTone = 'primary' | 'dark' | 'outline' | 'ghost' | 'danger' | 'soft';
+type ButtonTone = 'primary' | 'dark' | 'ink' | 'accent' | 'outline' | 'ghost' | 'danger' | 'soft';
 export function Button({ title, onPress, tone = 'dark', loading, disabled, icon, size = 'lg', style }: { title: string; onPress?: () => void; tone?: ButtonTone; loading?: boolean; disabled?: boolean; icon?: ReactNode; size?: 'sm' | 'md' | 'lg'; style?: ViewStyle }) {
     const t = useTheme();
-    const bg = { primary: t.brand, dark: t.inverse, outline: 'transparent', ghost: 'transparent', danger: t.red, soft: t.subtle }[tone];
-    const fg = { primary: t.onBrand, dark: t.onInverse, outline: t.ink, ghost: t.ink, danger: '#fff', soft: t.ink }[tone];
+    // Main buttons use the brand green; 'ink' is the neutral dark button.
+    const bg = { primary: t.brand, dark: t.brand, ink: t.inverse, accent: t.gold, outline: 'transparent', ghost: 'transparent', danger: t.red, soft: t.subtle }[tone];
+    const fg = { primary: t.onBrand, dark: t.onBrand, ink: t.onInverse, accent: '#111111', outline: t.ink, ghost: t.ink, danger: '#fff', soft: t.ink }[tone];
     const h = { sm: 36, md: 44, lg: 54 }[size];
     return (
         <Pressable
@@ -90,7 +93,7 @@ export function Input({ label, error, style, ...props }: TextInputProps & { labe
 
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'brand' | 'gold' | 'red' | 'dark' }) {
     const t = useTheme();
-    const map = { neutral: [t.subtle, t.ink], brand: [t.brandSoft, t.brand], gold: [t.goldSoft, t.gold], red: [t.redSoft, t.red], dark: [t.inverse, t.onInverse] }[tone];
+    const map = { neutral: [t.subtle, t.ink], brand: [t.brandSoft, t.brandText], gold: [t.goldSoft, t.goldText], red: [t.redSoft, t.red], dark: [t.inverse, t.onInverse] }[tone];
     return (
         <View style={{ backgroundColor: map[0], borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' }}>
             <RNText style={{ color: map[1], fontSize: 12, fontWeight: '700' }}>{children}</RNText>
@@ -169,3 +172,10 @@ export const STATUS_TONE: Record<string, 'neutral' | 'brand' | 'gold' | 'red' | 
     placed: 'neutral', scheduled: 'neutral', accepted: 'brand', preparing: 'gold', ready: 'brand', picked_up: 'brand', arriving: 'brand',
     delivered: 'neutral', cancelled: 'red', rejected: 'red', pending_payment: 'gold',
 };
+
+/** Zvino logo (from the admin's Branding settings when online; bundled copy otherwise). */
+export function Logo({ height = 32, inverse = false }: { height?: number; inverse?: boolean }) {
+    const remote = useBrandLogo(inverse);
+    // logo.png is 391×120 → keep the aspect ratio
+    return <ExpoImage source={remote ? { uri: remote } : inverse ? require('../../assets/brand/logo-inverse.png') : require('../../assets/brand/logo.png')} style={{ height, width: height * 3.26 }} contentFit="contain" />;
+}

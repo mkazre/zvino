@@ -83,7 +83,7 @@ export default function JobScreen() {
                     <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>{delivering ? 'DELIVER TO' : 'PICK UP FROM'}</Text>
                     <Text variant="title" color="onInverse">{delivering ? job.customer.name ?? 'Customer' : job.store.name}</Text>
                     <Text style={{ color: 'rgba(255,255,255,0.8)' }}>{delivering ? `${job.dropoff?.line1}${job.dropoff?.suburb ? `, ${job.dropoff.suburb}` : ''}` : job.store.address}</Text>
-                    {delivering && job.dropoff?.landmark && <Text style={{ color: '#5fe0b3' }}>📍 {job.dropoff.landmark}</Text>}
+                    {delivering && job.dropoff?.landmark && <Text style={{ color: '#17C74A' }}>📍 {job.dropoff.landmark}</Text>}
                     {delivering && job.dropoff?.instructions && <Text style={{ color: 'rgba(255,255,255,0.8)' }}>“{job.dropoff.instructions}”</Text>}
                     <Row gap={10} style={{ marginTop: 10 }}>
                         {target?.lat && <Button title={tr('Navigate')} tone="primary" size="md" style={{ flex: 1 }} onPress={() => Linking.openURL(navigateUrl(target.lat!, target.lng!))} icon={<Ionicons name="navigate" size={18} color="#fff" />} />}

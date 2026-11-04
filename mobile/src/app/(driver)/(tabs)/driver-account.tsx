@@ -5,8 +5,9 @@ import { type DriverMe } from '@/features/driver';
 import { api } from '@/lib/api';
 import { label } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Badge, Button, Card, Input, Row, Screen, Text, Toggle } from '@/ui';
+import { Badge, Button, Card, Input, Row, Screen, Text, Toggle, Logo } from '@/ui';
 import { LanguagePicker } from '@/features/language';
+import { appVersion } from '@/lib/brand';
 
 export default function DriverAccount() {
     const { signOut } = useSession();
@@ -52,6 +53,10 @@ export default function DriverAccount() {
             </Card>
             <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
+            <View style={{ alignItems: 'center', gap: 6, marginTop: 28 }}>
+                <Logo height={28} />
+                <Text variant="caption">Version {appVersion()}</Text>
+            </View>
         </Screen>
     );
 }

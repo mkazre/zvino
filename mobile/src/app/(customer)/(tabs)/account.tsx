@@ -3,9 +3,10 @@ import { router } from 'expo-router';
 import { Alert, Pressable, View } from 'react-native';
 import { zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import { Button, Card, Empty, Row, Screen, Text, Toggle, useTheme } from '@/ui';
+import { Button, Card, Empty, Row, Screen, Text, Toggle, useTheme, Logo } from '@/ui';
 import { LanguagePicker } from '@/features/language';
 import { usePrefs } from '@/lib/prefs';
+import { appVersion } from '@/lib/brand';
 
 export default function Account() {
     const t = useTheme();
@@ -49,6 +50,10 @@ export default function Account() {
             </Card>
             <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
+            <View style={{ alignItems: 'center', gap: 6, marginTop: 28 }}>
+                <Logo height={28} />
+                <Text variant="caption">Version {appVersion()}</Text>
+            </View>
         </Screen>
     );
 }

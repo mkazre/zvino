@@ -9,9 +9,9 @@ const VARIANT = process.env.APP_VARIANT ?? 'customer';
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8001'; // Android emulator → host machine
 
 const VARIANTS = {
-  customer: { name: 'Zvino', id: 'zw.co.zvino', scheme: 'zvino', splash: '#0B6E4F' },
-  driver: { name: 'Zvino Driver', id: 'zw.co.zvino.driver', scheme: 'zvinodriver', splash: '#111412' },
-  merchant: { name: 'Zvino Merchant', id: 'zw.co.zvino.merchant', scheme: 'zvinomerchant', splash: '#111412' },
+  customer: { name: 'Zvino', id: 'zw.co.zvino', scheme: 'zvino', splash: '#FFFFFF', icon: '#FFFFFF' },
+  driver: { name: 'Zvino Driver', id: 'zw.co.zvino.driver', scheme: 'zvinodriver', splash: '#FFFFFF', icon: '#17C74A' },
+  merchant: { name: 'Zvino Merchant', id: 'zw.co.zvino.merchant', scheme: 'zvinomerchant', splash: '#222222', icon: '#222222' },
 };
 const v = VARIANTS[VARIANT] ?? VARIANTS.customer;
 
@@ -35,7 +35,7 @@ module.exports = ({ config }) => ({
   android: {
     ...config.android,
     package: v.id,
-    adaptiveIcon: { backgroundColor: v.splash, foregroundImage: `./assets/brand/adaptive-${VARIANT}.png`, monochromeImage: './assets/brand/adaptive-monochrome.png' },
+    adaptiveIcon: { backgroundColor: v.icon, foregroundImage: `./assets/brand/adaptive-${VARIANT}.png`, monochromeImage: './assets/brand/adaptive-monochrome.png' },
     // Drivers: keep sharing GPS while the phone is locked or another app (maps) is open.
     permissions: VARIANT === 'driver' ? ['ACCESS_BACKGROUND_LOCATION', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION'] : undefined,
     // Google Maps key for react-native-maps on Android (Settings → Integrations has the same key)
@@ -44,8 +44,8 @@ module.exports = ({ config }) => ({
   plugins: [
     ...config.plugins.filter((p) => p !== 'expo-audio'),
     ['expo-audio', { microphonePermission: 'Record voice-note directions for your driver.' }],
-    ['expo-splash-screen', { backgroundColor: v.splash, image: `./assets/brand/splash-${VARIANT}.png`, imageWidth: 140 }],
-    ['expo-notifications', { color: '#0B6E4F', icon: './assets/brand/adaptive-monochrome.png' }],
+    ['expo-splash-screen', { backgroundColor: v.splash, image: `./assets/brand/splash-${VARIANT}.png`, imageWidth: 180 }],
+    ['expo-notifications', { color: '#17C74A', icon: './assets/brand/adaptive-monochrome.png' }],
     ['expo-location', VARIANT === 'driver'
       ? { locationWhenInUsePermission: locationText, locationAlwaysAndWhenInUsePermission: locationText, isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: true, isIosBackgroundLocationEnabled: true }
       : { locationWhenInUsePermission: locationText }],
