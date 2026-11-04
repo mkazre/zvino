@@ -6,6 +6,7 @@ import { api, ApiError, type Money } from '@/lib/api';
 import { label, normalisePhone, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Badge, Button, Card, Chip, Empty, Input, Row, Screen, SectionTitle, Text, Toggle, useTheme } from '@/ui';
+import { DateField } from '@/ui/date-field';
 
 interface Plan {
     id: number; name: string; kind: 'weekly' | 'monthly'; weekdays: number[] | null; day_of_month: number | null; time: string;
@@ -78,7 +79,7 @@ export default function Plans() {
                     ) : (
                         <Input label="Day of the month (1–28)" value={form.day_of_month} onChangeText={(v) => setForm({ ...form, day_of_month: v.replace(/\D/g, '') })} keyboardType="number-pad" />
                     )}
-                    <Input label="Delivery time (HH:MM)" value={form.time} onChangeText={(v) => setForm({ ...form, time: v })} placeholder="12:30" />
+                    <DateField label="Delivery time" mode="time" value={form.time} onChange={(v) => setForm({ ...form, time: v })} />
                     <Row gap={8} style={{ flexWrap: 'wrap' }}>{['wallet', 'ecocash', 'innbucks', 'cash'].map((m) => <Chip key={m} label={label(m)} active={form.payment_method === m} onPress={() => setForm({ ...form, payment_method: m })} />)}</Row>
                     {['ecocash', 'innbucks'].includes(form.payment_method) && <Input label="Number for the payment prompt" value={form.phone} onChangeText={(v) => setForm({ ...form, phone: v })} keyboardType="phone-pad" />}
                     <Text variant="caption">{form.payment_method === 'wallet' ? 'Paid from your Zvino wallet each time (we’ll prompt EcoCash if it runs low).' : form.payment_method === 'cash' ? 'Pay the driver in cash each time.' : 'You’ll get a prompt on your phone to approve each order.'}</Text>

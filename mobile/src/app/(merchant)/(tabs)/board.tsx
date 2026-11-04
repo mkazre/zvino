@@ -11,6 +11,7 @@ import { useT } from '@/lib/i18n';
 import { API_URL } from '@/lib/config';
 import { Image } from 'expo-image';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { useChannel } from '@/lib/realtime';
 
 type Tab = 'incoming' | 'active' | 'scheduled' | 'done';
 const PREP = [10, 15, 20, 30, 45];
@@ -38,6 +39,7 @@ export default function Board() {
     }, [tab]);
     useFocusEffect(useCallback(() => { load(); }, [load]));
 
+    useChannel(me?.store?.id ? `vendor.${me.store.id}.orders` : null, 'order.updated', () => load());
     useEffect(() => {
         const timer = setInterval(load, 8000);
         return () => clearInterval(timer);

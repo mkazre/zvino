@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import { useEffect, useRef } from 'react';
 import { type Money, api } from '@/lib/api';
+import { startBackgroundLocation, stopBackgroundLocation } from './driver-background';
 
 export interface DriverMe {
     id: number;
@@ -64,9 +65,14 @@ export interface Job {
 export function useLocationSharing(enabled: boolean, intervalSeconds = 10) {
     const sub = useRef<Location.LocationSubscription | null>(null);
     useEffect(() => {
-        if (!enabled) return;
+        if (!enabled) {
+            stopBackgroundLocation();
+            return;
+        }
         let cancelled = false;
         (async () => {
+            // Prefer background sharing (works with the screen off); fall back to foreground watching.
+            if (await startBackgroundLocation(intervalSeconds)) return;
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted' || cancelled) return;
             sub.current = await Location.watchPositionAsync(

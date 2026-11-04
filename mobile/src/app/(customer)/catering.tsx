@@ -6,6 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { label, normalisePhone, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Badge, Button, Card, Chip, Empty, Input, Row, Screen, SectionTitle, Text, useTheme } from '@/ui';
+import { DateField } from '@/ui/date-field';
 
 interface Req { id: number; reference: string; event_type: string; event_at: string; headcount: number; status: string; quote_zig: number | null; quote_note: string | null; deposit_zig: number; paid_zig: number; amount_due_zig: number; vendor: { id: number; name: string } | null }
 const TYPES = [['funeral', 'Funeral'], ['wedding', 'Wedding / roora'], ['gathering', 'Gathering'], ['church', 'Church'], ['corporate', 'Company'], ['other', 'Other']] as const;
@@ -54,8 +55,8 @@ export default function Catering() {
                     <Text variant="heading">Request from {storeName}</Text>
                     <Row gap={6} style={{ flexWrap: 'wrap' }}>{TYPES.map(([v, l]) => <Chip key={v} label={l} active={f.event_type === v} onPress={() => setF({ ...f, event_type: v })} />)}</Row>
                     <Row gap={10}>
-                        <View style={{ flex: 1.4 }}><Input label="Date (YYYY-MM-DD)" value={f.date} onChangeText={(v) => setF({ ...f, date: v })} placeholder="2026-11-20" /></View>
-                        <View style={{ flex: 1 }}><Input label="Time" value={f.time} onChangeText={(v) => setF({ ...f, time: v })} /></View>
+                        <View style={{ flex: 1.4 }}><DateField label="Date" value={f.date} onChange={(v) => setF({ ...f, date: v })} minimumDate={new Date()} /></View>
+                        <View style={{ flex: 1 }}><DateField label="Time" mode="time" value={f.time} onChange={(v) => setF({ ...f, time: v })} /></View>
                     </Row>
                     <Input label="How many people" value={f.headcount} onChangeText={(v) => setF({ ...f, headcount: v.replace(/\D/g, '') })} keyboardType="number-pad" />
                     <Input label="Where" value={f.location} onChangeText={(v) => setF({ ...f, location: v })} placeholder="Address, church, venue or rural home" />

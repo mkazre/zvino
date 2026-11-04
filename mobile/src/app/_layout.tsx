@@ -8,6 +8,8 @@ import { I18nProvider } from '@/lib/i18n';
 import { PrefsProvider } from '@/lib/prefs';
 import { SessionProvider, useSession } from '@/lib/session';
 import { Loading, useTheme } from '@/ui';
+import { SENTRY_ENABLED, Sentry } from '@/lib/sentry';
+import '@/features/driver-background'; // registers the background GPS task
 
 /**
  * Root navigator for all three apps. Stack.Protected keeps each build to its own screens:
@@ -44,7 +46,7 @@ function RootNavigator() {
     );
 }
 
-export default function RootLayout() {
+function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
@@ -62,3 +64,5 @@ export default function RootLayout() {
         </GestureHandlerRootView>
     );
 }
+
+export default SENTRY_ENABLED ? Sentry.wrap(RootLayout) : RootLayout;

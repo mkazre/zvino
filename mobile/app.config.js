@@ -25,25 +25,32 @@ module.exports = ({ config }) => ({
   ...config,
   name: v.name,
   scheme: v.scheme,
+  icon: `./assets/brand/icon-${VARIANT}.png`,
   ios: {
     ...config.ios,
     bundleIdentifier: v.id,
     supportsTablet: VARIANT === 'merchant',
-    infoPlist: { ITSAppUsesNonExemptEncryption: false },
+    infoPlist: { ITSAppUsesNonExemptEncryption: false, ...(VARIANT === 'driver' ? { UIBackgroundModes: ['location'] } : {}) },
   },
   android: {
     ...config.android,
     package: v.id,
-    adaptiveIcon: { backgroundColor: v.splash },
+    adaptiveIcon: { backgroundColor: v.splash, foregroundImage: `./assets/brand/adaptive-${VARIANT}.png`, monochromeImage: './assets/brand/adaptive-monochrome.png' },
+    // Drivers: keep sharing GPS while the phone is locked or another app (maps) is open.
+    permissions: VARIANT === 'driver' ? ['ACCESS_BACKGROUND_LOCATION', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION'] : undefined,
     // Google Maps key for react-native-maps on Android (Settings → Integrations has the same key)
     config: process.env.GOOGLE_MAPS_ANDROID_KEY ? { googleMaps: { apiKey: process.env.GOOGLE_MAPS_ANDROID_KEY } } : undefined,
   },
   plugins: [
     ...config.plugins.filter((p) => p !== 'expo-audio'),
     ['expo-audio', { microphonePermission: 'Record voice-note directions for your driver.' }],
-    ['expo-splash-screen', { backgroundColor: v.splash, image: './assets/images/splash-icon.png', imageWidth: 96 }],
-    ['expo-notifications', { color: '#0B6E4F' }],
-    ['expo-location', { locationWhenInUsePermission: locationText }],
+    ['expo-splash-screen', { backgroundColor: v.splash, image: `./assets/brand/splash-${VARIANT}.png`, imageWidth: 140 }],
+    ['expo-notifications', { color: '#0B6E4F', icon: './assets/brand/adaptive-monochrome.png' }],
+    ['expo-location', VARIANT === 'driver'
+      ? { locationWhenInUsePermission: locationText, locationAlwaysAndWhenInUsePermission: locationText, isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: true, isIosBackgroundLocationEnabled: true }
+      : { locationWhenInUsePermission: locationText }],
+    // Crash & error reports (only active when EXPO_PUBLIC_SENTRY_DSN is set at build time).
+    ['@sentry/react-native/expo', { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT }],
     ['expo-image-picker', { cameraPermission: VARIANT === 'driver' ? 'Take photos of your documents and proof of delivery.' : 'Take photos of your gate so drivers can find you.', photosPermission: 'Choose photos from your library.' }],
   ],
   extra: {

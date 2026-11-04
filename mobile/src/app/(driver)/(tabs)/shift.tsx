@@ -10,6 +10,7 @@ import { api, ApiError } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
+import { useChannel } from '@/lib/realtime';
 
 export default function Shift() {
     const tr = useT();
@@ -36,6 +37,8 @@ export default function Shift() {
 
     useLocationSharing(!!me?.is_online, me?.location_interval_seconds ?? 10);
 
+    // Offers ring instantly over Pusher when configured (polling below is the fallback).
+    useChannel(me?.is_online ? `driver.${me.id}` : null, 'offer.created', () => { api.get<Offer[]>('/driver/offers').then(setOffers).catch(() => {}); });
     // Poll for offers while online (Pusher rings instantly when configured).
     useEffect(() => {
         if (!me?.is_online) return;

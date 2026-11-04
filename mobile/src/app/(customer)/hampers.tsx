@@ -6,6 +6,7 @@ import { api, ApiError, type Money } from '@/lib/api';
 import { normalisePhone, usd, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Chip, Empty, Input, Row, Screen, Text, useTheme } from '@/ui';
+import { DateField } from '@/ui/date-field';
 
 interface Hamper { id: number; name: string; description: string | null; vendor: { name: string; city: string } | null; price: Money; contents: { name: string; quantity: number }[] }
 
@@ -58,7 +59,7 @@ export default function Hampers() {
                     </Row>
                     <Input label="Landmark" value={f.landmark} onChangeText={(v) => setF({ ...f, landmark: v })} placeholder="Opposite the church, green gate" />
                     <Row gap={8}><Chip label="Every month" active={f.frequency === 'monthly'} onPress={() => setF({ ...f, frequency: 'monthly' })} /><Chip label="Just once" active={f.frequency === 'once'} onPress={() => setF({ ...f, frequency: 'once' })} /></Row>
-                    {f.frequency === 'monthly' ? <Input label="Day of the month (1–28)" value={f.day_of_month} onChangeText={(v) => setF({ ...f, day_of_month: v.replace(/\D/g, '') })} keyboardType="number-pad" /> : <Input label="Date (YYYY-MM-DD)" value={f.deliver_on} onChangeText={(v) => setF({ ...f, deliver_on: v })} />}
+                    {f.frequency === 'monthly' ? <Input label="Day of the month (1–28)" value={f.day_of_month} onChangeText={(v) => setF({ ...f, day_of_month: v.replace(/\D/g, '') })} keyboardType="number-pad" /> : <DateField label="Delivery date" value={f.deliver_on} onChange={(v) => setF({ ...f, deliver_on: v })} minimumDate={new Date(Date.now() + 864e5)} />}
                     <Input label="Gift message (optional)" value={f.gift_message} onChangeText={(v) => setF({ ...f, gift_message: v })} maxLength={200} />
                     <Button title="Send hamper" tone="primary" loading={busy} disabled={!f.recipient_name || !f.recipient_phone || !f.line1} onPress={send} />
                 </Card>

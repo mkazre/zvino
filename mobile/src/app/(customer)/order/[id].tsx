@@ -9,6 +9,7 @@ import { label, zig } from '@/lib/money';
 import { Button, Card, Loading, Row, Text, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
 import { usePrefs } from '@/lib/prefs';
+import { useChannel } from '@/lib/realtime';
 
 interface Order {
     id: number; reference: string; status: string; fulfilment: string; payment_method: string; payment_status: string;
@@ -40,6 +41,8 @@ export default function OrderTracking() {
             setSplit(r.split ?? []);
         }
     }, [id]);
+    useChannel(id ? `order.${id}` : null, 'order.updated', () => load());
+    useChannel(id ? `order.${id}` : null, 'driver.location', () => load());
     useEffect(() => {
         load();
         const timer = setInterval(load, dataLight ? 30000 : 10000); // Pusher pushes instantly when configured; polling is the fallback

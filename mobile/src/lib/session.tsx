@@ -1,6 +1,8 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { api, auth } from './api';
 import { registerForPush } from './push';
+import { disconnectRealtime } from './realtime';
+import { identify } from './sentry';
 
 export interface Me {
     id: number;
@@ -51,6 +53,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Register this device for push once signed in (Expo push → FCM/APNs).
     useEffect(() => {
         if (me) registerForPush().catch(() => {});
+        identify(me ? { id: me.id, role: me.role } : null);
     }, [me?.id]);
 
     const signIn = useCallback(async (token: string) => {
@@ -61,6 +64,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const signOut = useCallback(async () => {
         await api.post('/auth/logout').catch(() => {});
         await auth.set(null);
+        disconnectRealtime();
         setMe(null);
     }, []);
 
