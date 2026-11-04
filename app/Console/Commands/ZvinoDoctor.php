@@ -30,6 +30,7 @@ class ZvinoDoctor extends Command
             [true, ! $this->defaultPasswordsInUse(), 'No demo staff passwords', 'Change or delete the seeded @zvino.co.zw staff accounts (password "password")'],
             [true, Zone::where('is_active', true)->exists(), 'At least one delivery zone', 'Admin → Zones & fees'],
             [false, config('broadcasting.default') === 'pusher' && config('broadcasting.connections.pusher.key'), 'Pusher live updates', 'Set BROADCAST_CONNECTION=pusher and PUSHER_* keys (otherwise apps poll)'],
+            [false, (bool) config('sentry.dsn'), 'Error monitoring (Sentry)', 'Set SENTRY_LARAVEL_DSN in .env (and EXPO_PUBLIC_SENTRY_DSN for app builds)'],
             [false, (bool) Setting::get('integrations.google_maps_key'), 'Google Maps key', 'Settings → Integrations (address geocoding & maps)'],
             [false, (bool) Setting::get('branding.logo'), 'Logo uploaded', 'Settings → Branding'],
             [false, ! Page::where('body', 'like', '%content to be supplied%')->exists(), 'Legal pages written', 'Settings → Legal & content pages (terms, privacy…)'],

@@ -43,7 +43,8 @@ admin panel, Laravel API on shared hosting, Pusher, Paynow, Google Maps, Inter, 
 
 ## Phase 6: Launch hardening
 - [x] Security headers, readiness check (zvino:doctor), daily backups, go-live runbook
-- [ ] Load testing, error monitoring (Sentry), store listings, production deploy
+- [x] Load-test tools (zvino:benchmark, k6), error monitoring (Sentry, server + apps), live updates in apps (Pusher), background driver GPS, app icons & splash
+- [ ] Store listings (screenshots, descriptions, privacy forms), production deploy
 
 ## Zvino originals: 50 features beyond DoorDash / Uber Eats
 Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an external account or approval (in brackets).

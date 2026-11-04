@@ -94,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('orders/{order}/messages', [EngagementController::class, 'sendMessage'])->middleware('throttle:30,1');
 
     Route::get('favorites', [EngagementController::class, 'favorites']);
+    Route::post('broadcasting/auth', fn (\Illuminate\Http\Request $r) => \Illuminate\Support\Facades\Broadcast::auth($r)); // apps: private Pusher channels
     Route::get('watches', [EngagementController::class, 'watches']);
     Route::get('catering', [\App\Http\Controllers\Api\CateringController::class, 'index']);
     Route::post('catering', [\App\Http\Controllers\Api\CateringController::class, 'store'])->middleware('throttle:10,1');

@@ -133,4 +133,11 @@ class WebsiteTest extends TestCase
         Setting::put('general.single_vendor_id', $vendor->id);
         $this->get('/')->assertRedirect("/store/{$vendor->slug}");
     }
+
+    public function test_signin_returns_to_same_site_page_only()
+    {
+        $this->get('/signin?next=/hampers')->assertOk()->assertSessionHas('url.intended', url('/hampers'));
+        $this->flushSession();
+        $this->get('/signin?next=//evil.example')->assertOk()->assertSessionMissing('url.intended');
+    }
 }

@@ -18,6 +18,11 @@ class SignInController extends Controller
 
     public function show(Request $request)
     {
+        // ?next=/hampers sends the customer back to where they were (same-site paths only).
+        $next = (string) $request->query('next');
+        if (str_starts_with($next, '/') && ! str_starts_with($next, '//')) {
+            session(['url.intended' => url($next)]);
+        }
         if ($request->user()?->role === 'customer') {
             return redirect()->intended('/account');
         }

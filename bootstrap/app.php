@@ -29,5 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn ($request) => $request->user()?->isStaff() ? '/dashboard' : '/');
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Error monitoring: reports to Sentry only when SENTRY_LARAVEL_DSN is set.
+        \Sentry\Laravel\Integration::handles($exceptions);
     })->create();

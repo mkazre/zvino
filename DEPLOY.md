@@ -34,6 +34,7 @@ BROADCAST_CONNECTION=pusher   PUSHER_APP_ID=…   PUSHER_APP_KEY=…   PUSHER_AP
 PAYNOW_FAKE=false   PAYNOW_INTEGRATION_ID=…   PAYNOW_INTEGRATION_KEY=…   PAYNOW_MERCHANT_EMAIL=…
 AFRICASTALKING_USERNAME=…   AFRICASTALKING_KEY=…      (or TWILIO_* / BULKSMSWEB_*)
 MAIL_MAILER=smtp   MAIL_HOST=…   MAIL_USERNAME=…   MAIL_PASSWORD=…   MAIL_FROM_ADDRESS=orders@zvino.co.zw
+SENTRY_LARAVEL_DSN=…        (sentry.io → new Laravel project; free tier is enough to start)
 ```
 
 ## 4. First run (cPanel Terminal / SSH)
@@ -71,5 +72,19 @@ php artisan zvino:doctor
 Green = ready. Red items block launch (debug mode, test payments, demo passwords, no SMS…);
 yellow items are strongly recommended.
 
-## 9. Mobile apps
+## 9. Speed & load test
+- cPanel → *Select PHP Version*: PHP 8.2+, enable **opcache**, `memory_limit` 256M.
+- After every deploy: `php artisan optimize` (config, routes, views cached).
+- Smoke load test from your PC: `php artisan zvino:benchmark --url=https://zvino.co.zw -c 20 -r 300`
+  (target: no errors, p95 under 1.5 s). Sustained lunch-rush test on **staging** with k6:
+  `k6 run -e BASE=https://staging.zvino.co.zw -e TOKEN=… loadtest/k6.js`.
+- Measured locally (code only, Laravel booted): API endpoints 2–7 ms, website pages 14–21 ms.
+
+## 10. Live updates & monitoring
+- **Pusher**: with `BROADCAST_CONNECTION=pusher` the admin, kitchen screen and all three apps update instantly
+  (order status, driver on the map, new job offers, new store orders). Without it everything still works by polling.
+- **Sentry**: server errors report when `SENTRY_LARAVEL_DSN` is set. For the apps set `EXPO_PUBLIC_SENTRY_DSN`
+  (and `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` for readable stack traces) in EAS secrets.
+
+## 11. Mobile apps
 See `../mobile/README.md`. Production builds point at `https://zvino.co.zw`.
