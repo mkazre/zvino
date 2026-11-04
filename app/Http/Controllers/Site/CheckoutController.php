@@ -97,7 +97,11 @@ class CheckoutController extends Controller
         }
         $address = isset($data['address_id']) ? Address::find($data['address_id']) : null;
 
+        $bz = $data['fulfilment'] === 'delivery' && $address ? \App\Models\Zone::batchFor($address->lat, $address->lng) : null;
+        $slot = $bz && $cart->vendor ? $bz->batchSlot($cart->vendor) : null;
+
         return response()->json($this->carts->present($cart, $data['fulfilment'], $address ? ['lat' => $address->lat, 'lng' => $address->lng] : []) + [
+            'batch' => $slot,
             'tip_totals' => collect($this->carts->totals($cart, $data['fulfilment'], $address ? ['lat' => $address->lat, 'lng' => $address->lng] : [], (float) ($data['tip'] ?? 0)))
                 ->only(['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'vat', 'total', 'member_savings'])->map(fn ($v) => Money::both((float) $v)),
         ]);

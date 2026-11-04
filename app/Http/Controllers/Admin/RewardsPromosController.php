@@ -67,8 +67,15 @@ class RewardsPromosController extends AdminController
     {
         $data = $request->validate([
             'code' => ['required', 'alpha_dash', 'max:40', Rule::unique('promo_codes', 'code')->ignore($promo?->id)],
-            'type' => ['required', 'in:percent,fixed,free_delivery'],
-            'value' => ['required_unless:type,free_delivery', 'nullable', 'numeric', 'min:0'],
+            'type' => ['required', 'in:percent,fixed,free_delivery,bogo'],
+            'value' => ['required_unless:type,free_delivery,bogo', 'nullable', 'numeric', 'min:0'],
+            'item_id' => ['nullable', 'required_if:type,bogo', 'integer', 'exists:items,id'],
+            'buy_qty' => ['nullable', 'integer', 'between:1,5'],
+            'days' => ['nullable', 'array'],
+            'days.*' => ['integer', 'between:1,7'],
+            'start_time' => ['nullable', 'date_format:H:i', 'required_with:end_time'],
+            'end_time' => ['nullable', 'date_format:H:i', 'required_with:start_time'],
+            'auto_apply' => ['sometimes', 'boolean'],
             'min_order_zig' => ['nullable', 'numeric', 'min:0'],
             'max_uses' => ['nullable', 'integer', 'min:1'],
             'vendor_id' => ['nullable', 'exists:vendors,id'],

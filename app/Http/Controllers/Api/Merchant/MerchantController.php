@@ -314,7 +314,8 @@ class MerchantController extends Controller
         return response()->json([
             'enabled' => (bool) \App\Models\Setting::get('payments.merchant_promos'),
             'max_pct' => (float) \App\Models\Setting::get('payments.merchant_promo_max_pct'),
-            'promos' => $promos->map(fn ($p) => $p->only('id', 'code', 'title', 'type', 'value', 'min_order_zig', 'max_uses', 'used_count', 'starts_at', 'ends_at', 'is_active') + [
+            'promos' => $promos->map(fn ($p) => $p->only('id', 'code', 'title', 'type', 'value', 'min_order_zig', 'max_uses', 'used_count', 'starts_at', 'ends_at', 'is_active', 'item_id', 'buy_qty', 'days', 'start_time', 'end_time', 'auto_apply') + [
+                'headline' => $p->headline(),
                 'orders' => (int) ($redemptions[$p->id]->orders ?? 0),
                 'sales' => Money::both((float) ($redemptions[$p->id]->sales ?? 0)),
                 'cost' => Money::both((float) ($redemptions[$p->id]->cost ?? 0)),
@@ -331,7 +332,14 @@ class MerchantController extends Controller
         $data = $request->validate([
             'code' => [$promo ? 'sometimes' : 'required', 'string', 'alpha_num', 'min:3', 'max:20', \Illuminate\Validation\Rule::unique('promo_codes', 'code')->ignore($promo?->id)],
             'title' => ['nullable', 'string', 'max:80'],
-            'type' => [$promo ? 'sometimes' : 'required', 'in:percent,fixed,free_delivery'],
+            'type' => [$promo ? 'sometimes' : 'required', 'in:percent,fixed,free_delivery,bogo'],
+            'item_id' => ['nullable', 'required_if:type,bogo', 'integer', 'exists:items,id'],
+            'buy_qty' => ['nullable', 'integer', 'between:1,5'],
+            'days' => ['nullable', 'array'],
+            'days.*' => ['integer', 'between:1,7'],
+            'start_time' => ['nullable', 'date_format:H:i', 'required_with:end_time'],
+            'end_time' => ['nullable', 'date_format:H:i', 'required_with:start_time'],
+            'auto_apply' => ['sometimes', 'boolean'],
             'value' => ['nullable', 'numeric', 'min:0'],
             'min_order_zig' => ['nullable', 'numeric', 'min:0'],
             'max_uses' => ['nullable', 'integer', 'min:1'],
@@ -346,6 +354,7 @@ class MerchantController extends Controller
         if (isset($data['code'])) {
             $data['code'] = strtoupper($data['code']);
         }
+        abort_if(! empty($data['item_id']) && ! $v->items()->whereKey($data['item_id'])->exists(), 422, 'Choose an item from your own menu.');
 
         $promo = $promo
             ? tap($promo)->update($data)

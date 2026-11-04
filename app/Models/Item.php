@@ -32,7 +32,6 @@ class Item extends Model
         return $this->special_price_zig ?: $this->price_zig;
     }
 
-    /** Unit price for a chosen variant and list of modifier option names. */
     public function unitFactor(): float
     {
         return $this->sold_by === 'kg' ? (float) $this->step_kg : 1.0;
@@ -44,6 +43,23 @@ class Item extends Model
         return $this->sold_by === 'kg' ? rtrim(rtrim(number_format($quantity * $this->step_kg, 3, '.', ''), '0'), '.').' kg' : null;
     }
 
+    /** Price-drop alerts (#15): tell watchers when the price falls below what they saw. */
+    protected static function booted(): void
+    {
+        static::updated(function (Item $item) {
+            if (! $item->wasChanged(['price_zig', 'special_price_zig'])) {
+                return;
+            }
+            $now = $item->effectivePrice();
+            ItemWatch::with('user')->where('item_id', $item->id)->where('price_zig', '>', $now)->get()->each(function (ItemWatch $w) use ($item, $now) {
+                app(\App\Services\PushService::class)->toUser($w->user, 'price_drop', "Price drop: {$item->name} 🎉",
+                    'Now ZiG '.number_format($now, 2).' (was ZiG '.number_format($w->price_zig, 2).') at '.$item->vendor?->name.'.', ['item_id' => $item->id, 'vendor_id' => $item->vendor_id]);
+                $w->update(['price_zig' => $now, 'notified_at' => now()]);
+            });
+        });
+    }
+
+    /** Unit price for a chosen variant and list of modifier option names. */
     public function priceFor(?string $variant, array $modifiers = []): float
     {
         // Fresh market (#29): price_zig is per kg; one cart "unit" is one step (e.g. 0.5 kg).

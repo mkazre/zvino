@@ -7,7 +7,7 @@ import { Crown, Gift, Plus, Share2, Ticket } from 'lucide-react';
 import { useState } from 'react';
 
 interface Reward { id: number; name: string; description: string | null; points_cost: number; type: string; config: Record<string, number> | null; is_active: boolean }
-interface Promo { id: number; code: string; type: 'percent' | 'fixed' | 'free_delivery'; value: number; min_order_zig: number; max_uses: number | null; used_count: number; starts_at: string | null; ends_at: string | null; is_active: boolean; vendor_id: number | null; vendor?: { name: string } | null }
+interface Promo { id: number; code: string; days?: number[] | null; start_time?: string | null; end_time?: string | null; auto_apply?: boolean; type: 'percent' | 'fixed' | 'free_delivery' | 'bogo'; value: number; min_order_zig: number; max_uses: number | null; used_count: number; starts_at: string | null; ends_at: string | null; is_active: boolean; vendor_id: number | null; vendor?: { name: string } | null }
 interface Plan { id: number; name: string; price_zig: number; interval: 'month' | 'year'; min_order_for_free_delivery_zig: number; service_fee_discount_pct: number; perks: string[] | null; is_active: boolean; active_members: number }
 interface Props {
     rewards: Reward[];
@@ -32,7 +32,7 @@ export default function RewardsPromos(p: Props) {
 
     const promoCols: Column<Promo>[] = [
         { key: 'code', header: 'Code', cell: (x) => <div><span className="bg-muted rounded-md px-2 py-1 font-mono text-[13px] font-bold tracking-wide">{x.code}</span>{x.vendor && <div className="text-muted-foreground mt-1 text-xs">{x.vendor.name} only</div>}</div> },
-        { key: 'offer', header: 'Offer', cell: (x) => <span className="font-medium">{x.type === 'percent' ? `${x.value}% off` : x.type === 'fixed' ? `${zig(x.value)} off` : 'Free delivery'}</span> },
+        { key: 'offer', header: 'Offer', cell: (x) => <span className="font-medium">{x.type === 'percent' ? `${x.value}% off` : x.type === 'fixed' ? `${zig(x.value)} off` : x.type === 'bogo' ? 'Buy 1 get 1' : 'Free delivery'}{x.start_time && <span className="text-muted-foreground block text-xs">Happy hour {x.start_time}–{x.end_time}</span>}{x.auto_apply && <span className="text-muted-foreground block text-xs">Automatic, no code</span>}</span> },
         { key: 'min', header: 'Min. order', hideOnMobile: true, cell: (x) => <span className="tabular text-[13px]">{x.min_order_zig ? zig(x.min_order_zig) : '–'}</span> },
         { key: 'used', header: 'Redeemed', sort: (x) => x.used_count, cell: (x) => <div className="w-32"><div className="tabular text-[13px]">{x.used_count}{x.max_uses ? ` / ${x.max_uses}` : ''}</div>{x.max_uses && <Progress value={(x.used_count / x.max_uses) * 100} className="mt-1" />}</div> },
         { key: 'ends', header: 'Ends', hideOnMobile: true, cell: (x) => <span className="text-muted-foreground text-[13px]">{x.ends_at ? new Date(x.ends_at).toLocaleDateString('en-ZW', { dateStyle: 'medium' }) : 'No end date'}</span> },
@@ -136,12 +136,14 @@ export default function RewardsPromos(p: Props) {
 }
 
 function PromoDrawer({ promo, vendors, onClose }: { promo: Promo | null; vendors: Props['vendors']; onClose: () => void }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, transform } = useForm({
         code: promo?.code ?? '', type: promo?.type ?? 'percent', value: promo?.value ?? 15, min_order_zig: promo?.min_order_zig ?? 0, max_uses: promo?.max_uses ?? '',
         vendor_id: promo?.vendor_id ?? '', starts_at: promo?.starts_at?.slice(0, 10) ?? '', ends_at: promo?.ends_at?.slice(0, 10) ?? '', is_active: promo?.is_active ?? true,
+        start_time: promo?.start_time ?? '', end_time: promo?.end_time ?? '', days: (promo?.days ?? []) as number[], auto_apply: promo?.auto_apply ?? false,
     });
+    const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return (
-        <Drawer open onClose={onClose} title={promo ? `Edit ${promo.code}` : 'New promo code'} footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={processing} onClick={() => post(promo ? `/admin/promos/${promo.id}` : '/admin/promos', { onSuccess: onClose })}>Save</Button></>}>
+        <Drawer open onClose={onClose} title={promo ? `Edit ${promo.code}` : 'New promo code'} footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={processing} onClick={() => { transform((d) => ({ ...d, start_time: d.start_time || null, end_time: d.end_time || null, days: d.days.length ? d.days : null })); post(promo ? `/admin/promos/${promo.id}` : '/admin/promos', { onSuccess: onClose }); }}>Save</Button></>}>
             <div className="grid gap-4">
                 <Field label="Code" error={errors.code}><Input value={data.code} onChange={(e) => setData('code', e.target.value.toUpperCase().replace(/\s/g, ''))} className="font-mono text-lg tracking-wider uppercase" placeholder="PAYDAY15" /></Field>
                 <Field label="Offer"><Segmented value={data.type} onChange={(v) => setData('type', v)} options={[{ value: 'percent', label: '% off' }, { value: 'fixed', label: 'ZiG off' }, { value: 'free_delivery', label: 'Free delivery' }]} /></Field>
@@ -153,6 +155,16 @@ function PromoDrawer({ promo, vendors, onClose }: { promo: Promo | null; vendors
                     <Field label="Starts" optional><Input type="date" value={data.starts_at} onChange={(e) => setData('starts_at', e.target.value)} /></Field>
                     <Field label="Ends" optional error={errors.ends_at}><Input type="date" value={data.ends_at} onChange={(e) => setData('ends_at', e.target.value)} /></Field>
                 </div>
+                <div className="grid gap-3 rounded-lg border p-3">
+                    <div className="text-sm font-semibold">Happy hour <span className="text-muted-foreground font-normal">(optional)</span></div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field label="From"><Input type="time" value={data.start_time} onChange={(e) => setData('start_time', e.target.value)} /></Field>
+                        <Field label="Until" error={(errors as Record<string, string>).end_time}><Input type="time" value={data.end_time} onChange={(e) => setData('end_time', e.target.value)} /></Field>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">{DAYS.map((d, i) => <Button key={d} type="button" size="sm" variant={data.days.includes(i + 1) ? 'dark' : 'outline'} className="h-7 px-2.5 text-xs" onClick={() => setData('days', data.days.includes(i + 1) ? data.days.filter((x) => x !== i + 1) : [...data.days, i + 1])}>{d}</Button>)}</div>
+                    <p className="text-muted-foreground text-xs">No days selected = every day.</p>
+                </div>
+                <Switch checked={data.auto_apply} onChange={(v) => setData('auto_apply', v)} label="Apply automatically" description="Customers get it without typing the code, and it’s shown on the store page." />
                 <Switch checked={data.is_active} onChange={(v) => setData('is_active', v)} label="Active" />
             </div>
         </Drawer>

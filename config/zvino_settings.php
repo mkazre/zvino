@@ -91,6 +91,7 @@ return [
         'label' => 'Delivery & dispatch',
         'icon' => 'bike',
         'fields' => [
+            'batch_runs' => ['type' => 'bool', 'label' => 'Peri-urban batch runs', 'default' => true, 'help' => 'Zones marked “batch” (Chitungwiza, Ruwa, Norton…) get scheduled departures; one driver carries several orders.'],
             'dispatch_mode' => ['type' => 'select', 'label' => 'Dispatch mode', 'default' => 'auto', 'options' => ['auto', 'manual'], 'help' => 'Auto offers jobs to the nearest online driver.'],
             'offer_timeout_seconds' => ['type' => 'int', 'label' => 'Driver offer timeout (s)', 'default' => 45],
             'max_offer_radius_km' => ['type' => 'decimal', 'label' => 'Driver search radius (km)', 'default' => 6],

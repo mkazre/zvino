@@ -77,10 +77,12 @@ class CartService
     public function totals(Cart $cart, string $fulfilment = 'delivery', array $dest = [], float $tip = 0): array
     {
         if (! $cart->vendor) {
-            return ['subtotal' => 0.0, 'delivery' => 0.0, 'service' => 0.0, 'small_order' => 0.0, 'discount' => 0.0, 'tip' => 0.0, 'vat' => 0.0, 'total' => 0.0, 'member_savings' => 0.0, 'surge' => null, 'distance_km' => null, 'eta_minutes' => null, 'zone_id' => null];
+            return ['subtotal' => 0.0, 'delivery' => 0.0, 'service' => 0.0, 'small_order' => 0.0, 'discount' => 0.0, 'tip' => 0.0, 'vat' => 0.0, 'total' => 0.0, 'member_savings' => 0.0, 'surge' => null, 'distance_km' => null, 'eta_minutes' => null, 'zone_id' => null, 'promo_id' => null, 'deal' => null];
         }
 
-        return $this->pricing->quote($cart->vendor, $this->subtotal($cart), $fulfilment, $dest, $cart->user, $cart->promoCode, $tip);
+        $lines = $cart->items->map(fn ($i) => ['item_id' => $i->item_id, 'quantity' => $i->quantity, 'unit' => (float) $i->unit_price_zig])->all();
+
+        return $this->pricing->quote($cart->vendor, $this->subtotal($cart), $fulfilment, $dest, $cart->user, $cart->promoCode, $tip, $lines);
     }
 
     public function present(Cart $cart, string $fulfilment = 'delivery', array $dest = []): array
@@ -104,6 +106,7 @@ class CartService
             'voucher' => $cart->promoCode?->only('code', 'type', 'value'),
             'totals' => collect($t)->only($moneyKeys)->map(fn ($v) => Money::both($v))->all(),
             'surge' => $t['surge'],
+            'deal' => $t['deal'] ?? null,
             'distance_km' => $t['distance_km'],
             'eta_minutes' => $t['eta_minutes'],
             'store' => $cart->vendor ? app(StoreAvailability::class)->status($cart->vendor) : null,

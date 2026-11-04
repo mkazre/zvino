@@ -175,6 +175,12 @@ class DatabaseSeeder extends Seeder
         if (preg_match('/salad|veg|greens|covo|rape|beans|chips|fries|maheu|juice|tea|coffee/', $t) && ! $meat) {
             $tags[] = 'vegan';
         }
+        if (! str_contains($t, 'pork')) {
+            $tags[] = 'no_pork';
+        }
+        if (! preg_match('/peanut|nut|dovi/', $t)) {
+            $tags[] = 'nut_free';
+        }
 
         return $tags;
     }

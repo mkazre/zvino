@@ -93,6 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('orders/{order}/messages', [EngagementController::class, 'sendMessage'])->middleware('throttle:30,1');
 
     Route::get('favorites', [EngagementController::class, 'favorites']);
+    Route::get('watches', [EngagementController::class, 'watches']);
+    Route::post('items/{item}/watch', [EngagementController::class, 'watch']);
+    Route::delete('items/{item}/watch', [EngagementController::class, 'unwatch']);
     Route::post('vendors/{vendor}/favorite', [EngagementController::class, 'toggleFavorite']);
 
     // Wallet & growth

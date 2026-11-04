@@ -74,6 +74,7 @@ class DispatchService
         $cashLimit = (float) Setting::get('delivery.driver_cash_limit_zig');
         $tiers = app(DriverTierService::class);
         $nightZone = \App\Models\SafetyZone::activeAt($order->address?->lat, $order->address?->lng);
+        $batchZone = \App\Models\Zone::batchFor($order->address?->lat, $order->address?->lng);
 
         return Driver::available()
             ->whereNotIn('id', $alreadyOffered)
@@ -81,13 +82,23 @@ class DispatchService
             ->with('user')
             ->get()
             ->filter(fn (Driver $d) => $d->activeOrders()->count() === 0
-                || (Setting::get('delivery.allow_batching') && $d->activeOrders()->where('vendor_id', $vendor->id)->count() === 1))
+                || (Setting::get('delivery.allow_batching') && $d->activeOrders()->where('vendor_id', $vendor->id)->count() === 1)
+                || ($batchZone && $this->onSameRun($d, $batchZone)))
             ->filter(fn (Driver $d) => $order->cashDue() <= 0 || $d->cashHeld() + $order->cashDue() <= $cashLimit)
             ->map(fn (Driver $d) => [$d, Geo::km($d->lat, $d->lng, $vendor->lat, $vendor->lng)])
             ->filter(fn ($pair) => $pair[1] <= $radius)
             ->sortBy(fn ($pair) => $pair[1] - ($pair[0]->rating - 4) * 0.5 - $tiers->priorityKm($pair[0]->tier ?? 'bronze')) // nearer first, boost for top-rated and higher tiers
             ->map(fn ($pair) => $pair[0])
             ->first();
+    }
+
+    /** Driver is already carrying only orders for this batch zone, and has room for more. */
+    private function onSameRun(Driver $d, \App\Models\Zone $zone): bool
+    {
+        $active = $d->activeOrders()->with('address')->get();
+
+        return $active->count() < $zone->batch_max_orders && $active->every(fn (Order $o) => $o->status !== 'picked_up'
+            && $o->address && \App\Models\Zone::batchFor($o->address->lat, $o->address->lng)?->id === $zone->id);
     }
 
     public function accept(DispatchOffer $offer): Order

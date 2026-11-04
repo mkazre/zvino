@@ -64,8 +64,10 @@ class CatalogController extends Controller
     {
         abort_unless($vendor->status === 'active', 404);
         $vendor->load(['categories.items' => fn ($q) => $q->orderBy('sort_order'), 'categories.items.modifierGroups.options', 'categories.items.vendor']);
+        $deals = \App\Models\PromoCode::autoFor($vendor)->filter(fn ($p) => $p->isUsableFor(PHP_FLOAT_MAX, $vendor->id) || ($p->start_time && $p->is_active))
+            ->map(fn ($p) => ['id' => $p->id, 'headline' => $p->headline(), 'item_id' => $p->item_id, 'live' => $p->inWindow(), 'min_order_zig' => $p->min_order_zig])->values();
 
-        return new VendorResource($vendor);
+        return (new VendorResource($vendor))->additional(['deals' => $deals]);
     }
 
     public function item(Item $item)

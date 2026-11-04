@@ -20,6 +20,9 @@ interface Zone {
     surge_multiplier: number;
     surge_reason: string | null;
     extra_eta_minutes: number;
+    batch_mode?: boolean;
+    batch_times?: string[] | null;
+    batch_max_orders?: number;
     vendors_count: number;
     drivers_count: number;
     orders_7d: number;
@@ -67,6 +70,7 @@ export default function Zones({ zones, cities, mapsKey, vendors, safetyZones = [
                                             <h3 className="font-semibold">{z.name}</h3>
                                             {!z.is_active && <Badge>Inactive</Badge>}
                                             {z.surge_multiplier > 1 && <Badge tone="warning">{z.surge_multiplier}× surge</Badge>}
+                                            {z.batch_mode && <Badge>🚐 Runs {(z.batch_times ?? []).join(' · ')}</Badge>}
                                         </div>
                                         <p className="text-muted-foreground text-[13px]">{z.city} · {z.vendors_count} stores · {z.online_drivers}/{z.drivers_count} drivers online</p>
                                     </div>
@@ -134,6 +138,9 @@ function ZoneDrawer({ zone, cities, mapsKey, vendors, onClose }: { zone: Zone | 
         surge_multiplier: zone?.surge_multiplier ?? 1,
         surge_reason: zone?.surge_reason ?? '',
         extra_eta_minutes: zone?.extra_eta_minutes ?? 0,
+        batch_mode: zone?.batch_mode ?? false,
+        batch_times: (zone?.batch_times ?? ['10:00', '13:00', '17:00']) as string[],
+        batch_max_orders: zone?.batch_max_orders ?? 6,
     });
     const err = (k: string) => (errors as Record<string, string>)[k];
     const ex = (km: number) => data.base_delivery_fee_zig + Math.max(0, km - data.free_km) * data.per_km_fee_zig;
@@ -169,6 +176,13 @@ function ZoneDrawer({ zone, cities, mapsKey, vendors, onClose }: { zone: Zone | 
                     </div>
                     <Field label="Surge multiplier" hint="1 = off. Applied to the delivery fee."><Input type="number" step="0.05" min={1} value={data.surge_multiplier} onChange={(e) => setData('surge_multiplier', Number(e.target.value))} suffix="×" /></Field>
                     {data.surge_multiplier > 1 && <Field label="Shown to customers as"><Input value={data.surge_reason} onChange={(e) => setData('surge_reason', e.target.value)} placeholder="Rain / high demand" /></Field>}
+                    <Switch checked={data.batch_mode} onChange={(v) => setData('batch_mode', v)} label="Batch runs (peri-urban)" description="Orders to this area leave on scheduled runs, and one driver carries several orders." />
+                    {data.batch_mode && (
+                        <>
+                            <Field label="Departure times" hint="Comma separated, e.g. 10:00, 13:00, 17:00"><Input value={data.batch_times.join(', ')} onChange={(e) => setData('batch_times', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} /></Field>
+                            <Field label="Max orders per driver"><Input type="number" value={data.batch_max_orders} onChange={(e) => setData('batch_max_orders', Number(e.target.value))} /></Field>
+                        </>
+                    )}
                     <Switch checked={data.is_active} onChange={(v) => setData('is_active', v)} label="Zone active" />
                 </div>
             </div>

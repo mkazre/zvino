@@ -28,7 +28,7 @@ interface Props {
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export default function StorePage({ seo, store: s, menu, popular, reviews, isFavorite }: Props) {
+export default function StorePage({ seo, store: s, menu, popular, reviews, isFavorite, deals = [] }: Props & { deals?: { id: number; headline: string; live: boolean }[] }) {
     const { auth, flash } = usePage<SiteProps & { flash: { reorder?: { item_id: number; quantity: number; variant: string | null; modifiers: string[] }[] } }>().props;
     const [item, setItem] = useState<MenuItem | null>(null);
     const [q, setQ] = useState('');
@@ -104,6 +104,11 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                             {auth?.user && <Pill icon={Users} onClick={() => router.post(`/store/${s.id}/group`, {})}>Group order</Pill>}
                         </div>
 
+                        {deals.length > 0 && (
+                            <div className="mt-5 flex flex-wrap gap-2">
+                                {deals.map((d) => <span key={d.id} className={cn('rounded-full px-4 py-2 text-sm font-semibold', d.live ? 'bg-[#e8f3ee] text-[#0b6e4f]' : 'bg-neutral-100 text-neutral-600 dark:bg-white/5')}>🏷️ {d.headline}{!d.live && ' · later today'}</span>)}
+                            </div>
+                        )}
                         {closed && <div className="mt-5 rounded-2xl bg-neutral-100 px-5 py-4 text-sm dark:bg-white/5"><b>Closed right now.</b> {s.availability.next_open_at ? `Opens ${new Date(s.availability.next_open_at).toLocaleString('en-ZW', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}.` : ''} {s.accepts_scheduled && 'You can still order and schedule delivery for later.'}</div>}
                         {s.availability.is_busy && !closed && <div className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">This kitchen is busy, so orders are taking a little longer than usual.</div>}
                         {s.power_out && <div className="mt-5 flex items-center gap-2 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900"><Zap className="size-4" /> Load-shedding: some items are temporarily unavailable.</div>}

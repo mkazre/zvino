@@ -73,7 +73,16 @@ class OrderService
         $vendor = $cart->vendor;
 
         $scheduledFor = ! empty($data['scheduled_for']) ? Carbon::parse($data['scheduled_for']) : null;
-        $this->assertCanOrder($vendor, $data['fulfilment'], $scheduledFor, $data['payment_method']);
+        $batch = null;
+        if ($data['fulfilment'] === 'delivery' && isset($data['address_id']) && ($addr = Address::find($data['address_id']))
+            && ($batch = \App\Models\Zone::batchFor($addr->lat, $addr->lng))) {
+            $slot = $batch->batchSlot($vendor, $scheduledFor);
+            if (! $slot) {
+                throw ValidationException::withMessages(['address_id' => "No {$batch->name} run is scheduled. Please try again later."]);
+            }
+            $scheduledFor = $slot['arrives_at'];
+        }
+        $this->assertCanOrder($vendor, $data['fulfilment'], $scheduledFor, $data['payment_method'], (bool) $batch);
 
         foreach ($cart->items as $ci) {
             if (! $ci->item?->isOrderable()) {
@@ -158,7 +167,7 @@ class OrderService
                 'vendor_id' => $vendor->id,
                 'zone_id' => $t['zone_id'],
                 'address_id' => $data['address_id'] ?? null,
-                'promo_code_id' => $t['discount'] > 0 ? $cart->promo_code_id : null,
+                'promo_code_id' => $t['discount'] > 0 ? $t['promo_id'] : null,
                 'group_order_id' => $data['group_order_id'] ?? null,
                 'source' => $data['source'] ?? 'app',
                 'fulfilment' => $data['fulfilment'],
@@ -200,7 +209,7 @@ class OrderService
             }
 
             if ($order->promo_code_id) {
-                $cart->promoCode->increment('used_count');
+                \App\Models\PromoCode::whereKey($order->promo_code_id)->increment('used_count');
             }
             $cart->items()->delete();
             $cart->update(['promo_code_id' => null, 'vendor_id' => null]);
@@ -216,7 +225,7 @@ class OrderService
         return [$order->fresh(['items', 'vendor']), $payment->fresh()];
     }
 
-    public function assertCanOrder(Vendor $vendor, string $fulfilment, ?Carbon $scheduledFor, string $method): void
+    public function assertCanOrder(Vendor $vendor, string $fulfilment, ?Carbon $scheduledFor, string $method, bool $batchRun = false): void
     {
         if (Setting::get('apps.maintenance_mode')) {
             throw ValidationException::withMessages(['cart' => Setting::get('apps.maintenance_message')]);
@@ -231,6 +240,14 @@ class OrderService
             throw ValidationException::withMessages(['fulfilment' => 'Pickup isn’t available for this store.']);
         }
 
+        if ($scheduledFor && $batchRun) {
+            // Batch run slot was chosen by Zvino; the store just needs to be open to prepare it.
+            if (! $this->availability->isOpen($vendor, $scheduledFor->copy()->subMinutes(45))) {
+                throw ValidationException::withMessages(['scheduled_for' => "{$vendor->name} is closed for the next run."]);
+            }
+
+            return;
+        }
         if ($scheduledFor) {
             if (! Setting::get('orders.allow_scheduled') || ! $vendor->accepts_scheduled) {
                 throw ValidationException::withMessages(['scheduled_for' => 'Scheduled orders aren’t available for this store.']);

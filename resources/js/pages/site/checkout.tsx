@@ -23,6 +23,8 @@ interface ServerCart {
     eta_minutes: [number, number] | null;
     tip_totals?: Record<string, Money>;
     needs_prescription?: boolean;
+    batch?: { zone: string; departs_at: string; arrives_at: string } | null;
+    deal?: string | null;
 }
 interface Props {
     cart: ServerCart;
@@ -190,6 +192,7 @@ export default function Checkout(p: Props) {
                                 </div>
                             )}
                             {server.distance_km && <p className="text-muted-foreground mt-3 text-xs">{server.distance_km} km from the store</p>}
+                            {server.batch && <div className="mt-3 rounded-xl bg-[#e8f3ee] px-4 py-3 text-sm text-[#0b6e4f]">🚐 <b>{server.batch.zone} run</b>: leaves {new Date(server.batch.departs_at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}, arrives about {new Date(server.batch.arrives_at).toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}.</div>}
                             <div className="mt-4 grid grid-cols-2 gap-2">
                                 <Tile small active={form.data.dropoff === 'hand_to_me'} onClick={() => form.setData('dropoff', 'hand_to_me')} title="Hand it to me" />
                                 <Tile small active={form.data.dropoff === 'leave_at_door'} onClick={() => form.setData('dropoff', 'leave_at_door')} title="Leave at gate / door" sub="Driver sends a photo" />
@@ -318,7 +321,7 @@ export default function Checkout(p: Props) {
                             {form.data.fulfilment === 'delivery' && <Row l={<>Delivery{server.surge && <span className="ml-1 text-xs text-[#c99412]">({server.surge.multiplier}× {server.surge.reason ?? 'busy'})</span>}</>} v={totals.delivery.zig} free={totals.delivery.zig === 0} />}
                             <Row l={t('Service fee')} v={totals.service.zig} />
                             {totals.small_order.zig > 0 && <Row l="Small order fee" v={totals.small_order.zig} />}
-                            {totals.discount.zig > 0 && <Row l="Promo" v={-totals.discount.zig} green />}
+                            {totals.discount.zig > 0 && <Row l={server.deal ?? 'Promo'} v={-totals.discount.zig} green />}
                             {totals.tip.zig > 0 && <Row l="Driver tip" v={totals.tip.zig} />}
                             {donation > 0 && <Row l={`Donation · ${p.charity?.name}`} v={donation} />}
                             {totals.member_savings.zig > 0 && <div className="rounded-lg bg-[#e8f3ee] px-3 py-2 text-xs font-medium text-[#0b6e4f]">Zvino+ saved you {zig(totals.member_savings.zig)} 🎉</div>}

@@ -120,6 +120,7 @@ class SiteController extends Controller
                 'zone_fee' => $vendor->zone ? ['base' => $vendor->zone->base_delivery_fee_zig, 'free_km' => $vendor->zone->free_km, 'per_km' => $vendor->zone->per_km_fee_zig] : null,
             ],
             'menu' => $menu,
+            'deals' => \App\Models\PromoCode::autoFor($vendor)->filter(fn ($p) => $p->is_active)->map(fn ($p) => ['id' => $p->id, 'headline' => $p->headline(), 'live' => $p->inWindow()])->values(),
             'popular' => $popular,
             'reviews' => Review::where('vendor_id', $vendor->id)->where('is_hidden', false)->whereNotNull('comment')->with('user:id,name')->latest()->limit(6)->get()
                 ->map(fn ($r) => ['id' => $r->id, 'rating' => $r->vendor_rating, 'comment' => $r->comment, 'reply' => $r->vendor_reply, 'author' => explode(' ', $r->user?->name ?? 'Customer')[0], 'at' => $r->created_at]),

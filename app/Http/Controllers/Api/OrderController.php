@@ -117,6 +117,9 @@ class OrderController extends Controller
             'tip_presets_pct' => \App\Models\Setting::get('orders.tip_presets_pct'),
             'payment_methods' => collect(OrderService::METHODS)->filter(fn ($m) => \App\Models\Setting::get("payments.$m"))->values(),
             'wallet_balance' => \App\Support\Money::both($request->user()->walletBalance()),
+            'batch' => ($bz = $data['fulfilment'] === 'delivery' ? \App\Models\Zone::batchFor($dest['lat'] ?? null, $dest['lng'] ?? null) : null) && $cart->vendor && ($slot = $bz->batchSlot($cart->vendor))
+                ? ['zone' => $slot['zone'], 'departs_at' => $slot['departs_at'], 'arrives_at' => $slot['arrives_at']] : null,
+            'deal' => $t['deal'] ?? null,
             'needs_prescription' => (bool) \App\Models\Setting::get('orders.prescriptions_required') && $cart->items->contains(fn ($ci) => $ci->item?->requires_prescription),
             'split_bill' => \App\Models\Setting::get('orders.split_bill') ? ['max_people' => (int) \App\Models\Setting::get('orders.split_bill_max_people')] : null,
             'split_tender' => (bool) (\App\Models\Setting::get('payments.split_tender') && \App\Models\Setting::get('payments.wallet')),

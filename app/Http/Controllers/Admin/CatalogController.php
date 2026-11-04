@@ -164,7 +164,7 @@ class CatalogController extends AdminController
             'needs_power' => ['boolean'],
             'requires_prescription' => ['boolean'],
             'dietary' => ['nullable', 'array'],
-            'dietary.*' => ['in:vegetarian,vegan,halal,no_pork,spicy,nut_free,gluten_free'],
+            'dietary.*' => ['in:vegetarian,vegan,halal,no_pork,spicy,nut_free,gluten_free,dairy_free'],
             'calories' => ['nullable', 'integer', 'min:0'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
             'variants' => ['nullable', 'array'],

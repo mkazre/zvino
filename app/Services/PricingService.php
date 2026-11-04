@@ -22,7 +22,8 @@ class PricingService
     /**
      * @param  array{lat?: float|null, lng?: float|null}  $dest
      */
-    public function quote(Vendor $vendor, float $subtotal, string $fulfilment, array $dest = [], ?User $user = null, ?PromoCode $promo = null, float $tip = 0): array
+    /** @param array $lines [{item_id, quantity, unit}] for item-level deals (BOGO) */
+    public function quote(Vendor $vendor, float $subtotal, string $fulfilment, array $dest = [], ?User $user = null, ?PromoCode $promo = null, float $tip = 0, array $lines = []): array
     {
         $zone = $vendor->zone;
         $km = null;
@@ -62,9 +63,14 @@ class PricingService
             $smallOrder = 0.0;
         }
 
+        // A code the customer entered, else the best automatic deal (happy hour, BOGO) at this store.
         $discount = 0.0;
-        if ($promo && $promo->isUsableFor($subtotal, $vendor->id)) {
-            $discount = $promo->discountFor($subtotal, $delivery);
+        $applied = null;
+        $candidates = $promo ? collect([$promo]) : PromoCode::autoFor($vendor);
+        foreach ($candidates as $c) {
+            if ($c->isUsableFor($subtotal, $vendor->id) && ($d = $c->discountFor($subtotal, $delivery, $lines)) > $discount) {
+                [$discount, $applied] = [$d, $c];
+            }
         }
 
         $tip = Setting::get('orders.allow_tips') ? max(0, round($tip, 2)) : 0.0;
@@ -98,6 +104,8 @@ class PricingService
             'distance_km' => $km,
             'eta_minutes' => $eta,
             'zone_id' => $zone?->id,
+            'promo_id' => $discount > 0 ? $applied?->id : null,
+            'deal' => $discount > 0 && $applied?->auto_apply ? $applied->headline() : null,
         ];
     }
 

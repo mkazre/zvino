@@ -65,6 +65,26 @@ class EngagementController extends Controller
 
     // ── Favourites ───────────────────────────────────────────────────
 
+    public function watches(Request $request)
+    {
+        return response()->json(\App\Models\ItemWatch::with('item.vendor:id,name,slug')->where('user_id', $request->user()->id)->latest()->get()
+            ->map(fn ($w) => ['item_id' => $w->item_id, 'name' => $w->item?->name, 'vendor' => $w->item?->vendor, 'watched_at_zig' => $w->price_zig, 'now_zig' => $w->item?->effectivePrice()]));
+    }
+
+    public function watch(Request $request, \App\Models\Item $item)
+    {
+        $w = \App\Models\ItemWatch::updateOrCreate(['user_id' => $request->user()->id, 'item_id' => $item->id], ['price_zig' => $item->effectivePrice()]);
+
+        return response()->json(['watching' => true, 'price_zig' => $w->price_zig], 201);
+    }
+
+    public function unwatch(Request $request, \App\Models\Item $item)
+    {
+        \App\Models\ItemWatch::where('user_id', $request->user()->id)->where('item_id', $item->id)->delete();
+
+        return response()->json(['watching' => false]);
+    }
+
     public function favorites(Request $request)
     {
         return VendorResource::collection($request->user()->favorites()->where('status', 'active')->get());
