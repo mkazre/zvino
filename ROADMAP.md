@@ -37,9 +37,9 @@ admin panel, Laravel API on shared hosting, Pusher, Paynow, Google Maps, Inter, 
 - [x] Landing, city & restaurant pages (SEO), menu, cart, checkout, tracking, account, Zvino+, gift cards, partner & driver pages, group orders
 
 ## Phase 5: Mobile apps (Expo, shared packages)
-- [ ] Zvino: full ordering experience incl. live map tracking
-- [ ] Zvino Driver: online toggle, job offers, navigation hand-off, proof of delivery, earnings
-- [ ] Zvino Merchant: Store manager, POS and Kitchen modes (one app, mode chosen by staff role)
+- [x] Zvino: full ordering experience incl. live map tracking
+- [x] Zvino Driver: online toggle, job offers, navigation hand-off, proof of delivery, earnings
+- [x] Zvino Merchant: Store manager, POS and Kitchen modes (one app, mode chosen by staff role)
 
 ## Phase 6: Launch hardening
 - [ ] Load & security review, error monitoring, backups, store listings, production deploy

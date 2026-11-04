@@ -108,13 +108,24 @@ class PricingService
         }
         $extraKm = $km ? max(0, $km - $zone->free_km) : 0;
 
-        return round($zone->base_delivery_fee_zig + $extraKm * $zone->per_km_fee_zig, 2);
+        return round($zone->base_delivery_fee_zig + $extraKm * $zone->per_km_fee_zig * $this->fuelIndex(), 2);
     }
 
     /** What the driver earns for a trip (before tip). */
     public function driverPay(?float $km): float
     {
-        return round(Setting::get('delivery.driver_base_pay_zig') + ($km ?? 3) * Setting::get('delivery.driver_per_km_zig'), 2);
+        return round(Setting::get('delivery.driver_base_pay_zig') + ($km ?? 3) * Setting::get('delivery.driver_per_km_zig') * $this->fuelIndex(), 2);
+    }
+
+    /** Fuel-indexed fees (#46): per-km rates scale with current ÷ base fuel price. */
+    public function fuelIndex(): float
+    {
+        if (! Setting::get('fees.fuel_index_enabled')) {
+            return 1.0;
+        }
+        $base = (float) Setting::get('fees.fuel_base_price_usd');
+
+        return $base > 0 ? round(max(0.5, min(2, (float) Setting::get('fees.fuel_current_price_usd') / $base)), 4) : 1.0;
     }
 
     private function round(float $amount): float

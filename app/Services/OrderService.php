@@ -86,6 +86,7 @@ class OrderService
         if ($t['subtotal'] < max($vendor->min_order_zig, $vendor->zone?->min_order_zig ?? 0)) {
             throw ValidationException::withMessages(['cart' => "Minimum order for {$vendor->name} is ZiG {$vendor->min_order_zig}."]);
         }
+        app(RiskService::class)->assertCanPlace($user, $data['payment_method'], $t['total']);
         if ($data['payment_method'] === 'wallet' && $user->walletBalance() < $t['total']) {
             throw ValidationException::withMessages(['payment_method' => 'Insufficient wallet balance.']);
         }
@@ -405,6 +406,7 @@ class OrderService
             }
             $this->loyalty->earnForOrder($order);
             app(GrowthService::class)->onOrderDelivered($order);
+            $this->hotMealGuarantee($order->fresh());
         }
 
         OrderUpdated::dispatch($order);
@@ -425,9 +427,37 @@ class OrderService
                 '{time}' => $order->scheduled_for?->format('D H:i'),
             ]);
             $this->push->toUser($order->user, 'order_status', $title, $body, ['order_id' => $order->id, 'status' => $status]);
+
+            // SMS fallback (#45): customers with no app installed still hear about the key moments.
+            if (Setting::get('orders.sms_fallback') && $order->user->phone && in_array($status, ['accepted', 'picked_up', 'delivered', 'rejected', 'cancelled'], true)
+                && ! $order->user->deviceTokens()->exists()) {
+                app(SmsService::class)->send($order->user->phone, "Zvino {$order->reference}: {$title}. {$body}");
+            }
         }
 
         return $order;
+    }
+
+    /** Hot-meal guarantee (#12): late delivery → automatic wallet credit, once per order. */
+    private function hotMealGuarantee(Order $order): void
+    {
+        if (! Setting::get('orders.hot_meal_guarantee') || ! $order->user || ! $order->estimated_delivery_at || $order->fulfilment !== 'delivery') {
+            return;
+        }
+        $late = (int) $order->estimated_delivery_at->diffInMinutes($order->delivered_at ?? now(), false);
+        if ($late <= Setting::get('orders.late_grace_minutes')) {
+            return;
+        }
+        if ($order->user->walletTransactions()->where('order_id', $order->id)->where('reason', 'like', 'Hot-meal guarantee%')->exists()) {
+            return;
+        }
+
+        $credit = round(min($order->subtotal_zig * Setting::get('orders.late_credit_pct') / 100, Setting::get('orders.late_credit_max_zig')), 2);
+        if ($credit <= 0) {
+            return;
+        }
+        $order->user->walletTransactions()->create(['order_id' => $order->id, 'type' => 'credit', 'amount_zig' => $credit, 'reason' => "Hot-meal guarantee: {$order->reference} was {$late} min late"]);
+        $this->push->toUser($order->user, 'late_credit', 'Sorry we were late 🙏', 'We’ve added ZiG '.number_format($credit, 2).' to your Zvino wallet.', ['order_id' => $order->id]);
     }
 
     /** Kitchen display: new → cooking → ready, mapped onto order status. */

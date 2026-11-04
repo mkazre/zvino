@@ -5,7 +5,7 @@ import { label } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { Link, router } from '@inertiajs/react';
 import {
-    Bell, Bike, Building2, ClipboardList, Coins, CreditCard, FileText, Gift, IdCard, MessageSquareText, Palette, Plug, Receipt, Smartphone, type LucideIcon,
+    Bell, Bike, Building2, ClipboardList, Coins, CreditCard, FileText, Gift, IdCard, MessageSquareText, Palette, Plug, Receipt, ShieldAlert, Smartphone, type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -31,7 +31,7 @@ interface Props {
 
 const ICONS: Record<string, LucideIcon> = {
     building: Building2, palette: Palette, coins: Coins, receipt: Receipt, bike: Bike, clipboard: ClipboardList, 'credit-card': CreditCard,
-    gift: Gift, bell: Bell, plug: Plug, smartphone: Smartphone, 'id-card': IdCard, message: MessageSquareText, file: FileText,
+    gift: Gift, bell: Bell, plug: Plug, smartphone: Smartphone, 'id-card': IdCard, message: MessageSquareText, file: FileText, shield: ShieldAlert,
 };
 
 /** Visual grouping of fields inside a tab (keeps long tabs scannable). */

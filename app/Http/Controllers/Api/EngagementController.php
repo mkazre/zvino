@@ -117,7 +117,8 @@ class EngagementController extends Controller
         ]);
 
         // Small missing-item claims are approved instantly to wallet (configurable).
-        if (Setting::get('orders.auto_refund_missing_items') && $data['reason'] === 'missing_items' && $amount <= Setting::get('orders.auto_refund_limit_zig')) {
+        if (Setting::get('orders.auto_refund_missing_items') && $data['reason'] === 'missing_items' && $amount <= Setting::get('orders.auto_refund_limit_zig')
+            && ! app(\App\Services\RiskService::class)->needsManualRefundReview($request->user())) {
             app(\App\Services\RefundService::class)->approve($refund, null);
         }
 

@@ -62,6 +62,17 @@ class ZoneController extends AdminController
         return back()->with('success', "Zone “{$zone->name}” saved.");
     }
 
+    /** Weather surge (#49): one tap applies the rain-mode surge to every active zone, tap again to clear. */
+    public function rain(Request $request)
+    {
+        $on = $request->boolean('on');
+        $multiplier = $on ? (float) Setting::get('fees.rain_surge') : 1;
+        Zone::where('is_active', true)->update(['surge_multiplier' => $multiplier, 'surge_reason' => $on ? 'Rain: high demand' : null]);
+        AuditLog::record($on ? 'zones.rain_on' : 'zones.rain_off', null, ['multiplier' => $multiplier]);
+
+        return back()->with('success', $on ? "Rain mode on: {$multiplier}× delivery surge in every zone." : 'Rain mode off.');
+    }
+
     public function destroy(Zone $zone)
     {
         $zone->delete();

@@ -3,7 +3,7 @@ import { Badge, Card, Drawer, Field, Input, LiveMap, Page, PageHeader, Select, S
 import AdminLayout from '@/layouts/admin-layout';
 import { zig } from '@/lib/money';
 import { router, useForm } from '@inertiajs/react';
-import { Map as MapIcon, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
+import { CloudRain, Map as MapIcon, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Zone {
@@ -33,7 +33,16 @@ export default function Zones({ zones, cities, mapsKey, vendors }: { zones: Zone
     return (
         <AdminLayout title="Zones & fees">
             <Page wide>
-                <PageHeader title="Zones & delivery fees" description="Draw where Zvino delivers. Each zone sets its own delivery fee, minimum order and surge." actions={<Button onClick={() => setEditing('new')}><Plus /> New zone</Button>} />
+                <PageHeader title="Zones & delivery fees" description="Draw where Zvino delivers. Each zone sets its own delivery fee, minimum order and surge." actions={
+                        <>
+                            {zones.some((z) => z.surge_reason?.startsWith('Rain')) ? (
+                                <Button variant="outline" onClick={() => router.post('/admin/zones-rain', { on: false })}><CloudRain /> Rain mode off</Button>
+                            ) : (
+                                <Button variant="outline" onClick={async () => (await confirm({ title: 'Turn on rain mode?', description: 'Applies the rain surge from Settings → Fees to every active zone. Customers see “Rain: high demand”.', confirmLabel: 'Rain mode on' })) && router.post('/admin/zones-rain', { on: true })}><CloudRain /> Rain mode</Button>
+                            )}
+                            <Button onClick={() => setEditing('new')}><Plus /> New zone</Button>
+                        </>
+                    } />
 
                 <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
                     <LiveMap apiKey={mapsKey} className="h-[560px]" markers={vendors.map((v) => ({ id: `v${v.id}`, lat: v.lat, lng: v.lng, kind: 'store', label: v.name }))} polygons={zones.map((z) => ({ id: z.id, points: z.polygon, label: z.name, tone: !z.is_active ? 'muted' : z.surge_multiplier > 1 ? 'gold' : 'brand' }))} />

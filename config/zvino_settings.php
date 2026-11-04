@@ -68,6 +68,22 @@ return [
             'pickup_commission_pct' => ['type' => 'percent', 'label' => 'Commission on pickup orders', 'default' => 8],
             'surge_enabled' => ['type' => 'bool', 'label' => 'Allow surge pricing on zones', 'default' => true],
             'max_surge' => ['type' => 'decimal', 'label' => 'Maximum surge multiplier', 'default' => 2],
+            'fuel_index_enabled' => ['type' => 'bool', 'label' => 'Fuel-indexed per-km fees', 'default' => false, 'help' => 'Per-km delivery fees and driver per-km pay move with the fuel price.'],
+            'fuel_base_price_usd' => ['type' => 'decimal', 'label' => 'Base fuel price (USD/litre)', 'default' => 1.55, 'help' => 'The price your zone per-km fees were set at.'],
+            'fuel_current_price_usd' => ['type' => 'decimal', 'label' => 'Current fuel price (USD/litre)', 'default' => 1.55, 'help' => 'Update when ZERA announces new prices.'],
+            'rain_surge' => ['type' => 'decimal', 'label' => 'Rain-mode surge', 'default' => 1.25, 'help' => 'Applied to every zone with one tap on Zones & fees.'],
+        ],
+    ],
+
+    'fraud' => [
+        'label' => 'Fraud & risk',
+        'icon' => 'shield',
+        'fields' => [
+            'enabled' => ['type' => 'bool', 'label' => 'Fraud shield', 'default' => true],
+            'max_orders_per_hour' => ['type' => 'int', 'label' => 'Max orders per customer per hour', 'default' => 5],
+            'new_account_cod_limit_zig' => ['type' => 'money', 'label' => 'Cash-on-delivery limit for new customers', 'default' => 300, 'help' => 'Until their first delivered order.'],
+            'max_open_refund_requests' => ['type' => 'int', 'label' => 'Max open refund requests per customer', 'default' => 2],
+            'refund_rate_alert_pct' => ['type' => 'percent', 'label' => 'Flag customers whose refunds exceed', 'default' => 25, 'help' => 'Percent of their lifetime spend. Flagged customers need manual refund approval.'],
         ],
     ],
 
@@ -107,6 +123,11 @@ return [
             'review_window_days' => ['type' => 'int', 'label' => 'Reviews allowed for (days)', 'default' => 7],
             'auto_refund_missing_items' => ['type' => 'bool', 'label' => 'Auto-approve missing-item refunds under limit', 'default' => true],
             'auto_refund_limit_zig' => ['type' => 'money', 'label' => 'Auto-refund limit', 'default' => 80],
+            'hot_meal_guarantee' => ['type' => 'bool', 'label' => 'Hot-meal guarantee', 'default' => true, 'help' => 'Automatic wallet credit when delivery is late.'],
+            'late_grace_minutes' => ['type' => 'int', 'label' => 'Late after (minutes past ETA)', 'default' => 15],
+            'late_credit_pct' => ['type' => 'percent', 'label' => 'Late credit (% of food subtotal)', 'default' => 20],
+            'late_credit_max_zig' => ['type' => 'money', 'label' => 'Maximum late credit', 'default' => 60],
+            'sms_fallback' => ['type' => 'bool', 'label' => 'SMS updates for customers without the app', 'default' => true, 'help' => 'Website & USSD customers get key status updates by SMS.'],
         ],
     ],
 

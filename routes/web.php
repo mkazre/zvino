@@ -158,6 +158,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::post('settings-templates/{template}', [SettingsController::class, 'saveTemplate'])->name('settings.templates');
 
             Route::get('zones', [ZoneController::class, 'index'])->name('zones');
+            Route::post('zones-rain', [ZoneController::class, 'rain'])->name('zones.rain');
             Route::post('zones/{zone?}', [ZoneController::class, 'save'])->name('zones.save');
             Route::delete('zones/{zone}', [ZoneController::class, 'destroy'])->name('zones.destroy');
         });
