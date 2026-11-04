@@ -10,7 +10,7 @@ import { zig } from '@/lib/money';
 import { Button, Loading, Row, Text, useTheme } from '@/ui';
 import { useSession } from '@/lib/session';
 
-type Menu = Store & { description: string | null; categories: { id: number; name: string; items: { data?: MenuItem[] } | MenuItem[] }[] };
+type Menu = Store & { accepts_catering?: boolean; description: string | null; categories: { id: number; name: string; items: { data?: MenuItem[] } | MenuItem[] }[] };
 
 export default function StoreScreen() {
     const t = useTheme();
@@ -53,6 +53,7 @@ export default function StoreScreen() {
                                 <Pill icon="bicycle-outline" text={store.delivery_fee.zig === 0 ? 'Free delivery' : `From ${zig(store.delivery_fee.zig)}`} />
                                 {store.min_order.zig > 0 && <Pill icon="information-circle-outline" text={`${zig(store.min_order.zig)} min`} />}
                             </Row>
+                            {store.accepts_catering && <Pressable onPress={() => router.push({ pathname: '/catering', params: { store: String(store.id), storeName: store.name } })} style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: t.subtle }}><Text variant="label">🍲  Cater an event: funerals, weddings, gatherings ›</Text></Pressable>}
                             {deals.map((d) => (
                                 <View key={d.id} style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: d.live ? t.brandSoft : t.subtle }}>
                                     <Text variant="label" color={d.live ? 'brand' : 'muted'}>🏷️  {d.headline}{d.live ? '' : ' · later today'}</Text>

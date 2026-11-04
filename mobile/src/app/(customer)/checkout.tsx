@@ -24,11 +24,12 @@ interface Quote {
     needs_prescription: boolean;
     batch: { zone: string; departs_at: string; arrives_at: string } | null;
     deal: string | null;
+    company: { company: string; left_today_zig: number | null } | null;
     round_up: { charity: string; amount: Money } | null;
 }
 
-const METHOD_LABEL: Record<string, string> = { ecocash: 'EcoCash', innbucks: 'InnBucks', onemoney: 'OneMoney', card: 'Visa / Mastercard', wallet: 'Zvino wallet', cash: 'Cash on delivery' };
-const METHOD_ICON: Record<string, keyof typeof Ionicons.glyphMap> = { ecocash: 'phone-portrait-outline', innbucks: 'phone-portrait-outline', onemoney: 'phone-portrait-outline', card: 'card-outline', wallet: 'wallet-outline', cash: 'cash-outline' };
+const METHOD_LABEL: Record<string, string> = { ecocash: 'EcoCash', innbucks: 'InnBucks', onemoney: 'OneMoney', card: 'Visa / Mastercard', wallet: 'Zvino wallet', cash: 'Cash on delivery', company: 'Company account' };
+const METHOD_ICON: Record<string, keyof typeof Ionicons.glyphMap> = { ecocash: 'phone-portrait-outline', innbucks: 'phone-portrait-outline', onemoney: 'phone-portrait-outline', card: 'card-outline', wallet: 'wallet-outline', cash: 'cash-outline', company: 'business-outline' };
 
 export default function Checkout() {
     const t = useTheme();
@@ -205,7 +206,7 @@ export default function Checkout() {
                         return (
                             <Pressable key={m} disabled={disabled} onPress={() => setMethod(m)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, opacity: disabled ? 0.4 : 1 }}>
                                 <Ionicons name={METHOD_ICON[m] ?? 'card-outline'} size={22} color={t.ink} />
-                                <View style={{ flex: 1 }}><Text variant="label">{METHOD_LABEL[m] ?? label(m)}</Text>{m === 'wallet' && <Text variant="caption">Balance {zig(quote?.wallet_balance.zig)}</Text>}</View>
+                                <View style={{ flex: 1 }}><Text variant="label">{METHOD_LABEL[m] ?? label(m)}</Text>{m === 'wallet' && <Text variant="caption">Balance {zig(quote?.wallet_balance.zig)}</Text>}{m === 'company' && quote?.company && <Text variant="caption">{quote.company.company}{quote.company.left_today_zig != null ? ` · ${zig(quote.company.left_today_zig)} left today` : ''}</Text>}</View>
                                 <Ionicons name={method === m ? 'radio-button-on' : 'radio-button-off'} size={22} color={method === m ? t.ink : t.faint} />
                             </Pressable>
                         );

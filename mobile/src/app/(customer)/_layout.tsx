@@ -13,6 +13,8 @@ export default function CustomerLayout() {
             <Stack.Screen name="addresses" />
             <Stack.Screen name="wallet" />
             <Stack.Screen name="plans" />
+            <Stack.Screen name="catering" />
+            <Stack.Screen name="hampers" />
         </Stack>
     );
 }

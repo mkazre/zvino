@@ -52,6 +52,7 @@ export default function More() {
                 </>
             )}
             {manager && <Button title="🏷️  Promotions" tone="soft" onPress={() => router.push('/promos')} style={{ marginTop: 16 }} />}
+            {manager && <Button title="🍲  Catering requests" tone="soft" onPress={() => router.push('/catering')} style={{ marginTop: 8 }} />}
             {manager && ins && (
                 <>
                     <SectionTitle>Best sellers (30 days)</SectionTitle>

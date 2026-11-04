@@ -38,6 +38,8 @@ export default function Account() {
             <View style={{ marginTop: 16 }}>
                 <Item icon="location-outline" title="Addresses" sub="Landmarks, gate photo, voice directions" onPress={() => router.push('/addresses')} />
                 <Item icon="repeat-outline" title="Regular orders" sub="Weekday lunch, month-end shop" onPress={() => router.push('/plans')} />
+                <Item icon="gift-outline" title="Send groceries home" sub="Hampers for family in Zimbabwe" onPress={() => router.push('/hampers')} />
+                <Item icon="restaurant-outline" title="Catering" sub="Funerals, weddings, gatherings" onPress={() => router.push('/catering')} />
                 <Item icon="gift-outline" title="Rewards, wallet & gift cards" onPress={() => router.push('/wallet')} />
                 <Item icon="share-social-outline" title="Invite friends, get credit" onPress={() => router.push('/wallet')} />
                 <Item icon="help-buoy-outline" title="Help & support" sub="WhatsApp, call or chat" onPress={() => Alert.alert('Zvino support', 'WhatsApp or call +263 242 000 000')} />
