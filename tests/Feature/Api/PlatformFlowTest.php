@@ -400,6 +400,19 @@ class PlatformFlowTest extends TestCase
 
     // ── Merchant controls ────────────────────────────────────────────
 
+    public function test_merchant_app_pos_sale_and_kitchen_is_blocked()
+    {
+        $cashier = ['Authorization' => 'Bearer '.$this->postJson('/api/auth/staff/login', ['email' => 'cashier@zvino.co.zw', 'password' => 'password'])->assertJsonPath('mode', 'pos')->json('token')];
+        $item = $this->vendor->items()->first();
+
+        $this->postJson('/api/merchant/pos/sales', ['method' => 'cash', 'lines' => [['item_id' => $item->id, 'quantity' => 2]]], $cashier)
+            ->assertCreated()->assertJsonPath('payment_status', 'paid');
+        $this->assertSame(1, \App\Models\Order::where('source', 'pos')->count());
+
+        $kitchen = ['Authorization' => 'Bearer '.$this->postJson('/api/auth/staff/login', ['email' => 'kitchen@zvino.co.zw', 'password' => 'password'])->json('token')];
+        $this->postJson('/api/merchant/pos/sales', ['method' => 'cash', 'lines' => [['item_id' => $item->id, 'quantity' => 1]]], $kitchen)->assertForbidden();
+    }
+
     public function test_merchant_busy_pause_and_stock_controls()
     {
         $mh = ['Authorization' => 'Bearer '.$this->postJson('/api/auth/staff/login', ['email' => 'manager@zvino.co.zw', 'password' => 'password'])->json('token')];

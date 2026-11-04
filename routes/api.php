@@ -138,6 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('reviews', [MerchantController::class, 'reviews']);
         Route::post('reviews/{review}/reply', [MerchantController::class, 'reply']);
         Route::get('insights', [MerchantController::class, 'insights']);
+        Route::post('pos/sales', [MerchantController::class, 'posSale']);
     });
 });
 

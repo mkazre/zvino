@@ -226,6 +226,29 @@ class MerchantController extends Controller
         return new ItemResource($item->fresh());
     }
 
+    /** POS mode in the merchant app: counter sale into the same orders table (source = pos). */
+    public function posSale(Request $request, \App\Services\Payments\PaynowGateway $paynow)
+    {
+        $vendor = $this->store($request);
+        abort_unless(in_array($request->user()->role, ['vendor_manager', 'cashier'], true), 403, 'POS is for managers and cashiers.');
+        $data = $request->validate([
+            'method' => ['required', 'in:cash,card,ecocash,onemoney,innbucks'],
+            'phone' => ['required_if:method,ecocash,onemoney,innbucks', 'nullable', 'string'],
+            'lines' => ['required', 'array', 'min:1'],
+            'lines.*.item_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('items', 'id')->where('vendor_id', $vendor->id)],
+            'lines.*.quantity' => ['required', 'integer', 'min:1'],
+            'lines.*.variant' => ['nullable', 'string'],
+            'lines.*.modifiers' => ['nullable', 'array'],
+        ]);
+
+        [$order, $payment] = $this->orders->placePos($request->user(), $vendor, $data['lines'], $data['method'], $data['phone'] ?? null);
+        if ($payment && $paynow->fake()) {
+            $this->orders->markPaid($payment);
+        }
+
+        return response()->json(['reference' => $order->reference, 'total' => Money::both($order->total_zig), 'payment_status' => $order->fresh()->payment_status], 201);
+    }
+
     // ── Money & feedback ─────────────────────────────────────────────
 
     public function earnings(Request $request)

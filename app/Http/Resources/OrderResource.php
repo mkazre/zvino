@@ -36,7 +36,11 @@ class OrderResource extends JsonResource
             'vendor' => $this->whenLoaded('vendor', fn () => $this->vendor->only('id', 'name', 'slug', 'logo_path', 'lat', 'lng')),
             'address' => $this->whenLoaded('address'),
             'customer' => $this->whenLoaded('user', fn () => $this->user?->only('id', 'name', 'phone')),
-            'driver' => $this->whenLoaded('driver', fn () => $this->driver ? ['id' => $this->driver->id, 'name' => $this->driver->user?->name] : null),
+            'driver' => $this->whenLoaded('driver', fn () => $this->driver ? [
+                'id' => $this->driver->id, 'name' => $this->driver->user?->name, 'phone' => $this->driver->user?->phone,
+                'vehicle' => $this->driver->vehicle_type, 'plate' => $this->driver->vehicle_plate, 'rating' => $this->driver->rating,
+                'lat' => $this->driver->lat, 'lng' => $this->driver->lng,
+            ] : null),
             'scheduled_for' => $this->scheduled_for,
             'estimated_delivery_at' => $this->estimated_delivery_at,
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($i) => [
