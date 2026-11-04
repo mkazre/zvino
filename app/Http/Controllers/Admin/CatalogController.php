@@ -155,6 +155,8 @@ class CatalogController extends AdminController
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:500'],
             'price_zig' => ['required', 'numeric', 'min:0'],
+            'sold_by' => ['nullable', 'in:unit,kg'],
+            'step_kg' => ['nullable', 'numeric', 'between:0.05,50'],
             'special_price_zig' => ['nullable', 'numeric', 'min:0', 'lt:price_zig'],
             'is_available' => ['boolean'],
             'is_special' => ['boolean'],

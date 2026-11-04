@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Services\Payments\PaynowGateway;
+use App\Support\I18n;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -163,7 +164,7 @@ class OrderService
             foreach ($cart->items as $ci) {
                 $order->items()->create([
                     'item_id' => $ci->item_id,
-                    'name' => $ci->item->name,
+                    'name' => $ci->item->name.(($w = $ci->item->weightLabel($ci->quantity)) ? " ($w)" : ''),
                     'quantity' => $ci->quantity,
                     'options' => $ci->options,
                     'unit_price_zig' => $ci->unit_price_zig,
@@ -479,10 +480,12 @@ class OrderService
 
         if ($order->user && isset(self::STATUS_MESSAGES[$status])) {
             [$title, $body] = self::STATUS_MESSAGES[$status];
-            $body = strtr($body, [
-                '{store}' => $order->vendor->name,
-                '{prep}' => $vars['prep'] ?? $order->prep_minutes,
-                '{time}' => $order->scheduled_for?->format('D H:i'),
+            $locale = $order->user->locale ?? 'en';
+            $title = I18n::t($title, $locale);
+            $body = I18n::t($body, $locale, [
+                'store' => $order->vendor->name,
+                'prep' => $vars['prep'] ?? $order->prep_minutes,
+                'time' => $order->scheduled_for?->format('D H:i'),
             ]);
             $this->push->toUser($order->user, 'order_status', $title, $body, ['order_id' => $order->id, 'status' => $status]);
 

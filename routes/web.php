@@ -159,6 +159,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
 
             Route::get('zones', [ZoneController::class, 'index'])->name('zones');
             Route::post('zones-rain', [ZoneController::class, 'rain'])->name('zones.rain');
+            Route::post('safety-zones/{safetyZone?}', [ZoneController::class, 'saveSafety'])->name('safety-zones.save');
+            Route::delete('safety-zones/{safetyZone}', [ZoneController::class, 'destroySafety'])->name('safety-zones.destroy');
             Route::post('zones/{zone?}', [ZoneController::class, 'save'])->name('zones.save');
             Route::delete('zones/{zone}', [ZoneController::class, 'destroy'])->name('zones.destroy');
         });

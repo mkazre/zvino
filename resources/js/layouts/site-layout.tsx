@@ -2,10 +2,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, Popover } from '@/components/z';
 import { cart, useCart } from '@/lib/cart';
 import { usd, zig } from '@/lib/money';
+import { useLocale, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronDown, MapPin, Minus, Plus, Search, ShoppingBag, Trash2, X } from 'lucide-react';
+import { ChevronDown, Globe, MapPin, Minus, Plus, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 
@@ -69,6 +70,7 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
     const [scrolled, setScrolled] = useState(!transparent);
     const user = auth?.user;
     const isCustomer = user && ['customer', 'driver'].includes(user.role);
+    const t = useT();
 
     useEffect(() => {
         if (!transparent) return;
@@ -110,21 +112,21 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
                     {!hideCart && (
                         <button onClick={onCart} className={cn('relative flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold transition', count ? 'bg-[#111412] text-white dark:bg-white dark:text-black' : scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>
                             <ShoppingBag className="size-[18px]" />
-                            {count > 0 ? <><span>{count}</span><span className="hidden sm:inline">· {zig(subtotal)}</span></> : <span className="hidden sm:inline">Basket</span>}
+                            {count > 0 ? <><span>{count}</span><span className="hidden sm:inline">· {zig(subtotal)}</span></> : <span className="hidden sm:inline">{t('Basket')}</span>}
                         </button>
                     )}
                     {isCustomer ? (
                         <Popover align="end" className="w-56 p-1.5" trigger={<button className="ml-1 rounded-full"><Avatar name={user.name || user.phone || '?'} size={40} /></button>}>
                             <div className="px-3 py-2"><div className="text-sm font-semibold">{user.name || 'Welcome!'}</div><div className="text-muted-foreground text-xs">{user.phone}</div></div>
-                            {[['Orders', '/account?tab=orders'], ['Wallet & rewards', '/account?tab=wallet'], ['Addresses', '/account?tab=addresses'], ['Zvino+', '/plus'], ['Invite friends', '/account?tab=refer']].map(([l, h]) => (
-                                <Link key={h} href={h} className="hover:bg-muted block rounded-lg px-3 py-2 text-sm">{l}</Link>
+                            {[['Orders', '/account?tab=orders'], ['Wallet', '/account?tab=wallet'], ['Addresses', '/account?tab=addresses'], ['Zvino+', '/plus'], ['Invite friends', '/account?tab=refer']].map(([l, h]) => (
+                                <Link key={h} href={h} className="hover:bg-muted block rounded-lg px-3 py-2 text-sm">{t(l)}</Link>
                             ))}
-                            <Link href="/signout" method="post" as="button" className="hover:bg-muted text-zred block w-full rounded-lg px-3 py-2 text-left text-sm">Sign out</Link>
+                            <Link href="/signout" method="post" as="button" className="hover:bg-muted text-zred block w-full rounded-lg px-3 py-2 text-left text-sm">{t('Sign out')}</Link>
                         </Popover>
                     ) : user ? (
                         <Button asChild size="sm" variant="dark" className="rounded-full"><Link href="/dashboard">Admin</Link></Button>
                     ) : (
-                        <Button asChild variant={scrolled ? 'dark' : 'secondary'} className="h-11 rounded-full px-5"><Link href="/signin">Sign in</Link></Button>
+                        <Button asChild variant={scrolled ? 'dark' : 'secondary'} className="h-11 rounded-full px-5"><Link href="/signin">{t('Sign in')}</Link></Button>
                     )}
                 </nav>
             </div>
@@ -234,6 +236,7 @@ function Footer() {
             <div className="border-t border-white/10">
                 <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-5 text-xs text-white/50">
                     <span>© {new Date().getFullYear()} {brand?.name ?? 'Zvino'} · Made in Zimbabwe 🇿🇼</span>
+                    <LanguagePicker />
                     <span className="flex gap-4">
                         {site.support_phone && <a href={`tel:${site.support_phone}`} className="hover:text-white">{site.support_phone}</a>}
                         {site.support_whatsapp && <a href={`https://wa.me/${site.support_whatsapp.replace(/\D/g, '')}`} className="hover:text-white">WhatsApp</a>}
@@ -242,5 +245,17 @@ function Footer() {
                 </div>
             </div>
         </footer>
+    );
+}
+
+function LanguagePicker() {
+    const { locale, languages } = useLocale();
+    return (
+        <span className="flex items-center gap-1.5">
+            <Globe className="size-3.5" />
+            {Object.entries(languages).map(([code, name]) => (
+                <button key={code} onClick={() => router.post('/locale', { locale: code }, { preserveScroll: true })} className={cn('rounded px-1.5 py-0.5 hover:text-white', locale === code && 'bg-white/10 font-semibold text-white')}>{name}</button>
+            ))}
+        </span>
     );
 }

@@ -174,6 +174,14 @@ class SiteController extends Controller
         ]);
     }
 
+    public function setLocale(Request $request)
+    {
+        $locale = $request->validate(['locale' => ['required', 'in:'.implode(',', array_keys(\App\Support\I18n::LOCALES))]])['locale'];
+        $request->user()?->update(['locale' => $locale]);
+
+        return back()->withCookie(cookie()->forever('zvino_locale', $locale));
+    }
+
     public function setCity(Request $request)
     {
         $city = $request->validate(['city' => ['required', 'in:'.implode(',', Setting::get('general.cities'))]])['city'];

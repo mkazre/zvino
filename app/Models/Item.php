@@ -12,7 +12,7 @@ class Item extends Model
     protected $casts = [
         'is_available' => 'boolean', 'is_special' => 'boolean', 'is_popular' => 'boolean', 'needs_power' => 'boolean',
         'variants' => 'array', 'modifiers' => 'array', 'dietary' => 'array',
-        'price_zig' => 'float', 'special_price_zig' => 'float', 'unavailable_until' => 'datetime',
+        'price_zig' => 'float', 'special_price_zig' => 'float', 'step_kg' => 'float', 'unavailable_until' => 'datetime',
     ];
 
     public function vendor(): BelongsTo { return $this->belongsTo(Vendor::class); }
@@ -33,9 +33,21 @@ class Item extends Model
     }
 
     /** Unit price for a chosen variant and list of modifier option names. */
+    public function unitFactor(): float
+    {
+        return $this->sold_by === 'kg' ? (float) $this->step_kg : 1.0;
+    }
+
+    /** "1.5 kg" for weighed items, null for ordinary ones. */
+    public function weightLabel(int $quantity): ?string
+    {
+        return $this->sold_by === 'kg' ? rtrim(rtrim(number_format($quantity * $this->step_kg, 3, '.', ''), '0'), '.').' kg' : null;
+    }
+
     public function priceFor(?string $variant, array $modifiers = []): float
     {
-        $price = $this->effectivePrice();
+        // Fresh market (#29): price_zig is per kg; one cart "unit" is one step (e.g. 0.5 kg).
+        $price = $this->effectivePrice() * $this->unitFactor();
         foreach ($this->variants ?? [] as $v) {
             if ($v['name'] === $variant) {
                 $price += $v['price_delta_zig'] ?? 0;

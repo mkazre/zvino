@@ -21,6 +21,7 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
     Route::get('drive', [SiteController::class, 'drivers'])->name('drivers');
     Route::get('group/{code}', [SiteController::class, 'group'])->name('group');
     Route::post('city', [SiteController::class, 'setCity'])->name('city');
+    Route::post('locale', [SiteController::class, 'setLocale'])->name('locale');
 
     // Group orders from the browser (session-authenticated twins of the API routes; guests allowed to add items).
     Route::get('group/{code}/data', [\App\Http\Controllers\Api\GroupOrderController::class, 'show'])->name('group.data');

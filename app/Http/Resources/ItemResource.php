@@ -19,6 +19,8 @@ class ItemResource extends JsonResource
             'image' => $this->image_path,
             'price' => Money::both($this->price_zig),
             'special_price' => $this->special_price_zig ? Money::both($this->special_price_zig) : null,
+            'sold_by' => $this->sold_by ?? 'unit',
+            'step_kg' => (float) ($this->step_kg ?? 0.5),
             'is_available' => $this->isOrderable(),
             'unavailable_until' => $this->unavailable_until,
             'is_special' => $this->is_special,

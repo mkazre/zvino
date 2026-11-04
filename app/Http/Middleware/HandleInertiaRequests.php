@@ -35,6 +35,14 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
+    /** Signed-in customers keep their language on every device; visitors keep it in a cookie. */
+    public static function locale(Request $request): string
+    {
+        $locale = $request->user()?->locale ?: $request->cookie('zvino_locale', 'en');
+
+        return array_key_exists($locale, \App\Support\I18n::LOCALES) ? $locale : 'en';
+    }
+
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
@@ -60,6 +68,11 @@ class HandleInertiaRequests extends Middleware
                 'platform_mode' => Setting::platformMode(),
             ],
             'platformMode' => fn () => Setting::platformMode(),
+            'i18n' => function () use ($request) {
+                $locale = self::locale($request);
+
+                return ['locale' => $locale, 'languages' => \App\Support\I18n::LOCALES, 'strings' => (object) \App\Support\I18n::dictionary($locale)];
+            },
             'zigPerUsd' => fn () => ExchangeRate::current(),
             'pusher' => [
                 'key' => config('broadcasting.connections.pusher.key'),

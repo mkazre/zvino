@@ -156,6 +156,7 @@ class DriverController extends Controller
             'store' => $o->order->vendor->only('name', 'address', 'lat', 'lng'),
             'dropoff_area' => $o->order->address?->suburb ?? $o->order->address?->city,
             'items_count' => $o->order->items()->sum('quantity'),
+            'safety' => $this->safety($o->order),
         ]));
     }
 
@@ -254,6 +255,10 @@ class DriverController extends Controller
                 'min' => Money::both((float) Setting::get('payments.instant_cashout_min_zig')),
             ] : null,
             'tier' => $driver->tier ?? 'bronze',
+            'goals' => [
+                'daily' => $driver->daily_goal_zig ? ['target' => (float) $driver->daily_goal_zig, 'earned' => round((float) $driver->ledger()->whereIn('type', ['earning', 'tip'])->where('created_at', '>=', now()->startOfDay())->sum('amount_zig'), 2)] : null,
+                'weekly' => $driver->weekly_goal_zig ? ['target' => (float) $driver->weekly_goal_zig, 'earned' => round((float) $driver->ledger()->whereIn('type', ['earning', 'tip'])->where('created_at', '>=', now()->startOfWeek())->sum('amount_zig'), 2)] : null,
+            ],
             'entries' => $entries->take(50)->values()->map(fn ($e) => $e->only('id', 'type', 'amount_zig', 'description', 'created_at')),
             'daily' => $entries->whereIn('type', ['earning', 'tip'])->groupBy(fn ($e) => $e->created_at->toDateString())->map->sum('amount_zig'),
         ]);
@@ -271,6 +276,59 @@ class DriverController extends Controller
             'fee' => Money::both($payout->fee_zig),
             'message' => 'Cash-out requested. You’ll receive it today via '.ucfirst($payout->method).'.',
         ], 201);
+    }
+
+    public function preferences(Request $request)
+    {
+        $driver = $this->driver($request);
+        $driver->update($request->validate([
+            'avoid_night_zones' => ['sometimes', 'boolean'],
+            'daily_goal_zig' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100000'],
+            'weekly_goal_zig' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:500000'],
+        ]));
+
+        return response()->json($this->present($driver->fresh()));
+    }
+
+    /**
+     * Demand heatmap (#24): where orders are coming from now, blended with the same hour on the
+     * last four same weekdays, bucketed into ~1 km cells around the stores.
+     */
+    public function heatmap(Request $request)
+    {
+        $driver = $this->approved($request);
+        abort_unless(Setting::get('drivers.heatmap_enabled'), 404);
+
+        $cells = [];
+        $add = function ($orders, float $weight) use (&$cells) {
+            foreach ($orders as $o) {
+                if (! $o->vendor?->lat) {
+                    continue;
+                }
+                $key = round($o->vendor->lat, 2).','.round($o->vendor->lng, 2);
+                $cells[$key] ??= ['lat' => round($o->vendor->lat, 2), 'lng' => round($o->vendor->lng, 2), 'score' => 0, 'now' => 0, 'stores' => []];
+                $cells[$key]['score'] += $weight;
+                $cells[$key]['now'] += $weight === 1.0 ? 1 : 0;
+                $cells[$key]['stores'][$o->vendor->name] = true;
+            }
+        };
+
+        $add(Order::with('vendor:id,name,lat,lng')->where('fulfilment', 'delivery')->where('created_at', '>=', now()->subHour())->get(['id', 'vendor_id']), 1.0);
+        for ($w = 1; $w <= 4; $w++) {
+            $at = now()->subWeeks($w);
+            $add(Order::with('vendor:id,name,lat,lng')->where('fulfilment', 'delivery')->whereBetween('created_at', [$at->copy()->subMinutes(30), $at->copy()->addMinutes(60)])->get(['id', 'vendor_id']), 0.25);
+        }
+
+        $max = max(1, ...array_column($cells, 'score') ?: [1]);
+        $out = collect($cells)->map(fn ($c) => [
+            'lat' => $c['lat'], 'lng' => $c['lng'],
+            'intensity' => round($c['score'] / $max, 2),
+            'orders_last_hour' => $c['now'],
+            'label' => implode(', ', array_slice(array_keys($c['stores']), 0, 2)),
+            'km' => $driver->lat ? round(Geo::km($driver->lat, $driver->lng, $c['lat'], $c['lng']), 1) : null,
+        ])->sortByDesc('intensity')->values()->take(12);
+
+        return response()->json(['cells' => $out, 'updated_at' => now()]);
     }
 
     public function tier(Request $request, \App\Services\DriverTierService $tiers)
@@ -342,7 +400,16 @@ class DriverController extends Controller
             'items' => $o->items->map(fn ($i) => ['name' => $i->name, 'quantity' => $i->quantity]),
             'pay' => Money::both($o->driver_pay_zig + $o->tip_zig),
             'notes' => $o->notes,
+            'safety' => $this->safety($o),
         ];
+    }
+
+    /** Night safety zone warning for a drop-off, shown on the offer and the job screen. */
+    private function safety(Order $o): ?array
+    {
+        $zone = \App\Models\SafetyZone::activeAt($o->address?->lat, $o->address?->lng);
+
+        return $zone ? ['zone' => $zone->name, 'note' => $zone->note, 'until' => substr($zone->night_to, 0, 5)] : null;
     }
 
     private function present(Driver $d): array
@@ -355,6 +422,9 @@ class DriverController extends Controller
             'cash_held' => Money::both($d->cashHeld()),
             'today' => Money::both((float) $d->ledger()->whereIn('type', ['earning', 'tip'])->where('created_at', '>=', now()->startOfDay())->sum('amount_zig')),
             'location_interval_seconds' => Setting::get('delivery.location_interval_seconds'),
+            'tier' => $d->tier ?? 'bronze',
+            'preferences' => ['avoid_night_zones' => (bool) $d->avoid_night_zones, 'daily_goal_zig' => $d->daily_goal_zig ? (float) $d->daily_goal_zig : null, 'weekly_goal_zig' => $d->weekly_goal_zig ? (float) $d->weekly_goal_zig : null],
+            'night_zones_enabled' => (bool) Setting::get('drivers.night_zones_enabled'),
         ];
     }
 }

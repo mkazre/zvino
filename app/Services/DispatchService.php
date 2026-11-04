@@ -73,9 +73,11 @@ class DispatchService
         $alreadyOffered = $order->dispatchOffers()->pluck('driver_id');
         $cashLimit = (float) Setting::get('delivery.driver_cash_limit_zig');
         $tiers = app(DriverTierService::class);
+        $nightZone = \App\Models\SafetyZone::activeAt($order->address?->lat, $order->address?->lng);
 
         return Driver::available()
             ->whereNotIn('id', $alreadyOffered)
+            ->when($nightZone, fn ($q) => $q->where('avoid_night_zones', false))
             ->with('user')
             ->get()
             ->filter(fn (Driver $d) => $d->activeOrders()->count() === 0

@@ -3,7 +3,7 @@ import { Badge, Card, Drawer, Field, Input, LiveMap, Page, PageHeader, Select, S
 import AdminLayout from '@/layouts/admin-layout';
 import { zig } from '@/lib/money';
 import { router, useForm } from '@inertiajs/react';
-import { CloudRain, Map as MapIcon, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
+import { CloudRain, Map as MapIcon, Moon, Pencil, Plus, ShieldAlert, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Zone {
@@ -26,8 +26,18 @@ interface Zone {
     online_drivers: number;
 }
 
-export default function Zones({ zones, cities, mapsKey, vendors }: { zones: Zone[]; cities: string[]; mapsKey: string | null; vendors: { id: number; name: string; lat: number; lng: number }[] }) {
+interface SafetyZone { id: number; name: string; city: string | null; lat: number; lng: number; radius_km: number; night_from: string; night_to: string; note: string | null; is_active: boolean }
+
+/** Circle as a polygon so the shared map component can draw it. */
+const circle = (lat: number, lng: number, km: number): [number, number][] =>
+    Array.from({ length: 24 }, (_, i) => {
+        const a = (i / 24) * 2 * Math.PI;
+        return [lat + (km / 111) * Math.sin(a), lng + (km / (111 * Math.cos((lat * Math.PI) / 180))) * Math.cos(a)] as [number, number];
+    });
+
+export default function Zones({ zones, cities, mapsKey, vendors, safetyZones = [], nightZonesEnabled }: { zones: Zone[]; cities: string[]; mapsKey: string | null; vendors: { id: number; name: string; lat: number; lng: number }[]; safetyZones?: SafetyZone[]; nightZonesEnabled?: boolean }) {
     const [editing, setEditing] = useState<Zone | 'new' | null>(null);
+    const [safety, setSafety] = useState<SafetyZone | 'new' | null>(null);
     const confirm = useConfirm();
 
     return (
@@ -45,7 +55,7 @@ export default function Zones({ zones, cities, mapsKey, vendors }: { zones: Zone
                     } />
 
                 <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
-                    <LiveMap apiKey={mapsKey} className="h-[560px]" markers={vendors.map((v) => ({ id: `v${v.id}`, lat: v.lat, lng: v.lng, kind: 'store', label: v.name }))} polygons={zones.map((z) => ({ id: z.id, points: z.polygon, label: z.name, tone: !z.is_active ? 'muted' : z.surge_multiplier > 1 ? 'gold' : 'brand' }))} />
+                    <LiveMap apiKey={mapsKey} className="h-[560px]" markers={vendors.map((v) => ({ id: `v${v.id}`, lat: v.lat, lng: v.lng, kind: 'store', label: v.name }))} polygons={[...zones.map((z) => ({ id: z.id, points: z.polygon, label: z.name, tone: (!z.is_active ? 'muted' : z.surge_multiplier > 1 ? 'gold' : 'brand') as 'muted' | 'gold' | 'brand' })), ...safetyZones.filter((s) => s.is_active).map((s) => ({ id: `s${s.id}`, points: circle(s.lat, s.lng, s.radius_km), label: `⚠ ${s.name}`, tone: 'gold' as const }))]} />
 
                     <div className="grid content-start gap-3">
                         {zones.length === 0 && <Card padded className="text-muted-foreground text-center text-sm"><MapIcon className="mx-auto mb-2 size-6" />No zones yet. Create one to start delivering.</Card>}
@@ -82,9 +92,29 @@ export default function Zones({ zones, cities, mapsKey, vendors }: { zones: Zone
                                 </div>
                             </Card>
                         ))}
+
+                        <Card padded>
+                            <div className="flex items-center justify-between">
+                                <h3 className="flex items-center gap-2 font-semibold"><ShieldAlert className="size-4" /> Night safety zones</h3>
+                                <Button size="sm" variant="outline" onClick={() => setSafety('new')}><Plus /> Add</Button>
+                            </div>
+                            <p className="text-muted-foreground mt-1 text-[13px]">Drivers see a warning on drop-offs here after dark, and drivers who opt out aren’t offered them.{!nightZonesEnabled && ' Currently switched off in Settings → Driver onboarding.'}</p>
+                            <div className="mt-3 grid gap-2">
+                                {safetyZones.length === 0 && <p className="text-muted-foreground text-xs">None yet.</p>}
+                                {safetyZones.map((s) => (
+                                    <div key={s.id} className="bg-subtle flex items-center gap-3 rounded-lg px-3 py-2">
+                                        <Moon className="size-4 shrink-0" />
+                                        <div className="min-w-0 flex-1"><div className="text-sm font-medium">{s.name}{!s.is_active && <span className="text-muted-foreground"> (off)</span>}</div><div className="text-muted-foreground text-xs">{s.radius_km} km · {s.night_from.slice(0, 5)}–{s.night_to.slice(0, 5)}{s.note && ` · ${s.note}`}</div></div>
+                                        <Button size="icon-sm" variant="ghost" aria-label="Edit" onClick={() => setSafety(s)}><Pencil /></Button>
+                                        <Button size="icon-sm" variant="ghost" className="text-zred" aria-label="Delete" onClick={async () => (await confirm({ title: `Remove ${s.name}?`, tone: 'danger', confirmLabel: 'Remove' })) && router.delete(`/admin/safety-zones/${s.id}`, { preserveScroll: true })}><Trash2 /></Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
                     </div>
                 </div>
             </Page>
+            {safety && <SafetyDrawer zone={safety === 'new' ? null : safety} cities={cities} mapsKey={mapsKey} onClose={() => setSafety(null)} />}
             {editing && <ZoneDrawer zone={editing === 'new' ? null : editing} cities={cities} mapsKey={mapsKey} vendors={vendors} onClose={() => setEditing(null)} />}
         </AdminLayout>
     );
@@ -141,6 +171,40 @@ function ZoneDrawer({ zone, cities, mapsKey, vendors, onClose }: { zone: Zone | 
                     {data.surge_multiplier > 1 && <Field label="Shown to customers as"><Input value={data.surge_reason} onChange={(e) => setData('surge_reason', e.target.value)} placeholder="Rain / high demand" /></Field>}
                     <Switch checked={data.is_active} onChange={(v) => setData('is_active', v)} label="Zone active" />
                 </div>
+            </div>
+        </Drawer>
+    );
+}
+
+function SafetyDrawer({ zone, cities, mapsKey, onClose }: { zone: SafetyZone | null; cities: string[]; mapsKey: string | null; onClose: () => void }) {
+    const { data, setData, post, processing, errors } = useForm({
+        name: zone?.name ?? '',
+        city: zone?.city ?? cities[0],
+        lat: zone?.lat ?? 0,
+        lng: zone?.lng ?? 0,
+        radius_km: zone?.radius_km ?? 1,
+        night_from: zone?.night_from?.slice(0, 5) ?? '19:00',
+        night_to: zone?.night_to?.slice(0, 5) ?? '05:00',
+        note: zone?.note ?? '',
+        is_active: zone?.is_active ?? true,
+    });
+    const err = (k: string) => (errors as Record<string, string>)[k];
+    const placed = data.lat !== 0 || data.lng !== 0;
+    return (
+        <Drawer open onClose={onClose} width="lg" title={zone ? `Edit ${zone.name}` : 'New safety zone'} description="Click the map to set the centre."
+            footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={processing || !placed || !data.name} onClick={() => post(zone ? `/admin/safety-zones/${zone.id}` : '/admin/safety-zones', { onSuccess: onClose, preserveScroll: true })}>Save</Button></>}>
+            <div className="grid gap-4">
+                <LiveMap apiKey={mapsKey} className="h-[320px]" markers={[]} polygons={placed ? [{ id: 'c', points: circle(data.lat, data.lng, data.radius_km), label: data.name || 'Zone', tone: 'gold' }] : []} onMapClick={(lat, lng) => { setData('lat', Number(lat.toFixed(6))); setData('lng', Number(lng.toFixed(6))); }} />
+                {err('lat') && <p className="text-zred text-xs">Click the map to place the zone.</p>}
+                <Field label="Name" error={err('name')}><Input value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="e.g. Mbare Musika (night)" /></Field>
+                <div className="grid grid-cols-3 gap-3">
+                    <Field label="Radius"><Input type="number" step="0.1" suffix="km" value={data.radius_km} onChange={(e) => setData('radius_km', Number(e.target.value))} /></Field>
+                    <Field label="From"><Input type="time" value={data.night_from} onChange={(e) => setData('night_from', e.target.value)} /></Field>
+                    <Field label="Until"><Input type="time" value={data.night_to} onChange={(e) => setData('night_to', e.target.value)} /></Field>
+                </div>
+                <Field label="City"><Select value={data.city ?? ''} onChange={(e) => setData('city', e.target.value)}>{cities.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+                <Field label="Note for drivers" optional><Input value={data.note} onChange={(e) => setData('note', e.target.value)} placeholder="Meet the customer at the main road" /></Field>
+                <Switch checked={data.is_active} onChange={(v) => setData('is_active', v)} label="Active" />
             </div>
         </Drawer>
     );

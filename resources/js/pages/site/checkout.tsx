@@ -4,6 +4,7 @@ import { AddressModal } from '@/components/site-address';
 import SiteLayout, { type SiteProps } from '@/layouts/site-layout';
 import { cart as browserCart, useCart } from '@/lib/cart';
 import { label, usd, zig } from '@/lib/money';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { type Money } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
@@ -48,6 +49,7 @@ const METHOD_META: Record<string, { icon: typeof Smartphone; hint: string }> = {
 
 export default function Checkout(p: Props) {
     const { zigPerUsd } = usePage<SiteProps>().props;
+    const t = useT();
     const browser = useCart();
     const [server, setServer] = useState<ServerCart>(p.cart);
     const [syncing, setSyncing] = useState(false);
@@ -139,19 +141,19 @@ export default function Checkout(p: Props) {
             <Head title="Checkout · Zvino" />
             <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1fr_400px]">
                 <div className="grid content-start gap-6">
-                    <h1 className="text-[32px] font-extrabold tracking-[-0.04em]">Checkout</h1>
+                    <h1 className="text-[32px] font-extrabold tracking-[-0.04em]">{t('Checkout')}</h1>
 
                     {/* Fulfilment */}
-                    <Block title="How do you want it?">
+                    <Block title={t('How do you want it?')}>
                         <div className="grid grid-cols-2 gap-2">
-                            {p.store?.offers_delivery !== false && <Tile active={form.data.fulfilment === 'delivery'} onClick={() => form.setData('fulfilment', 'delivery')} icon={Bike} title="Delivery" sub={server.eta_minutes ? `${server.eta_minutes[0]}–${server.eta_minutes[1]} min` : ''} />}
-                            {p.store?.offers_pickup && <Tile active={form.data.fulfilment === 'pickup'} onClick={() => form.setData('fulfilment', 'pickup')} icon={Footprints} title="Pickup" sub="No delivery fee" />}
+                            {p.store?.offers_delivery !== false && <Tile active={form.data.fulfilment === 'delivery'} onClick={() => form.setData('fulfilment', 'delivery')} icon={Bike} title={t('Delivery')} sub={server.eta_minutes ? `${server.eta_minutes[0]}–${server.eta_minutes[1]} min` : ''} />}
+                            {p.store?.offers_pickup && <Tile active={form.data.fulfilment === 'pickup'} onClick={() => form.setData('fulfilment', 'pickup')} icon={Footprints} title={t('Pickup')} sub="No delivery fee" />}
                         </div>
                         {form.data.fulfilment === 'pickup' && p.store?.address && <p className="text-muted-foreground mt-3 text-sm">Collect from {server.vendor?.name}, {p.store.address}</p>}
                     </Block>
 
                     {form.data.fulfilment === 'delivery' && (
-                        <Block title="Delivery address" action={<button onClick={() => setAddrOpen(true)} className="flex items-center gap-1 text-sm font-semibold"><Plus className="size-4" /> New address</button>}>
+                        <Block title={t('Delivery address')} action={<button onClick={() => setAddrOpen(true)} className="flex items-center gap-1 text-sm font-semibold"><Plus className="size-4" /> New address</button>}>
                             {p.addresses.length === 0 ? (
                                 <button onClick={() => setAddrOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border-2 border-dashed p-5 text-left"><MapPin className="size-5" /><span className="font-semibold">Add your delivery address</span></button>
                             ) : (
@@ -173,10 +175,10 @@ export default function Checkout(p: Props) {
                         </Block>
                     )}
 
-                    <Block title="When?">
+                    <Block title={t('When?')}>
                         <div className="grid grid-cols-2 gap-2">
-                            <Tile active={when === 'asap'} disabled={p.store?.availability.is_open === false} onClick={() => setWhen('asap')} icon={Zap} title="As soon as possible" sub={p.store?.availability.is_open === false ? 'Store is closed now' : ''} />
-                            {p.scheduleDays > 0 && p.store?.accepts_scheduled && <Tile active={when === 'later'} onClick={() => setWhen('later')} icon={CalendarClock} title="Schedule for later" sub={`Up to ${p.scheduleDays} days ahead`} />}
+                            <Tile active={when === 'asap'} disabled={p.store?.availability.is_open === false} onClick={() => setWhen('asap')} icon={Zap} title={t('As soon as possible')} sub={p.store?.availability.is_open === false ? 'Store is closed now' : ''} />
+                            {p.scheduleDays > 0 && p.store?.accepts_scheduled && <Tile active={when === 'later'} onClick={() => setWhen('later')} icon={CalendarClock} title={t('Schedule for later')} sub={`Up to ${p.scheduleDays} days ahead`} />}
                         </div>
                         {when === 'later' && (
                             <Select className="mt-3 h-12" value={form.data.scheduled_for} onChange={(e) => form.setData('scheduled_for', e.target.value)}>
@@ -187,7 +189,7 @@ export default function Checkout(p: Props) {
                         {form.errors.scheduled_for && <p className="mt-2 text-sm text-[#c8102e]">{form.errors.scheduled_for}</p>}
                     </Block>
 
-                    <Block title="Payment">
+                    <Block title={t('Payment')}>
                         <div className="grid gap-2">
                             {p.methods.map((m) => {
                                 const meta = METHOD_META[m];
@@ -218,7 +220,7 @@ export default function Checkout(p: Props) {
                     </Block>
 
                     {p.tipPresets.length > 0 && form.data.fulfilment === 'delivery' && (
-                        <Block title="Tip your driver" action={<span className="text-muted-foreground text-xs">100% goes to them</span>}>
+                        <Block title={t('Tip your driver')} action={<span className="text-muted-foreground text-xs">{t('100% goes to them')}</span>}>
                             <div className="flex flex-wrap gap-2">
                                 {[0, ...p.tipPresets].map((t) => <button key={t} onClick={() => setTipPct(t)} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === t ? 'bg-[#111412] text-white dark:bg-white dark:text-black' : 'bg-muted dark:bg-white/10')}>{t === 0 ? 'Not now' : `${t}% · ${zig(Math.round(subtotal * t / 100))}`}</button>)}
                                 <button onClick={() => setTipPct('custom')} className={cn('h-11 rounded-full px-5 text-sm font-semibold', tipPct === 'custom' ? 'bg-[#111412] text-white' : 'bg-muted dark:bg-white/10')}>Other</button>
@@ -227,16 +229,16 @@ export default function Checkout(p: Props) {
                         </Block>
                     )}
 
-                    <Block title="Extras">
+                    <Block title={t('Extras')}>
                         <div className="grid gap-2">
-                            <Toggle checked={form.data.no_cutlery} onChange={(v) => form.setData('no_cutlery', v)} icon={Leaf} title="No cutlery or straws" sub="Less plastic. Thank you!" />
+                            <Toggle checked={form.data.no_cutlery} onChange={(v) => form.setData('no_cutlery', v)} icon={Leaf} title={t('No cutlery or straws')} sub={t('Less plastic. Thank you!')} />
                             {p.charity && (
                                 <Toggle checked={form.data.round_up} onChange={(v) => form.setData('round_up', v)} icon={Heart} title={`Round up for ${p.charity.name}`} sub={donation > 0 || !form.data.round_up ? `Add ${zig(form.data.round_up ? donation : Math.round((Math.ceil(baseTotal / step) * step - baseTotal) * 100) / 100)}. Every cent goes to the charity` : 'Your total is already round'} />
                             )}
                         </div>
                     </Block>
 
-                    <Block title="Notes for the restaurant">
+                    <Block title={t('Notes for the restaurant')}>
                         <Textarea value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} placeholder="Allergies, extra napkins…" />
                     </Block>
                 </div>
@@ -254,13 +256,13 @@ export default function Checkout(p: Props) {
                             ))}
                         </ul>
                         <form onSubmit={(e) => { e.preventDefault(); quote(promo); }} className="mt-4 flex gap-2">
-                            <div className="relative flex-1"><Tag className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" /><input value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} placeholder="Promo code" className="bg-muted h-11 w-full rounded-xl pr-3 pl-9 font-mono text-sm uppercase outline-none dark:bg-white/10" /></div>
-                            <Button variant="outline" className="h-11 rounded-xl">{server.voucher ? 'Applied ✓' : 'Apply'}</Button>
+                            <div className="relative flex-1"><Tag className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" /><input value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} placeholder={t('Promo code')} className="bg-muted h-11 w-full rounded-xl pr-3 pl-9 font-mono text-sm uppercase outline-none dark:bg-white/10" /></div>
+                            <Button variant="outline" className="h-11 rounded-xl">{server.voucher ? 'Applied ✓' : t('Apply')}</Button>
                         </form>
                         <dl className="mt-5 grid gap-2 text-sm">
-                            <Row l="Subtotal" v={totals.subtotal.zig} />
+                            <Row l={t('Subtotal')} v={totals.subtotal.zig} />
                             {form.data.fulfilment === 'delivery' && <Row l={<>Delivery{server.surge && <span className="ml-1 text-xs text-[#c99412]">({server.surge.multiplier}× {server.surge.reason ?? 'busy'})</span>}</>} v={totals.delivery.zig} free={totals.delivery.zig === 0} />}
-                            <Row l="Service fee" v={totals.service.zig} />
+                            <Row l={t('Service fee')} v={totals.service.zig} />
                             {totals.small_order.zig > 0 && <Row l="Small order fee" v={totals.small_order.zig} />}
                             {totals.discount.zig > 0 && <Row l="Promo" v={-totals.discount.zig} green />}
                             {totals.tip.zig > 0 && <Row l="Driver tip" v={totals.tip.zig} />}
@@ -268,7 +270,7 @@ export default function Checkout(p: Props) {
                             {totals.member_savings.zig > 0 && <div className="rounded-lg bg-[#e8f3ee] px-3 py-2 text-xs font-medium text-[#0b6e4f]">Zvino+ saved you {zig(totals.member_savings.zig)} 🎉</div>}
                         </dl>
                         <div className="mt-4 flex items-end justify-between border-t pt-4">
-                            <span className="font-bold">Total</span>
+                            <span className="font-bold">{t('Total')}</span>
                             <span className="text-right"><span className="tabular block text-2xl font-extrabold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{usd(totals.total.usd || total / zigPerUsd)} · VAT incl.</span></span>
                         </div>
                         <p className="text-muted-foreground mt-1 text-right text-[11px]">Rate today: 1 USD = {zigPerUsd} ZiG</p>
@@ -281,7 +283,7 @@ export default function Checkout(p: Props) {
                         )}
                         {Object.values(form.errors).length > 0 && <div className="mt-4 rounded-xl bg-[#fdecee] p-3 text-sm text-[#c8102e]">{Object.values(form.errors)[0]}</div>}
                         <Button variant="dark" className="mt-5 h-14 w-full rounded-full text-base" disabled={!canPay || form.processing || syncing} onClick={place}>
-                            {form.processing ? <Loader2 className="size-5 animate-spin" /> : `Place order · ${zig(due)}`}
+                            {form.processing ? <Loader2 className="size-5 animate-spin" /> : `${t('Place order')} · ${zig(due)}`}
                         </Button>
                         {!canPay && <p className="text-muted-foreground mt-2 text-center text-xs">{form.data.fulfilment === 'delivery' && !form.data.address_id ? 'Add a delivery address to continue' : when === 'later' && !form.data.scheduled_for ? 'Pick a delivery time' : ''}</p>}
                     </div>

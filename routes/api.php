@@ -29,6 +29,7 @@ Route::get('search', [CatalogController::class, 'search']);
 Route::post('addresses/geocode', [AccountController::class, 'geocode'])->middleware('throttle:30,1');
 
 Route::middleware('throttle:5,1')->group(function () {
+    Route::get('i18n/{locale}', fn (string $locale) => response()->json(['locale' => $locale, 'languages' => \App\Support\I18n::LOCALES, 'strings' => (object) \App\Support\I18n::dictionary($locale)])->header('Cache-Control', 'public, max-age=3600'));
     Route::post('auth/otp/request', [AuthController::class, 'requestOtp']);
     Route::post('auth/otp/verify', [AuthController::class, 'verifyOtp']);
 });
@@ -119,6 +120,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('cash/remit', [DriverController::class, 'remitCash']);
         Route::post('cashout', [DriverController::class, 'cashOut'])->middleware('throttle:5,1');
         Route::get('tier', [DriverController::class, 'tier']);
+        Route::patch('preferences', [DriverController::class, 'preferences']);
+        Route::get('heatmap', [DriverController::class, 'heatmap']);
         Route::post('sos', [DriverController::class, 'sos'])->middleware('throttle:5,1');
     });
 

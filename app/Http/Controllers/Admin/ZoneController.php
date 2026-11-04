@@ -23,7 +23,36 @@ class ZoneController extends AdminController
             'cities' => Setting::get('general.cities'),
             'mapsKey' => Setting::get('integrations.google_maps_browser_key'),
             'vendors' => \App\Models\Vendor::whereNotNull('lat')->get(['id', 'name', 'lat', 'lng', 'zone_id']),
+            'safetyZones' => \App\Models\SafetyZone::orderBy('name')->get(),
+            'nightZonesEnabled' => (bool) Setting::get('drivers.night_zones_enabled'),
         ]);
+    }
+
+    public function saveSafety(Request $request, ?\App\Models\SafetyZone $safetyZone = null)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:80'],
+            'city' => ['nullable', 'string'],
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'radius_km' => ['required', 'numeric', 'between:0.1,10'],
+            'night_from' => ['required', 'date_format:H:i'],
+            'night_to' => ['required', 'date_format:H:i'],
+            'note' => ['nullable', 'string', 'max:200'],
+            'is_active' => ['boolean'],
+        ]);
+        $zone = $safetyZone ? tap($safetyZone)->update($data) : \App\Models\SafetyZone::create($data);
+        AuditLog::record('safety_zone.saved', $zone, $data);
+
+        return back()->with('success', 'Safety zone saved.');
+    }
+
+    public function destroySafety(\App\Models\SafetyZone $safetyZone)
+    {
+        AuditLog::record('safety_zone.deleted', $safetyZone);
+        $safetyZone->delete();
+
+        return back()->with('success', 'Safety zone removed.');
     }
 
     public function save(Request $request, ?Zone $zone = null)

@@ -225,6 +225,8 @@ return [
             'required_documents' => ['type' => 'list', 'label' => 'Required documents', 'default' => ['national_id', 'licence', 'selfie']],
             'min_age' => ['type' => 'int', 'label' => 'Minimum age', 'default' => 18],
             'vehicle_types' => ['type' => 'list', 'label' => 'Allowed vehicles', 'default' => ['motorbike', 'bicycle', 'car']],
+            'night_zones_enabled' => ['type' => 'bool', 'label' => 'Night safety zones', 'default' => true, 'help' => 'Warn drivers about flagged areas after dark; drivers can opt out of those jobs. Manage zones on Zones & fees.'],
+            'heatmap_enabled' => ['type' => 'bool', 'label' => 'Demand heatmap in the driver app', 'default' => true],
             'tiers_enabled' => ['type' => 'bool', 'label' => 'Driver tiers (Bronze / Silver / Gold)', 'default' => true, 'help' => 'Higher tiers get first pick of nearby jobs and a pay bonus.'],
             'silver_min_trips' => ['type' => 'int', 'label' => 'Silver: minimum deliveries', 'default' => 50],
             'silver_min_rating' => ['type' => 'decimal', 'label' => 'Silver: minimum rating', 'default' => 4.5],

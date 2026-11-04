@@ -27,6 +27,8 @@ export interface StoreCardData {
 }
 
 export type MenuItem = Item & {
+    sold_by?: 'unit' | 'kg';
+    step_kg?: number;
     is_popular: boolean;
     dietary: string[];
     calories: number | null;
@@ -88,7 +90,7 @@ export function DishCard({ i, onClick, showStore = false }: { i: MenuItem; onCli
                 {showStore && i.vendor && <p className="text-muted-foreground text-xs">{i.vendor.name}</p>}
                 {i.description && <p className="text-muted-foreground mt-1 line-clamp-2 text-[13px] leading-relaxed">{i.description}</p>}
                 <p className="mt-2 flex items-baseline gap-2">
-                    <span className={cn('tabular font-bold', i.special_price && 'text-[#c8102e]')}>{zig(price)}</span>
+                    <span className={cn('tabular font-bold', i.special_price && 'text-[#c8102e]')}>{zig(price)}{i.sold_by === 'kg' && <span className="text-muted-foreground font-normal"> / kg</span>}</span>
                     {i.special_price && <span className="tabular text-muted-foreground text-[13px] line-through">{zig(i.price.zig)}</span>}
                     {!i.is_available && <span className="text-muted-foreground text-xs font-medium">Sold out</span>}
                 </p>
@@ -110,7 +112,10 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
     const [qty, setQty] = useState(1);
     const [notes, setNotes] = useState('');
     const groups = item.modifier_groups ?? [];
-    const base = item.special_price?.zig ?? item.price.zig;
+    const perKg = item.sold_by === 'kg';
+    const step = item.step_kg ?? 0.5;
+    const kg = (n: number) => `${+(n * step).toFixed(3)} kg`;
+    const base = (item.special_price?.zig ?? item.price.zig) * (perKg ? step : 1);
     const unit = useMemo(
         () => base + (item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + mods.reduce((s, m) => s + (groups.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0),
         [base, variant, mods, item, groups],
@@ -126,12 +131,12 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
     };
 
     const add = (replace = false) => {
-        const ok = cart.add({ id: store.id, name: store.name, slug: store.slug, min_order_zig: store.min_order.zig }, { item_id: item.id, name: item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
+        const ok = cart.add({ id: store.id, name: store.name, slug: store.slug, min_order_zig: store.min_order.zig }, { item_id: item.id, name: perKg ? `${item.name} (per ${step} kg)` : item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
         if (!ok) {
             if (confirm(`Your basket has items from another store. Start a new basket from ${store.name}?`)) add(true);
             return;
         }
-        toast.success(`${qty}× ${item.name} added`, { action: { label: 'View basket', onClick: () => window.dispatchEvent(new Event('zvino:open-cart')) } });
+        toast.success(`${perKg ? kg(qty) : `${qty}×`} ${item.name} added`, { action: { label: 'View basket', onClick: () => window.dispatchEvent(new Event('zvino:open-cart')) } });
         onClose();
     };
 
@@ -141,11 +146,11 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
                 <div className="flex w-full items-center gap-3">
                     <div className="bg-muted flex items-center rounded-full dark:bg-white/10">
                         <button onClick={() => setQty(Math.max(1, qty - 1))} className="flex size-12 items-center justify-center" aria-label="Less"><Minus className="size-4" /></button>
-                        <span className="tabular w-6 text-center font-bold">{qty}</span>
+                        <span className={cn('tabular text-center font-bold', perKg ? 'w-16' : 'w-6')}>{perKg ? kg(qty) : qty}</span>
                         <button onClick={() => setQty(qty + 1)} className="flex size-12 items-center justify-center" aria-label="More"><Plus className="size-4" /></button>
                     </div>
                     <Button variant="dark" className="h-12 flex-1 rounded-full text-[15px]" disabled={!!missing} onClick={() => add()}>
-                        {missing ? `Choose ${missing.name.toLowerCase()}` : `Add ${qty} · ${zig(unit * qty)}`}
+                        {missing ? `Choose ${missing.name.toLowerCase()}` : `Add ${perKg ? kg(qty) : qty} · ${zig(unit * qty)}`}
                     </Button>
                 </div>
             }>

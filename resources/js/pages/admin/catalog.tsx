@@ -8,7 +8,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { ChefHat, Layers, Pencil, Plus, Trash2, UtensilsCrossed, Zap, ZapOff } from 'lucide-react';
 import { useState } from 'react';
 
-type MenuItem = Item & { needs_power: boolean; is_popular: boolean; dietary: string[]; calories: number | null; unavailable_until: string | null; modifier_groups?: { id: number; name: string; min: number; max: number }[] };
+type MenuItem = Item & { sold_by?: 'unit' | 'kg'; step_kg?: number; needs_power: boolean; is_popular: boolean; dietary: string[]; calories: number | null; unavailable_until: string | null; modifier_groups?: { id: number; name: string; min: number; max: number }[] };
 interface Group { id: number; name: string; min_select: number; max_select: number; items_count: number; options: { id: number; name: string; price_delta_zig: number; is_available: boolean }[] }
 interface Props {
     vendor: { id: number; name: string; power_out: boolean } | null;
@@ -141,6 +141,8 @@ function ItemDrawer({ item, vendorId, categories, groups, onClose, onDelete }: {
         category_id: item?.category_id ?? categories[0]?.id ?? '',
         price_zig: item?.price.zig ?? '',
         special_price_zig: item?.special_price?.zig ?? '',
+        sold_by: (item?.sold_by ?? 'unit') as string,
+        step_kg: item?.step_kg ?? 0.5,
         is_available: item?.is_available ?? true,
         is_special: item?.is_special ?? false,
         is_popular: item?.is_popular ?? false,
@@ -177,8 +179,13 @@ function ItemDrawer({ item, vendorId, categories, groups, onClose, onDelete }: {
                 <Field label="Description"><Textarea value={data.description} onChange={(e) => setData('description', e.target.value)} placeholder="What’s in it? Customers love detail." /></Field>
                 <div className="grid grid-cols-3 gap-3">
                     <Field label="Category"><Select value={data.category_id} onChange={(e) => setData('category_id', Number(e.target.value))}>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
-                    <Field label="Price" error={err('price_zig')}><Input type="number" step="0.01" prefix="ZiG" value={data.price_zig} onChange={(e) => setData('price_zig', e.target.value)} /></Field>
+                    <Field label={data.sold_by === 'kg' ? 'Price per kg' : 'Price'} error={err('price_zig')}><Input type="number" step="0.01" prefix="ZiG" value={data.price_zig} onChange={(e) => setData('price_zig', e.target.value)} /></Field>
                     <Field label="Special price" optional error={err('special_price_zig')}><Input type="number" step="0.01" prefix="ZiG" value={data.special_price_zig} onChange={(e) => setData('special_price_zig', e.target.value)} /></Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <Field label="Sold by" hint="Fresh produce and meat can be sold by weight."><Select value={data.sold_by} onChange={(e) => setData('sold_by', e.target.value)}><option value="unit">Each</option><option value="kg">Weight (kg)</option></Select></Field>
+                    {data.sold_by === 'kg' && <Field label="Customers buy in steps of" error={err('step_kg')}><Input type="number" step="0.05" suffix="kg" value={data.step_kg} onChange={(e) => setData('step_kg', Number(e.target.value))} /></Field>}
                 </div>
 
                 <div className="grid gap-2 border-t pt-5">

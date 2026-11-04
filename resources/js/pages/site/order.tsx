@@ -4,6 +4,7 @@ import SiteLayout from '@/layouts/site-layout';
 import { label, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Order } from '@/types';
+import { useT } from '@/lib/i18n';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Bike, Check, ChefHat, Clock, MessageCircle, Phone, ReceiptText, Star, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -68,7 +69,8 @@ export default function OrderPage({ order: initial, mapsKey, support }: Props) {
     const idx = ORDER.indexOf(o.status === 'ready' ? 'preparing' : o.status === 'arriving' ? 'picked_up' : o.status);
     const eta = o.estimated_delivery_at ? new Date(o.estimated_delivery_at) : null;
     const minsLeft = eta ? Math.max(0, Math.round((eta.getTime() - Date.now()) / 60000)) : null;
-    const [title, sub] = HEADLINE[o.status] ?? [label(o.status), ''];
+    const t = useT();
+    const [title, sub] = (HEADLINE[o.status] ?? [label(o.status), '']).map((x) => t(x));
     const markers = [
         ...(o.store.lat ? [{ id: 's', lat: o.store.lat, lng: o.store.lng!, kind: 'store' as const, label: o.store.name }] : []),
         ...(o.address?.lat ? [{ id: 'h', lat: o.address.lat, lng: o.address.lng!, kind: 'dropoff' as const, label: 'You' }] : []),
@@ -102,7 +104,7 @@ export default function OrderPage({ order: initial, mapsKey, support }: Props) {
                                             <span className={cn('flex size-10 items-center justify-center rounded-full border-2 transition', reached ? 'border-[#0b6e4f] bg-[#0b6e4f] text-white' : 'border-neutral-200 text-neutral-400', current && !done && 'ring-4 ring-[#0b6e4f]/20')}><s.icon className="size-5" /></span>
                                             {i < arr.length - 1 && <span className={cn('my-1 h-8 w-0.5', ORDER.indexOf(arr[i + 1].key) <= idx ? 'bg-[#0b6e4f]' : 'bg-neutral-200')} />}
                                         </div>
-                                        <div className="pt-2"><div className={cn('font-semibold', !reached && 'text-muted-foreground')}>{s.label}</div>{at && <div className="text-muted-foreground text-xs">{new Date(at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}</div>}</div>
+                                        <div className="pt-2"><div className={cn('font-semibold', !reached && 'text-muted-foreground')}>{t(s.label)}</div>{at && <div className="text-muted-foreground text-xs">{new Date(at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}</div>}</div>
                                     </li>
                                 );
                             })}

@@ -54,7 +54,7 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 3. 🇿🇼 **Live ZiG/USD rate banner** at checkout so totals are never a surprise ✅
 4. 🇿🇼 **Landmark addresses**: "opposite OK Mart, blue gate" plus a pin plus a gate photo ✅
 5. 🇿🇼 **Voice-note directions** for the driver, in Shona, Ndebele or English
-6. 🇿🇼 **Shona and Ndebele** languages (also in the driver and merchant apps)
+6. 🇿🇼 **Shona and Ndebele** languages (also in the driver and merchant apps) ✅ (draft translations: native-speaker review needed)
 7. 🇿🇼 **Diaspora "Send a meal home"**: pay from the UK/SA/US by card for family in Zimbabwe ✅
 8. 🇿🇼 **Diaspora grocery hampers**: monthly hamper subscription delivered to family
 9. 🇿🇼 **Funeral and gathering catering**: bulk orders with deposit, headcount and event date
@@ -73,15 +73,15 @@ Grouped by the app they live in. 🇿🇼 = built for Zimbabwe. ⚠ = needs an e
 20. 🇿🇼 **USD change to wallet**: credit the customer's change as wallet balance when there are no small notes ✅
 21. 🇿🇼 **Peri-urban batch runs**: Chitungwiza, Ruwa, Norton and Epworth delivered in scheduled batches
 22. **SOS and trip sharing**: panic button alerts ops and shares live location ✅
-23. **Night safety zones**: warnings and optional opt-out for flagged areas after dark
-24. **Demand heatmap and earnings goals**: where to wait, with daily and weekly targets
+23. **Night safety zones**: warnings and optional opt-out for flagged areas after dark ✅
+24. **Demand heatmap and earnings goals**: where to wait, with daily and weekly targets ✅
 25. **Instant cash-out** of earnings to EcoCash (small fee) ✅
 26. **Driver tiers**: priority offers for high-rated, reliable drivers (Bronze/Silver/Gold with pay bonus) ✅
 27. ⚠ **Fuel advance and micro-insurance** offers [insurance / lending partner]
 
 ### Merchant app: Store manager mode (6)
 28. 🇿🇼 **Load-shedding mode**: "Power out / on generator" hides oven and fryer items and adds prep time ✅
-29. 🇿🇼 **Fresh market selling**: Mbare and market vendors list produce by weight
+29. 🇿🇼 **Fresh market selling**: Mbare and market vendors list produce by weight ✅
 30. 🇿🇼 **Pharmacy orders**: prescription photo review and approve/decline before payment
 31. **Self-serve promotions**: BOGO, happy hour, % off, free item (% off, ZiG off, free delivery with results ✅; BOGO/happy hour to do)
 32. **Menu insights**: best sellers, items often removed from carts, prep time per item ✅
