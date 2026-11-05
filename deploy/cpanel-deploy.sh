@@ -9,7 +9,12 @@ SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP="$HOME/zvino-app"
 WEB="$HOME/public_html"
 LOG="$HOME/zvino-deploy.log"
-exec > >(tee -a "$LOG") 2>&1
+# Log to ~/zvino-deploy.log as well as cPanel's deploy log. (Plain pipe: shared hosts often have no
+# /dev/fd, so bash process substitution like `exec > >(tee …)` fails there.)
+if [ -z "${ZVINO_DEPLOY_LOGGED:-}" ]; then
+  ZVINO_DEPLOY_LOGGED=1 /bin/bash "${BASH_SOURCE[0]}" "$@" 2>&1 | tee -a "$LOG"
+  exit "${PIPESTATUS[0]}"
+fi
 echo "=== Deploy $(date '+%Y-%m-%d %H:%M:%S') from $SRC"
 
 # PHP CLI: prefer cPanel's EasyApache PHP 8.3 / 8.2 (the default "php" on the command line can be older).
