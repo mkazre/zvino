@@ -60,7 +60,7 @@ jobs:
           # Replace the branch contents with the fresh build (keeps history so cPanel can fast-forward).
           find out -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           rsync -a api/ out/ \
-            --exclude node_modules --exclude tests --exclude .env --exclude 'database/*.sqlite' \
+            --exclude node_modules --exclude .github --exclude tests --exclude .env --exclude 'database/*.sqlite' \
             --exclude storage/logs --exclude 'storage/framework/*/*' --exclude .phpunit.cache
           printf '.env\n/storage/*.key\n/storage/logs/*\n!/storage/logs/.gitignore\n' > out/.gitignore
           cd out
