@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Alert, FlatList, Pressable, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, ApiError, type Money } from '@/lib/api';
-import { normalisePhone, usd, zig } from '@/lib/money';
+import { alt, normalisePhone, zig } from '@/lib/money';
 import { Button, Chip, Row, Text, useTheme } from '@/ui';
 import { QrView } from '@/features/qr';
 
@@ -24,7 +24,6 @@ export default function Pos() {
 
     const items = useMemo(() => (menu?.categories ?? []).flatMap((c) => (Array.isArray(c.items) ? c.items : c.items.data).map((i) => ({ ...i, category_id: c.id }))).filter((i) => i.is_available && (!cat || i.category_id === cat)), [menu, cat]);
     const total = lines.reduce((s, l) => s + (l.item.special_price?.zig ?? l.item.price.zig) * l.qty, 0);
-    const rate = total && lines[0] ? (lines[0].item.price.zig / (lines[0].item.price.usd || 1)) : 26.8;
     const add = (i: Item) => setLines((ls) => (ls.find((l) => l.item.id === i.id) ? ls.map((l) => (l.item.id === i.id ? { ...l, qty: l.qty + 1 } : l)) : [...ls, { item: i, qty: 1 }]));
     const cols = width > 700 ? 4 : 3;
 
@@ -90,7 +89,7 @@ export default function Pos() {
             <View style={{ borderTopWidth: 0.5, borderColor: t.border, padding: 16, gap: 10, backgroundColor: t.bg }}>
                 <Row justify="space-between">
                     <Pressable onPress={() => setLines([])}><Text variant="label" color={lines.length ? 'red' : 'faint'}>Clear</Text></Pressable>
-                    <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 24 }}>{zig(total)}</Text><Text variant="caption">{usd(total / rate)}</Text></View>
+                    <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 24 }}>{zig(total)}</Text><Text variant="caption">{alt(total)}</Text></View>
                 </Row>
                 <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="Customer number (mobile money)" placeholderTextColor={t.faint} style={{ height: 44, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, color: t.ink }} />
                 <Row gap={8}>

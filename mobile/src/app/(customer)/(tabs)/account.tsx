@@ -5,6 +5,7 @@ import { zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Empty, Row, Screen, Text, Toggle, useTheme, Logo } from '@/ui';
 import { LanguagePicker } from '@/features/language';
+import { ThemePicker } from '@/features/theme-picker';
 import { usePrefs } from '@/lib/prefs';
 import { appVersion } from '@/lib/brand';
 
@@ -12,7 +13,7 @@ export default function Account() {
     const t = useTheme();
     const { me, signOut } = useSession();
     const { dataLight, setDataLight } = usePrefs();
-    if (!me) return <Screen><Empty emoji="👋" title="Welcome to Zvino" body="Sign in to save addresses, earn rewards and track orders." action={<Button title="Sign in" size="md" onPress={() => router.push('/sign-in')} />} /></Screen>;
+    if (!me) return <Screen><Empty emoji="👋" title="Welcome to Zvino" body="Sign in to save addresses, earn rewards and track orders." action={<Button title="Sign in" size="md" onPress={() => router.push('/sign-in')} />} /><ThemePicker /><LanguagePicker /></Screen>;
 
     const Item = ({ icon, title, sub, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; sub?: string; onPress: () => void }) => (
         <Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15, borderBottomWidth: 0.5, borderColor: t.border }}>
@@ -48,6 +49,7 @@ export default function Account() {
             <Card style={{ marginTop: 16 }}>
                 <Toggle value={dataLight} onChange={setDataLight} label="📶  Data-light mode" description="Smaller photos, no map tiles on tracking. Saves your bundle." />
             </Card>
+            <ThemePicker />
             <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
             <View style={{ alignItems: 'center', gap: 6, marginTop: 28 }}>

@@ -1,5 +1,23 @@
-export const zig = (n: number | undefined | null) => `ZiG ${(n ?? 0).toLocaleString('en-ZW', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-export const usd = (n: number | undefined | null) => `$${(n ?? 0).toFixed(2)}`;
+/**
+ * Prices are stored in ZiG. Admin -> Settings -> Currency picks which currency is shown first; the
+ * apps load it (and the rate) from /api/config at launch. zig() always takes a ZiG amount and shows
+ * it in the primary currency; alt() shows the same ZiG amount in the other currency.
+ */
+let primary: 'ZIG' | 'USD' = 'ZIG';
+let rate = 26.8;
+export function setCurrency(next: { primary?: string; zig_per_usd?: number }) {
+    if (next.primary === 'USD' || next.primary === 'ZIG') primary = next.primary;
+    if (next.zig_per_usd && next.zig_per_usd > 0) rate = next.zig_per_usd;
+}
+const two = (n: number) => n.toLocaleString('en-ZW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const fmtZig = (n: number | undefined | null) => `ZiG ${two(n ?? 0)}`;
+export const fmtUsd = (n: number | undefined | null) => `$${two(n ?? 0)}`;
+/** A ZiG amount, shown in the primary currency. */
+export const zig = (n: number | undefined | null) => (primary === 'USD' ? fmtUsd((n ?? 0) / rate) : fmtZig(n));
+/** A ZiG amount, shown in the secondary currency. */
+export const alt = (n: number | undefined | null) => (primary === 'USD' ? fmtZig(n) : fmtUsd((n ?? 0) / rate));
+/** A USD amount, shown as-is. */
+export const usd = fmtUsd;
 export const label = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 
 export const timeAgo = (iso: string) => {

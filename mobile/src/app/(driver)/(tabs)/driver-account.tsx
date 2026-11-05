@@ -7,6 +7,7 @@ import { label } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Badge, Button, Card, Input, Row, Screen, Text, Toggle, Logo } from '@/ui';
 import { LanguagePicker } from '@/features/language';
+import { ThemePicker } from '@/features/theme-picker';
 import { appVersion } from '@/lib/brand';
 
 export default function DriverAccount() {
@@ -51,6 +52,7 @@ export default function DriverAccount() {
                 </Row>
                 <Button title="Save goals" size="md" tone="outline" onPress={() => save({ daily_goal_zig: daily ? Number(daily) : null, weekly_goal_zig: weekly ? Number(weekly) : null })} />
             </Card>
+            <ThemePicker />
             <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
             <View style={{ alignItems: 'center', gap: 6, marginTop: 28 }}>

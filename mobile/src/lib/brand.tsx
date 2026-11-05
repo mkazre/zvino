@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { useEffect, useSyncExternalStore } from 'react';
 import { setBrandColors } from '@/ui/theme';
 import { api } from './api';
+import { setCurrency } from './money';
 
 /** Brand colours + logo from Admin → Settings → Branding, cached for offline launches. */
 interface RemoteBrand { primary: string; primary_dark: string; primary_soft: string; on_primary: string; accent: string; accent_dark: string; accent_soft: string; danger: string; danger_soft: string; logo: string; logo_dark: string; mark: string }
@@ -18,8 +19,12 @@ function apply(b: RemoteBrand) {
 
 export function useLoadBrand() {
     useEffect(() => {
+        AsyncStorage.getItem('zvino.currency').then((raw) => raw && setCurrency(JSON.parse(raw))).catch(() => {});
         AsyncStorage.getItem(KEY).then((raw) => raw && apply(JSON.parse(raw))).catch(() => {});
-        api.get<{ brand?: RemoteBrand }>('/config').then((c) => {
+        api.get<{ brand?: RemoteBrand; zig_per_usd?: number; currencies?: { primary?: string } }>('/config').then((c) => {
+            const cur = { primary: c.currencies?.primary, zig_per_usd: c.zig_per_usd };
+            setCurrency(cur);
+            AsyncStorage.setItem('zvino.currency', JSON.stringify(cur)).catch(() => {});
             if (!c.brand) return;
             apply(c.brand);
             AsyncStorage.setItem(KEY, JSON.stringify(c.brand)).catch(() => {});

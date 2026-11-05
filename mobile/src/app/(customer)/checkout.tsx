@@ -5,7 +5,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, TextInput, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, ApiError, type Money } from '@/lib/api';
 import { useCart } from '@/lib/cart';
-import { label, normalisePhone, usd, zig } from '@/lib/money';
+import { alt, label, normalisePhone, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Chip, Row, Text, Toggle, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
@@ -286,7 +286,7 @@ export default function Checkout() {
             <SafeAreaView edges={['bottom']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: t.bg, borderTopWidth: 0.5, borderColor: t.border, padding: 16 }}>
                 <Row justify="space-between" style={{ marginBottom: 10 }}>
                     <Text variant="heading">{tr('Total')}</Text>
-                    <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 22 }}>{total ? zig(total.zig) : '…'}</Text>{total && <Text variant="caption">{usd(total.usd)} · VAT incl.</Text>}</View>
+                    <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 22 }}>{total ? zig(total.zig) : '…'}</Text>{total && <Text variant="caption">{alt(total.zig)} · VAT incl.</Text>}</View>
                 </Row>
                 <Button title={`${tr('Place order')}${total ? ` · ${zig(due)}` : ''}`} loading={placing} disabled={!canPlace} onPress={place} />
             </SafeAreaView>

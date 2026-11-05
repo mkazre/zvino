@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { api, ApiError, type Money } from '@/lib/api';
-import { normalisePhone, usd, zig } from '@/lib/money';
+import { normalisePhone, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Chip, Empty, Input, Row, Screen, Text, useTheme } from '@/ui';
 import { DateField } from '@/ui/date-field';
@@ -46,7 +46,7 @@ export default function Hampers() {
 
             {pick ? (
                 <Card style={{ marginTop: 14, gap: 10 }}>
-                    <Text variant="heading">{pick.name} · {usd(pick.price.usd)}</Text>
+                    <Text variant="heading">{pick.name} · {zig(pick.price.zig)}</Text>
                     <Text variant="caption">Wallet balance {zig(me?.wallet_balance_zig)}</Text>
                     <Row gap={10}>
                         <View style={{ flex: 1 }}><Input label="Who is it for?" value={f.recipient_name} onChangeText={(v) => setF({ ...f, recipient_name: v })} /></View>
@@ -68,7 +68,7 @@ export default function Hampers() {
                     {list.length === 0 && <Empty emoji="🎁" title="Hampers coming soon" />}
                     {list.map((h) => (
                         <Card key={h.id} style={{ marginTop: 12, gap: 6 }} onPress={() => setPick(h)}>
-                            <Row justify="space-between"><Text variant="heading">{h.name}</Text><Text variant="heading">{usd(h.price.usd)}</Text></Row>
+                            <Row justify="space-between"><Text variant="heading">{h.name}</Text><Text variant="heading">{zig(h.price.zig)}</Text></Row>
                             <Text variant="caption">{h.vendor?.name} · {h.vendor?.city} · {zig(h.price.zig)}</Text>
                             {h.description && <Text color="muted">{h.description}</Text>}
                             <Text variant="caption">{h.contents.map((c) => `${c.quantity}× ${c.name}`).join(' · ')}</Text>

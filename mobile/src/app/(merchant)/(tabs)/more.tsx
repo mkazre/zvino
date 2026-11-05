@@ -6,6 +6,7 @@ import { label, timeAgo, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Button, Card, Row, Screen, SectionTitle, Text, useTheme, Logo } from '@/ui';
 import { LanguagePicker } from '@/features/language';
+import { ThemePicker } from '@/features/theme-picker';
 import { appVersion } from '@/lib/brand';
 
 interface Earnings { sales: Money; commission: Money; refunds: Money; net: Money; balance: Money; payouts: { id: number; amount_zig: number; status: string; period_end: string; is_instant?: boolean }[]; available_now: Money; instant_payout: { fee_pct: number; min: Money } | null }
@@ -79,6 +80,7 @@ export default function More() {
                     ))}
                 </>
             )}
+            <ThemePicker />
             <LanguagePicker />
             <Button title="Sign out" tone="ghost" onPress={signOut} style={{ marginTop: 24 }} />
             <View style={{ alignItems: 'center', gap: 6, marginTop: 28 }}>

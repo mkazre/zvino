@@ -15,6 +15,7 @@ import { useEffect } from 'react';
 import { Startup } from '@/features/startup';
 import { OfflineBanner } from '@/features/offline-banner';
 import { openLink } from '@/lib/links';
+import '@/lib/appearance'; // light mode by default; applies the saved Light/Dark choice
 import '@/features/driver-background'; // registers the background GPS task
 
 /**
