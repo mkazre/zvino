@@ -39,7 +39,9 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // Shared hosting (LiteSpeed) won't follow symlinks out of public_html, so on cPanel uploads
+            // are stored directly in ~/public_html/storage (PUBLIC_DISK_ROOT, set by the deploy script).
+            'root' => env('PUBLIC_DISK_ROOT', storage_path('app/public')),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,

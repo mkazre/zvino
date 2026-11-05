@@ -52,6 +52,9 @@ grep -q '^APP_KEY=base64' .env || "$PHP" artisan key:generate --force
 
 envval() { grep -E "^$1=" .env | tail -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
 
+# Uploads go straight into public_html/storage (see config/filesystems.php).
+grep -q '^PUBLIC_DISK_ROOT=' .env || printf '\nPUBLIC_DISK_ROOT=%s\n' "$WEB/storage" >> .env
+
 "$PHP" artisan down --retry=15 || true
 trap '"$PHP" artisan up >/dev/null 2>&1 || true' EXIT   # never leave the site in maintenance mode
 "$PHP" artisan config:clear
@@ -68,16 +71,42 @@ if [ -n "$(envval ZVINO_ADMIN_EMAIL)" ] && [ -n "$(envval ZVINO_ADMIN_PASSWORD)"
   echo "Tip: remove ZVINO_ADMIN_PASSWORD from .env now that your admin exists."
 fi
 
-[ -L public/storage ] || "$PHP" artisan storage:link
+# ── public_html: a real folder holding the public files (LiteSpeed won't serve a symlinked
+#    document root). index.php loads the app from ~/zvino-app; uploads live in public_html/storage.
+[ -L "$WEB" ] && rm -f "$WEB"   # undo the earlier symlink setup (removes the link only)
+if [ -d "$WEB" ] && [ ! -f "$WEB/.zvino" ] && [ -n "$(ls -A "$WEB" 2>/dev/null)" ]; then
+  mv "$WEB" "$HOME/public_html_backup_$(date +%Y%m%d%H%M%S)"; echo "Old public_html moved to ~/public_html_backup_*"
+fi
+mkdir -p "$WEB/storage"
+rm -rf "$WEB/build"             # old hashed JS/CSS from the previous release
+tar -C "$APP/public" --exclude='./storage' --exclude='./index.php' -cf - . | tar -C "$WEB" -xf -
+cat > "$WEB/index.php" <<'PHPFILE'
+<?php
+// Zvino front controller for cPanel: the app lives in ~/zvino-app, this folder is the web root.
+use Illuminate\Http\Request;
+
+define('LARAVEL_START', microtime(true));
+$app_dir = dirname(__DIR__).'/zvino-app';
+
+if (file_exists($maintenance = $app_dir.'/storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+require $app_dir.'/vendor/autoload.php';
+
+/** @var \Illuminate\Foundation\Application $app */
+$app = require_once $app_dir.'/bootstrap/app.php';
+$app->usePublicPath(__DIR__);
+$app->handleRequest(Request::capture());
+PHPFILE
+touch "$WEB/.zvino"
+# Uploads saved before PUBLIC_DISK_ROOT existed: copy them across once.
+if [ -n "$(ls -A "$APP/storage/app/public" 2>/dev/null)" ] && [ ! -f "$WEB/storage/.migrated" ]; then
+  cp -a "$APP/storage/app/public/." "$WEB/storage/" && touch "$WEB/storage/.migrated"
+fi
+echo "public_html updated (index.php → $APP)"
+
 "$PHP" artisan optimize
 "$PHP" artisan up
-
-# Serve the site from the app's public folder (first deploy only: the old public_html is kept as a backup).
-if [ ! -L "$WEB" ]; then
-  if [ -e "$WEB" ]; then mv "$WEB" "$HOME/public_html_backup_$(date +%Y%m%d%H%M%S)"; echo "Old public_html moved to ~/public_html_backup_*"; fi
-  ln -s "$APP/public" "$WEB"
-  echo "public_html now points to $APP/public"
-fi
 
 "$PHP" artisan zvino:doctor || true
 echo "=== Deploy finished. Site: $(envval APP_URL)"
