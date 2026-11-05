@@ -21,10 +21,17 @@ echo "Using $PHP ($("$PHP" -r 'echo PHP_VERSION;'))"
 
 mkdir -p "$APP"
 # Copy code; keep .env, storage and the public/storage link that live only on the server.
-rsync -a --delete \
-  --exclude='.git/' --exclude='.env' --exclude='storage/' --exclude='public/storage' \
-  --exclude='bootstrap/cache/*.php' --exclude='.cpanel.yml' \
-  "$SRC/" "$APP/"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a --delete \
+    --exclude='.git/' --exclude='.env' --exclude='storage/' --exclude='public/storage' \
+    --exclude='bootstrap/cache/*.php' --exclude='.cpanel.yml' \
+    "$SRC/" "$APP/"
+else
+  # No rsync on this host: copy with tar (same exclusions; old files aren't removed, which is harmless).
+  echo "rsync not found, copying with tar"
+  tar -C "$SRC" --exclude='./.git' --exclude='./.env' --exclude='./storage' --exclude='./public/storage' \
+    --exclude='./bootstrap/cache/*.php' --exclude='./.cpanel.yml' -cf - . | tar -C "$APP" -xf -
+fi
 mkdir -p "$APP"/storage/app/public "$APP"/storage/app/private "$APP"/storage/framework/{cache/data,sessions,views} "$APP"/storage/logs "$APP"/bootstrap/cache
 
 cd "$APP"
