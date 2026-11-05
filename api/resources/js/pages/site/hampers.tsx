@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input, Select, Textarea } from '@/components/z';
 import SiteLayout, { type SiteProps } from '@/layouts/site-layout';
-import { usd, zig } from '@/lib/money';
+import { alt, both, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Money } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -43,7 +43,7 @@ export default function Hampers(p: Props) {
                                     {h.description && <p className="mt-2 text-sm">{h.description}</p>}
                                     <ul className="text-muted-foreground mt-3 grid gap-1 text-sm">{h.contents.map((c, i) => <li key={i}>{c.quantity}× {c.name}</li>)}</ul>
                                     <div className="mt-auto flex items-end justify-between pt-5">
-                                        <span><span className="tabular block text-2xl font-extrabold">{usd(h.price.usd)}</span><span className="tabular text-muted-foreground text-sm">{zig(h.price.zig)}</span></span>
+                                        <span><span className="tabular block text-2xl font-extrabold">{zig(h.price.zig)}</span><span className="tabular text-muted-foreground text-sm">{alt(h.price.zig)}</span></span>
                                         {auth?.user ? <Button variant="dark" className="rounded-full" onClick={() => setPick(h)}>Send this</Button> : <Button variant="dark" className="rounded-full" asChild><Link href="/signin?next=/hampers">Sign in to send</Link></Button>}
                                     </div>
                                 </div>
@@ -92,7 +92,7 @@ function SendForm({ h, p, onClose }: { h: Hamper; p: Props; onClose: () => void 
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 md:items-center md:p-6" onClick={onClose}>
             <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-3xl bg-white p-6 md:rounded-3xl dark:bg-[#222222]" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-xl font-bold">Send “{h.name}”</h2>
-                <p className="text-muted-foreground text-sm">{usd(h.price.usd)} ({zig(h.price.zig)}) each time · paid from your Zvino wallet</p>
+                <p className="text-muted-foreground text-sm">{both(h.price.zig)} each time · paid from your Zvino wallet</p>
                 <div className="mt-5 grid gap-3">
                     <div className="grid grid-cols-2 gap-3"><Input placeholder="Who is it for?" value={f.recipient_name} onChange={set('recipient_name')} /><Input placeholder="Their phone (077…)" inputMode="tel" value={f.recipient_phone} onChange={set('recipient_phone')} /></div>
                     <Input placeholder="Street address / stand number" value={f.line1} onChange={set('line1')} />

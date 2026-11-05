@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, DataTable, Field, Grid, Input, Modal, Page, PageHeader, Select, StatCard, StatusPill, TabBar, Textarea, type Column } from '@/components/z';
 import AdminLayout from '@/layouts/admin-layout';
-import { label, timeAgo, usd, zig } from '@/lib/money';
+import { fmtUsd, fmtZig, label, timeAgo, zig } from '@/lib/money';
 import { type PageLink } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import { Check, RotateCcw, X } from 'lucide-react';
@@ -91,7 +91,7 @@ function ReviewModal({ refund: r, onClose }: { refund: Refund; onClose: () => vo
                 {r.status === 'requested' && (
                     <>
                         <div className="grid grid-cols-2 gap-3">
-                            <Field label="Amount" hint={`Max ${zig(max)} · ≈ ${usd((Number(amount) || 0) / r.order.zig_per_usd)}`}><Input type="number" step="0.01" prefix="ZiG" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+                            <Field label="Amount" hint={`Max ${fmtZig(max)} · ≈ ${fmtUsd((Number(amount) || 0) / r.order.zig_per_usd)}`}><Input type="number" step="0.01" prefix="ZiG" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
                             <Field label="Refund to"><Select value={destination} onChange={(e) => setDestination(e.target.value as Refund['destination'])}><option value="wallet">Zvino wallet</option><option value="original">{label(r.order.payment_method)}</option></Select></Field>
                         </div>
                         <Field label="Note to customer (required to reject)"><Textarea value={note} onChange={(e) => setNote(e.target.value)} className="min-h-[64px]" /></Field>

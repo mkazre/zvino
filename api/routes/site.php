@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Route;
 /*
  * Public customer website (zvino.online). Admin lives under /dashboard and /admin.
  */
+// Currency switcher (website header and admin top bar): remembers ZiG / USD for this browser.
+Route::post('currency', [SiteController::class, 'setCurrency'])->name('site.currency');
+
 Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
     Route::get('/', [SiteController::class, 'home'])->name('home');
     Route::get('stores', [SiteController::class, 'stores'])->name('stores');
@@ -27,6 +30,14 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
         Route::post('catering/{catering}/cancel', [\App\Http\Controllers\Api\CateringController::class, 'cancel'])->name('catering.cancel');
     });
     Route::get('partners', [SiteController::class, 'partners'])->name('partners');
+    // Sign-up forms: restaurants & shops, drivers, corporate accounts → Admin → Applications.
+    Route::get('partners/apply', [\App\Http\Controllers\Site\ApplyController::class, 'show'])->defaults('type', 'restaurant')->name('apply.restaurant');
+    Route::get('drive/apply', [\App\Http\Controllers\Site\ApplyController::class, 'show'])->defaults('type', 'driver')->name('apply.driver');
+    Route::get('business', [\App\Http\Controllers\Site\ApplyController::class, 'business'])->name('business');
+    Route::get('business/apply', [\App\Http\Controllers\Site\ApplyController::class, 'show'])->defaults('type', 'corporate')->name('apply.corporate');
+    Route::post('apply/upload', [\App\Http\Controllers\Site\ApplyController::class, 'upload'])->middleware('throttle:apply-upload')->name('apply.upload');
+    Route::post('apply/{type}', [\App\Http\Controllers\Site\ApplyController::class, 'submit'])->whereIn('type', ['restaurant', 'driver', 'corporate'])->middleware('throttle:apply-submit')->name('apply.submit');
+    Route::get('apply/done/{reference}', [\App\Http\Controllers\Site\ApplyController::class, 'done'])->name('apply.done');
     Route::get('drive', [SiteController::class, 'drivers'])->name('drivers');
     Route::get('group/{code}', [SiteController::class, 'group'])->name('group');
     Route::post('city', [SiteController::class, 'setCity'])->name('city');

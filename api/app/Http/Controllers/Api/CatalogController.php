@@ -25,7 +25,7 @@ class CatalogController extends Controller
             'single_vendor_id' => $mode === 'single' ? Setting::singleVendorId() : null,
             'cities' => config('zvino.cities'),
             'zig_per_usd' => ExchangeRate::current(),
-            'currencies' => ['primary' => 'ZIG', 'secondary' => 'USD'],
+            'currencies' => ['primary' => \App\Support\Money::defaultCurrency(), 'secondary' => \App\Support\Money::defaultCurrency() === 'USD' ? 'ZIG' : 'USD'],
             'payment_methods' => ['ecocash', 'onemoney', 'innbucks', 'card', 'wallet', 'cash'],
             'min_app_version' => config('zvino.min_app_version'),
             'pusher' => ['key' => config('broadcasting.connections.pusher.key'), 'cluster' => config('broadcasting.connections.pusher.options.cluster')],

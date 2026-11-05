@@ -78,6 +78,10 @@ class SettingsController extends AdminController
             }
         }
 
+        if ($group === 'currency' && isset($changes['primary'])) {
+            // The admin who changed the default sees it straight away (drops their own switcher choice).
+            \Illuminate\Support\Facades\Cookie::queue(\Illuminate\Support\Facades\Cookie::forget(\App\Support\Money::COOKIE));
+        }
         if ($group === 'currency' && isset($changes['zig_per_usd'])) {
             ExchangeRate::create(['zig_per_usd' => Setting::get('currency.zig_per_usd'), 'effective_at' => now()]);
         }

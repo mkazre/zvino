@@ -100,6 +100,31 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::put('vendors/{vendor}/hours', [VendorController::class, 'hours'])->name('vendors.hours');
         });
 
+        Route::middleware('can:applications.review')->group(function () {
+            Route::get('applications', [\App\Http\Controllers\Admin\ApplicationController::class, 'index'])->name('applications');
+            Route::get('applications/{application}', [\App\Http\Controllers\Admin\ApplicationController::class, 'show'])->name('applications.show');
+            Route::post('applications/{application}/status', [\App\Http\Controllers\Admin\ApplicationController::class, 'status'])->name('applications.status');
+            Route::post('applications/{application}/notes', [\App\Http\Controllers\Admin\ApplicationController::class, 'notes'])->name('applications.notes');
+            Route::post('applications/{application}/details', [\App\Http\Controllers\Admin\ApplicationController::class, 'updateDetails'])->name('applications.details');
+            Route::post('applications/{application}/approve', [\App\Http\Controllers\Admin\ApplicationController::class, 'approve'])->name('applications.approve');
+            Route::get('applications/{application}/documents/{document}', [\App\Http\Controllers\Admin\ApplicationController::class, 'document'])->name('applications.document');
+            Route::delete('applications/{application}', [\App\Http\Controllers\Admin\ApplicationController::class, 'destroy'])->name('applications.destroy');
+        });
+
+        // Bell: in-app notifications for the signed-in staff member.
+        Route::post('notifications/read', function (Request $request) {
+            $request->user()->appNotifications()->whereNull('read_at')->update(['read_at' => now()]);
+
+            return back();
+        })->name('notifications.read');
+        Route::get('notifications/{notification}', function (Request $request, \App\Models\AppNotification $notification) {
+            abort_unless($notification->user_id === $request->user()->id, 404);
+            $notification->update(['read_at' => $notification->read_at ?? now()]);
+            $url = $notification->data['url'] ?? '/dashboard';
+
+            return redirect(str_starts_with($url, '/') ? $url : '/dashboard');
+        })->name('notifications.open');
+
         Route::middleware('can:drivers.manage')->group(function () {
             Route::get('drivers', [DriverController::class, 'index'])->name('drivers');
             Route::get('drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
@@ -140,6 +165,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::post('home-builder/blocks', [HomeBuilderController::class, 'store'])->name('home-builder.store');
             Route::patch('home-builder/blocks/{block}', [HomeBuilderController::class, 'update'])->name('home-builder.update');
             Route::post('home-builder/reorder', [HomeBuilderController::class, 'reorder'])->name('home-builder.reorder');
+            Route::post('home-builder/upload', [HomeBuilderController::class, 'upload'])->name('home-builder.upload');
+            Route::post('home-builder/blocks/{block}/duplicate', [HomeBuilderController::class, 'duplicate'])->name('home-builder.duplicate');
             Route::delete('home-builder/blocks/{block}', [HomeBuilderController::class, 'destroy'])->name('home-builder.destroy');
 
             Route::get('rewards-promos', [RewardsPromosController::class, 'index'])->name('rewards');

@@ -15,7 +15,7 @@ class Vendor extends Model
         'delivery_fee_zig' => 'float', 'min_order_zig' => 'float', 'lat' => 'float', 'lng' => 'float',
         'tags' => 'array', 'delivery_radius_km' => 'float', 'offers_delivery' => 'boolean',
         'offers_pickup' => 'boolean', 'accepts_scheduled' => 'boolean', 'auto_accept' => 'boolean',
-        'is_busy' => 'boolean', 'power_out' => 'boolean', 'paused_until' => 'datetime', 'payout_details' => 'array',
+        'is_busy' => 'boolean', 'power_out' => 'boolean', 'paused_until' => 'datetime', 'payout_details' => 'array', 'legal' => 'array',
     ];
 
     public function categories(): HasMany { return $this->hasMany(Category::class)->orderBy('sort_order'); }

@@ -31,7 +31,7 @@ export default function Plus({ plans, current, seo }: { plans: Plan[]; current: 
             </section>
             {plan && (
                 <section className="mx-auto mt-16 grid max-w-5xl gap-4 px-4 md:grid-cols-3 md:px-6">
-                    {[[Bike, 'ZiG 0 delivery', `On every order over ${zig(plan.min_order_for_free_delivery_zig)} from any store.`], [BadgePercent, `${plan.service_fee_discount_pct}% off service fees`, 'Pay less on every single order, even pickup.'], [Sparkles, 'Member-only deals', 'Exclusive discounts and early access to new stores.']].map(([I, t, d]) => {
+                    {[[Bike, 'Free delivery', `On every order over ${zig(plan.min_order_for_free_delivery_zig)} from any store.`], [BadgePercent, `${plan.service_fee_discount_pct}% off service fees`, 'Pay less on every single order, even pickup.'], [Sparkles, 'Member-only deals', 'Exclusive discounts and early access to new stores.']].map(([I, t, d]) => {
                         const Icon = I as typeof Bike;
                         return <div key={String(t)} className="rounded-3xl border p-7"><Icon className="size-7" /><h3 className="mt-4 text-xl font-bold">{String(t)}</h3><p className="text-muted-foreground mt-1">{String(d)}</p></div>;
                     })}

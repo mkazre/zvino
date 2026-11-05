@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge, Card, Drawer, Field, Input, Page, PageHeader, Select, Switch, Textarea } from '@/components/z';
 import AdminLayout from '@/layouts/admin-layout';
-import { zig } from '@/lib/money';
+import { alt, zig } from '@/lib/money';
 import { type Money } from '@/types';
 import { useForm } from '@inertiajs/react';
 import { Package, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -25,7 +25,7 @@ export default function Hampers(p: Props) {
                                 <div><h3 className="font-semibold">{h.name} {!h.is_active && <Badge>Hidden</Badge>}</h3><p className="text-muted-foreground text-xs">{h.vendor?.name}</p></div>
                                 <Button size="icon-sm" variant="ghost" onClick={() => setEditing(h)} aria-label="Edit"><Pencil /></Button>
                             </div>
-                            <div className="tabular mt-2 text-xl font-bold">{zig(h.price.zig)} <span className="text-muted-foreground text-sm font-normal">≈ ${h.price.usd.toFixed(2)}</span></div>
+                            <div className="tabular mt-2 text-xl font-bold">{zig(h.price.zig)} <span className="text-muted-foreground text-sm font-normal">{alt(h.price.zig)}</span></div>
                             <p className="text-muted-foreground mt-2 text-xs">{h.contents.map((c) => `${c.quantity}× ${c.name}`).join(' · ')}</p>
                         </Card>
                     ))}

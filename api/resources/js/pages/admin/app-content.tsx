@@ -31,9 +31,27 @@ export function overlayCss(o: Overlay | null): string {
 /** Admin → App onboarding: slides + launch screen per app, with a live phone preview. */
 export default function AppContent(p: Props) {
     const [tab, setTab] = useState<'onboarding' | 'launch'>('onboarding');
-    const [selected, setSelected] = useState<number | 'new' | null>(p.slides[0]?.id ?? 'new');
+    const [selected, setSelected] = useState<number | null>(p.slides[0]?.id ?? null);
+    const [adding, setAdding] = useState(false);
     const confirm = useConfirm();
-    const current = p.slides.find((s) => s.id === selected) ?? null;
+    const current = p.slides.find((s) => s.id === selected) ?? p.slides[0] ?? null;
+    // Switching app (customer/driver/merchant) loads a different slide list: select its first slide.
+    useEffect(() => {
+        if (!p.slides.some((s) => s.id === selected)) setSelected(p.slides[0]?.id ?? null);
+    }, [p.app, p.slides, selected]);
+
+    /** Creates a slide straight away (so it shows in the list) and opens it in the editor. */
+    const addSlide = () => {
+        setAdding(true);
+        router.post('/admin/app-content/slides', { app: p.app, heading: 'New slide', body: 'Tell people what makes this app great.', button_label: p.slides.length >= 2 ? 'Get started' : 'Next', text_color: '#FFFFFF', text_position: 'bottom', overlay: DEFAULT_OVERLAY }, {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const slides = (page.props as unknown as Props).slides;
+                setSelected(slides.reduce((m, s) => Math.max(m, s.id), 0) || null);
+            },
+            onFinish: () => setAdding(false),
+        });
+    };
     const draftChanged = useMemo(() => p.onboarding.version === 0 || p.slides.length !== p.onboarding.published.length, [p]);
 
     const move = (id: number, d: -1 | 1) => {
@@ -61,10 +79,11 @@ export default function AppContent(p: Props) {
                 </div>
 
                 {tab === 'onboarding' ? (
-                    <div className="grid gap-5 xl:grid-cols-[260px_1fr_340px]">
-                        <Card padded className="grid content-start gap-2">
+                    <div className="grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
+                        <Card padded className="grid min-w-0 content-start gap-2 self-start">
+                            {p.slides.length === 0 && <p className="text-muted-foreground px-1 py-2 text-sm">No slides yet for the {p.app} app.</p>}
                             {p.slides.map((s, i) => (
-                                <div key={s.id} className={cn('flex items-center gap-2 rounded-lg border p-2', selected === s.id ? 'border-brand bg-brand-50' : 'hover:bg-subtle')}>
+                                <div key={s.id} className={cn('flex min-w-0 items-center gap-2 rounded-lg border p-2', current?.id === s.id ? 'border-brand bg-brand-50 dark:bg-brand/10' : 'hover:bg-subtle')}>
                                     <button onClick={() => setSelected(s.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                                         <span className="bg-muted size-10 shrink-0 overflow-hidden rounded-md">{s.image_path && <img src={s.image_path} alt="" className="size-full object-cover" />}</span>
                                         <span className="min-w-0"><span className="block truncate text-sm font-medium">{s.heading || `Slide ${i + 1}`}</span><span className="text-muted-foreground block truncate text-xs">{s.body}</span></span>
@@ -75,11 +94,19 @@ export default function AppContent(p: Props) {
                                     </div>
                                 </div>
                             ))}
-                            <Button variant="outline" onClick={() => setSelected('new')}><Plus /> Add slide</Button>
+                            <Button variant="outline" disabled={adding} onClick={addSlide}><Plus /> {adding ? 'Adding…' : 'Add slide'}</Button>
                             <p className="text-muted-foreground text-xs">Tip: 3 slides works best. Use tall photos (at least 1080×1920).</p>
                         </Card>
-                        <SlideEditor key={String(selected)} app={p.app} slide={selected === 'new' ? null : current} onSaved={() => {}}
-                            onDelete={async (s) => (await confirm({ title: 'Delete this slide?', tone: 'danger', confirmLabel: 'Delete' })) && router.delete(`/admin/app-content/slides/${s.id}`, { preserveScroll: true, onSuccess: () => setSelected(null) })} />
+                        {current ? (
+                            <SlideEditor key={current.id} app={p.app} slide={current}
+                                onDelete={async (s) => (await confirm({ title: 'Delete this slide?', tone: 'danger', confirmLabel: 'Delete' })) && router.delete(`/admin/app-content/slides/${s.id}`, { preserveScroll: true, onSuccess: () => setSelected(p.slides.find((x) => x.id !== s.id)?.id ?? null) })} />
+                        ) : (
+                            <Card padded className="flex min-h-64 flex-col items-center justify-center gap-3 text-center">
+                                <p className="font-semibold">Add the first onboarding slide</p>
+                                <p className="text-muted-foreground max-w-sm text-sm">People see these full-screen slides the first time they open the {p.app} app.</p>
+                                <Button disabled={adding} onClick={addSlide}><Plus /> Add slide</Button>
+                            </Card>
+                        )}
                     </div>
                 ) : (
                     <LaunchEditor app={p.app} launch={p.launch} />
@@ -89,7 +116,7 @@ export default function AppContent(p: Props) {
     );
 }
 
-function SlideEditor({ app, slide, onDelete }: { app: string; slide: Slide | null; onSaved: () => void; onDelete: (s: Slide) => void }) {
+function SlideEditor({ app, slide, onDelete }: { app: string; slide: Slide | null; onDelete: (s: Slide) => void }) {
     const { data, setData, post, processing, errors } = useForm({
         app,
         heading: slide?.heading ?? 'Hungry? We’ve got you.',
@@ -112,8 +139,8 @@ function SlideEditor({ app, slide, onDelete }: { app: string; slide: Slide | nul
     const err = (k: string) => (errors as Record<string, string>)[k];
 
     return (
-        <>
-            <Card padded className="grid content-start gap-4">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <Card padded className="grid min-w-0 content-start gap-4">
                 <div className="flex items-center justify-between"><h3 className="font-semibold">{slide ? 'Edit slide' : 'New slide'}</h3>{slide && <Button variant="ghost" size="sm" className="text-zred" onClick={() => onDelete(slide)}><Trash2 /> Delete</Button>}</div>
                 <Field label="Full-screen photo" error={err('image')}>
                     <label className="hover:bg-subtle flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-3 text-sm">
@@ -123,7 +150,7 @@ function SlideEditor({ app, slide, onDelete }: { app: string; slide: Slide | nul
                 </Field>
                 <Field label="Heading" error={err('heading')}><Input value={data.heading} onChange={(e) => setData('heading', e.target.value)} maxLength={80} /></Field>
                 <Field label="Text" error={err('body')}><Textarea value={data.body} onChange={(e) => setData('body', e.target.value)} maxLength={240} rows={3} /></Field>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Button label"><Input value={data.button_label} onChange={(e) => setData('button_label', e.target.value)} maxLength={30} placeholder="Next / Get started" /></Field>
                     <Field label="Text colour"><Input type="color" value={data.text_color} onChange={(e) => setData('text_color', e.target.value.toUpperCase())} className="h-10 p-1" /></Field>
                 </div>
@@ -157,7 +184,7 @@ function SlideEditor({ app, slide, onDelete }: { app: string; slide: Slide | nul
                     <span className="bg-brand text-on-brand rounded-full px-4 py-2 text-xs font-bold">{data.button_label || 'Next'}</span>
                 </div>
             </PhonePreview>
-        </>
+        </div>
     );
 }
 
@@ -177,14 +204,14 @@ function LaunchEditor({ app, launch }: { app: string; launch: Props['launch'] })
     const bg = data.gradient_to ? `linear-gradient(180deg, ${data.background}, ${data.gradient_to})` : data.background;
 
     return (
-        <div className="grid gap-5 xl:grid-cols-[1fr_340px]">
-            <Card padded className="grid content-start gap-4">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <Card padded className="grid min-w-0 content-start gap-4">
                 <div className="flex items-center justify-between">
                     <h3 className="font-semibold">Launch screen <span className="text-muted-foreground text-sm font-normal">· shown for a moment straight after the built-in splash</span></h3>
                     {launch.version ? <Badge tone="success">Live v{launch.version}</Badge> : <Badge>Off</Badge>}
                 </div>
                 <Switch checked={data.is_enabled} onChange={(v) => setData('is_enabled', v)} label="Show the launch screen" />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Background"><Input type="color" value={data.background} onChange={(e) => setData('background', e.target.value.toUpperCase())} className="h-10 p-1" /></Field>
                     <Field label="Gradient to" optional hint="Leave empty for a solid colour"><div className="flex gap-2"><Input type="color" value={data.gradient_to || data.background} onChange={(e) => setData('gradient_to', e.target.value.toUpperCase())} className="h-10 p-1" />{data.gradient_to && <Button variant="ghost" size="sm" onClick={() => setData('gradient_to', '')}>Clear</Button>}</div></Field>
                     <Field label="Text colour"><Input type="color" value={data.text_color} onChange={(e) => setData('text_color', e.target.value.toUpperCase())} className="h-10 p-1" /></Field>
@@ -215,7 +242,7 @@ function LaunchEditor({ app, launch }: { app: string; launch: Props['launch'] })
 function PhonePreview({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex justify-center">
-            <div className="sticky top-24 h-[620px] w-[300px] rounded-[44px] border-[10px] border-neutral-900 bg-neutral-900 shadow-xl">
+            <div className="h-[560px] w-[280px] rounded-[44px] border-[10px] border-neutral-900 bg-neutral-900 shadow-xl xl:sticky xl:top-24 xl:h-[600px] xl:w-[300px]">
                 <div className="relative size-full overflow-hidden rounded-[34px] bg-white">
                     {children}
                     <div className="absolute top-2 left-1/2 h-5 w-24 -translate-x-1/2 rounded-full bg-neutral-900" />

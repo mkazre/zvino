@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Avatar, Badge, Card, CardBody, CardHeader, Field, Input, KeyValue, Modal, Money, Page, Select, Stars, StatusPill, Textarea, useConfirm } from '@/components/z';
 import AdminLayout from '@/layouts/admin-layout';
-import { label, timeAgo, usd, zig } from '@/lib/money';
+import { fmtUsd, label, timeAgo, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Order, type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
@@ -319,7 +319,7 @@ function RefundModal({ open, onClose, order }: { open: boolean; onClose: () => v
         <Modal open={open} onClose={onClose} title="Issue a refund" description={`Up to ${zig(max)} can be refunded on ${order.reference}.`}
             footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={!reason || !Number(amount)} onClick={() => router.post(`/admin/orders/${order.id}/refund`, { amount_zig: amount, reason, destination }, { onSuccess: onClose, preserveScroll: true })}>Refund {zig(Number(amount) || 0)}</Button></>}>
             <div className="grid gap-4">
-                <Field label="Amount" hint={`≈ ${usd((Number(amount) || 0) / order.zig_per_usd)}`}>
+                <Field label="Amount" hint={`In ZiG · ≈ ${fmtUsd((Number(amount) || 0) / order.zig_per_usd)}`}>
                     <Input type="number" step="0.01" max={max} value={amount} onChange={(e) => setAmount(e.target.value)} prefix="ZiG" />
                 </Field>
                 <div className="flex gap-2">

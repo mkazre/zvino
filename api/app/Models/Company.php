@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Company extends Model
 {
     protected $guarded = [];
-    protected $casts = ['is_active' => 'boolean', 'allowed_days' => 'array', 'monthly_budget_zig' => 'float', 'daily_allowance_zig' => 'float'];
+    protected $casts = ['is_active' => 'boolean', 'allowed_days' => 'array', 'monthly_budget_zig' => 'float', 'daily_allowance_zig' => 'float', 'details' => 'array'];
 
     public function members(): HasMany { return $this->hasMany(CompanyMember::class); }
     public function orders(): HasMany { return $this->hasMany(Order::class); }

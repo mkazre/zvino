@@ -30,10 +30,11 @@ class Permissions
         'audit.view' => 'View the audit log',
         'pos.use' => 'Use the point of sale',
         'kitchen.use' => 'Use the kitchen display',
+        'applications.review' => 'Review and approve restaurant, driver and corporate applications',
     ];
 
     public const DEFAULTS = [
-        'admin' => ['orders.view', 'orders.manage', 'refunds.approve', 'catalog.manage', 'vendors.manage', 'drivers.manage', 'dispatch.manage', 'customers.manage', 'marketing.manage', 'payouts.manage', 'reports.view', 'support.manage', 'audit.view', 'pos.use', 'kitchen.use'],
+        'admin' => ['orders.view', 'orders.manage', 'refunds.approve', 'catalog.manage', 'vendors.manage', 'drivers.manage', 'applications.review', 'dispatch.manage', 'customers.manage', 'marketing.manage', 'payouts.manage', 'reports.view', 'support.manage', 'audit.view', 'pos.use', 'kitchen.use'],
         'support' => ['orders.view', 'orders.manage', 'refunds.approve', 'dispatch.manage', 'customers.manage', 'support.manage'],
         'vendor_manager' => ['orders.view', 'orders.manage', 'catalog.manage', 'reports.view', 'pos.use', 'kitchen.use'],
         'cashier' => ['orders.view', 'pos.use'],

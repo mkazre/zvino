@@ -24,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Website sign-up forms: separate budgets for file uploads and final submits (per IP).
+        \Illuminate\Support\Facades\RateLimiter::for('apply-upload', fn ($r) => \Illuminate\Cache\RateLimiting\Limit::perMinute(40)->by('apply-upload|'.$r->ip()));
+        \Illuminate\Support\Facades\RateLimiter::for('apply-submit', fn ($r) => \Illuminate\Cache\RateLimiting\Limit::perMinute(6)->by('apply-submit|'.$r->ip()));
+
         // Short, stable names in polymorphic columns (ledger, payouts, payments).
         Relation::enforceMorphMap([
             'vendor' => Vendor::class,
@@ -46,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
             'safety_zone' => \App\Models\SafetyZone::class,
             'app_content' => \App\Models\AppContent::class,
             'onboarding_slide' => \App\Models\OnboardingSlide::class,
+            'partner_application' => \App\Models\PartnerApplication::class,
             'campaign' => \App\Models\Campaign::class,
             'recurring_order' => \App\Models\RecurringOrder::class,
         ]);
