@@ -1,0 +1,4 @@
+.env
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitignore

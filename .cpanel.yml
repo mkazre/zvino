@@ -1,0 +1,6 @@
+---
+# cPanel → Git Version Control → "Deploy HEAD Commit" runs these tasks (on the deploy branch,
+# which the GitHub Action builds with vendor/ and public/build/ already included).
+deployment:
+  tasks:
+    - /bin/bash deploy/cpanel-deploy.sh
