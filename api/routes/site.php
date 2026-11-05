@@ -8,7 +8,7 @@ use App\Http\Middleware\EnsureSiteOpen;
 use Illuminate\Support\Facades\Route;
 
 /*
- * Public customer website (zvino.co.zw). Admin lives under /dashboard and /admin.
+ * Public customer website (zvino.online). Admin lives under /dashboard and /admin.
  */
 Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
     Route::get('/', [SiteController::class, 'home'])->name('home');

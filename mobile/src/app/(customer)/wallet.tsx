@@ -92,7 +92,7 @@ export default function WalletScreen() {
                             <Text variant="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>When a friend’s first order is delivered. {ref.invited} invited so far.</Text>
                             <Row gap={8} style={{ marginTop: 12 }}>
                                 <Pressable onPress={() => { Clipboard.setStringAsync(ref.code); Alert.alert('Code copied'); }} style={{ flex: 1, height: 46, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}><Text variant="mono" style={{ color: '#fff', fontSize: 18 }}>{ref.code}</Text></Pressable>
-                                <Button title="Share" size="md" tone="soft" onPress={() => Share.share({ message: `Get ${zig(ref.friend_gets.zig)} off your first Zvino order with my code ${ref.code} 🍲 https://zvino.co.zw` })} />
+                                <Button title="Share" size="md" tone="soft" onPress={() => Share.share({ message: `Get ${zig(ref.friend_gets.zig)} off your first Zvino order with my code ${ref.code} 🍲 https://zvino.online` })} />
                             </Row>
                         </Card>
                     </>

@@ -16,7 +16,7 @@ return [
             'vat_number' => ['type' => 'string', 'label' => 'VAT / BP number', 'default' => ''],
             'support_phone' => ['type' => 'string', 'label' => 'Support phone', 'default' => '+263 242 000 000'],
             'support_whatsapp' => ['type' => 'string', 'label' => 'Support WhatsApp', 'default' => ''],
-            'support_email' => ['type' => 'string', 'label' => 'Support email', 'default' => 'help@zvino.co.zw'],
+            'support_email' => ['type' => 'string', 'label' => 'Support email', 'default' => 'help@zvino.online'],
             'address' => ['type' => 'text', 'label' => 'Head office address', 'default' => 'Harare, Zimbabwe'],
             'timezone' => ['type' => 'select', 'label' => 'Timezone', 'default' => 'Africa/Harare', 'options' => ['Africa/Harare']],
             'cities' => ['type' => 'list', 'label' => 'Launch cities', 'default' => ['Harare', 'Bulawayo']],

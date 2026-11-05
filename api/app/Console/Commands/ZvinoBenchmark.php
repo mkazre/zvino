@@ -7,7 +7,7 @@ use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Quick load test from any machine with PHP: `php artisan zvino:benchmark --url=https://zvino.co.zw -c 25 -r 500`.
+ * Quick load test from any machine with PHP: `php artisan zvino:benchmark --url=https://zvino.online -c 25 -r 500`.
  * Hits the busiest read endpoints (home, store list, menus, search) concurrently and reports latency.
  * For sustained / checkout tests use loadtest/k6.js.
  */

@@ -1,0 +1,70 @@
+# Builds the website/admin/API (api/) into a ready-to-run "deploy" branch for cPanel:
+#   tests → composer install (no dev) → npm build → commit to branch "deploy".
+# cPanel → Git Version Control pulls "deploy" and "Deploy HEAD Commit" runs api/.cpanel.yml.
+name: Build cPanel deploy branch
+
+on:
+  push:
+    branches: [main]
+    paths: ['api/**', '.github/workflows/deploy.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-branch
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: api } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.2', extensions: 'mbstring, pdo_sqlite, gd, intl, zip, bcmath', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: api/package-lock.json }
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: npm ci && npm run build
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.2', extensions: 'mbstring, gd, intl, zip, bcmath', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: api/package-lock.json }
+      - name: Install & build
+        working-directory: api
+        run: |
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress
+          npm ci && npm run build
+      - name: Commit to the deploy branch
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          git config --global user.name "zvino-deploy-bot"
+          git config --global user.email "deploy@zvino.online"
+          REPO="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$REPO" deploy >/dev/null; then
+            git clone --depth 1 --branch deploy "$REPO" out
+          else
+            git init -q out && git -C out checkout -q -b deploy && git -C out remote add origin "$REPO"
+          fi
+          # Replace the branch contents with the fresh build (keeps history so cPanel can fast-forward).
+          find out -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          rsync -a api/ out/ \
+            --exclude node_modules --exclude tests --exclude .env --exclude 'database/*.sqlite' \
+            --exclude storage/logs --exclude 'storage/framework/*/*' --exclude .phpunit.cache
+          printf '.env\n/storage/*.key\n/storage/logs/*\n!/storage/logs/.gitignore\n' > out/.gitignore
+          cd out
+          git add -A -f
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -q -m "Build of ${SHA::7}"
+          git push origin deploy

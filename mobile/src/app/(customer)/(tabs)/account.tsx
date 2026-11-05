@@ -31,7 +31,7 @@ export default function Account() {
                 <Card tone="gold" style={{ flex: 1 }} onPress={() => router.push('/wallet')}><Text variant="caption" style={{ color: '#6b4e05' }}>{me.tier}</Text><Text variant="heading" style={{ color: '#3d2c03' }}>{me.points} pts</Text></Card>
             </Row>
             {!me.zvino_plus && (
-                <Card tone="brand" style={{ marginTop: 12 }} onPress={() => Alert.alert('Zvino+', 'Join from the website at zvino.co.zw/plus. In-app sign-up is coming soon.')}>
+                <Card tone="brand" style={{ marginTop: 12 }} onPress={() => Alert.alert('Zvino+', 'Join from the website at zvino.online/plus. In-app sign-up is coming soon.')}>
                     <Text variant="heading" style={{ color: '#fff' }}>Get free delivery with Zvino+</Text>
                     <Text variant="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>Plus half-price service fees on every order.</Text>
                 </Card>

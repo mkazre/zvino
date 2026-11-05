@@ -293,7 +293,7 @@ function Receipt({ r, p, cashier, onClose }: { r: { lines: Line[]; total: number
                 <div className="flex justify-between"><span>VAT incl.</span><span>{vat.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Paid by</span><span>{label(r.method)}</span></div>
                 {r.tendered !== undefined && <><div className="flex justify-between"><span>Tendered</span><span>{r.currency} {r.tendered.toFixed(2)}</span></div><div className="flex justify-between"><span>Change ZiG</span><span>{(r.change ?? 0).toFixed(2)}</span></div></>}
-                <div className="mt-2 text-center">Thank you! Order online at zvino.co.zw</div>
+                <div className="mt-2 text-center">Thank you! Order online at zvino.online</div>
             </div>
         </Modal>
     );

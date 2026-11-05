@@ -6,7 +6,7 @@
   "build": {
     "base": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://zvino.co.zw",
+        "EXPO_PUBLIC_API_URL": "https://zvino.online",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
@@ -92,6 +92,36 @@
         "APP_VARIANT": "merchant",
         "EXPO_PUBLIC_API_URL": "http://192.168.1.55:8001",
         "ALLOW_HTTP": "1"
+      }
+    },
+    "customer-online": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "customer"
+      }
+    },
+    "driver-online": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "driver"
+      }
+    },
+    "merchant-online": {
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "merchant"
       }
     }
   },

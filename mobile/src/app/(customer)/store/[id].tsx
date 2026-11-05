@@ -42,7 +42,7 @@ export default function StoreScreen() {
                         <Cover uri={store.cover} seed={store.id} height={220} radius={0} />
                         <SafeAreaView edges={['top']} style={{ position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Pressable onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="arrow-back" size={20} color="#222222" /></Pressable>
-                            <Pressable onPress={() => Share.share({ message: `Order from ${store.name} on Zvino: https://zvino.co.zw/store/${store.slug}` })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="share-outline" size={20} color="#222222" /></Pressable>
+                            <Pressable onPress={() => Share.share({ message: `Order from ${store.name} on Zvino: https://zvino.online/store/${store.slug}` })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="share-outline" size={20} color="#222222" /></Pressable>
                         </SafeAreaView>
                         <View style={{ padding: 20, gap: 6 }}>
                             <Text variant="display">{store.name}</Text>
