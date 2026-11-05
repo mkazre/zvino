@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader, Grid, Page, PageHeader, StatCard } from '@/components/z';
 import AdminLayout from '@/layouts/admin-layout';
-import { label, usd, zig } from '@/lib/money';
+import { alt, label, zig } from '@/lib/money';
 import { router } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -45,7 +45,7 @@ export default function Reports(p: Props) {
                     } />
 
                 <Grid cols={4}>
-                    <StatCard tone="inverse" label="Gross sales (GMV)" value={zig(p.kpis.gmv)} hint={usd(p.kpis.gmv_usd)} />
+                    <StatCard tone="inverse" label="Gross sales (GMV)" value={zig(p.kpis.gmv)} hint={alt(p.kpis.gmv)} />
                     <StatCard label="Orders" value={p.kpis.orders.toLocaleString()} hint={`Avg ${zig(p.kpis.aov)}`} />
                     <StatCard label="Zvino net revenue" value={zig(net)} hint="Commission + fees − driver pay − refunds" />
                     <StatCard label="Ops health" value={`${p.kpis.avg_delivery_minutes || '–'} min`} hint={`${p.kpis.cancel_rate}% cancelled / rejected`} />

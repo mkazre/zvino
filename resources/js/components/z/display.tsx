@@ -1,4 +1,4 @@
-import { label as humanize, usd, zig } from '@/lib/money';
+import { alt, label as humanize, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { ArrowDownRight, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
@@ -35,6 +35,7 @@ const STATUS_TONE: Record<string, Tone> = {
     // entities
     active: 'success', approved: 'success', applied: 'info', suspended: 'danger', inactive: 'neutral', open: 'info', resolved: 'neutral',
     requested: 'warning', processing: 'info', draft: 'neutral', sent: 'success', sending: 'info', offered: 'info', expired: 'neutral', declined: 'neutral',
+    in_review: 'info', needs_info: 'warning',
     new: 'info', cooking: 'warning', online: 'success', offline: 'neutral', busy: 'warning', paused: 'warning', closed: 'neutral', power_out: 'danger',
 };
 
@@ -46,12 +47,13 @@ export function StatusPill({ status, label }: { status: string; label?: string }
     );
 }
 
-export function Money({ zig: z, usd: u, rate, className, size = 'md' }: { zig: number; usd?: number; rate?: number; className?: string; size?: 'sm' | 'md' | 'lg' }) {
-    const second = u ?? (rate ? z / rate : undefined);
+/** A ZiG amount: primary currency large, the other currency small underneath. */
+export function Money({ zig: z, className, size = 'md' }: { zig: number; usd?: number; rate?: number; className?: string; size?: 'sm' | 'md' | 'lg' }) {
+    const second = alt(z);
     return (
         <span className={cn('tabular inline-flex flex-col leading-tight', className)}>
             <span className={cn('font-semibold', size === 'lg' && 'text-2xl tracking-tight', size === 'sm' && 'text-[13px]')}>{zig(z)}</span>
-            {second !== undefined && <span className="text-muted-foreground text-xs font-normal">{usd(second)}</span>}
+            {second && <span className="text-muted-foreground text-xs font-normal">{second}</span>}
         </span>
     );
 }

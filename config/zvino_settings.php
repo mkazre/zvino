@@ -46,8 +46,8 @@ return [
         'label' => 'Currency & tax',
         'icon' => 'coins',
         'fields' => [
-            'primary' => ['type' => 'select', 'label' => 'Primary currency', 'default' => 'ZIG', 'options' => ['ZIG', 'USD']],
-            'show_secondary' => ['type' => 'bool', 'label' => 'Show USD alongside ZiG', 'default' => true],
+            'primary' => ['type' => 'select', 'label' => 'Primary currency', 'default' => 'ZIG', 'options' => ['ZIG', 'USD'], 'help' => 'Shown first everywhere (website, admin and apps), with the other currency small next to it. Prices are still entered in ZiG. Visitors can switch for themselves with the ZiG / US$ switch at the top.'],
+            'show_secondary' => ['type' => 'bool', 'label' => 'Show the second currency alongside', 'default' => true],
             'auto_rate' => ['type' => 'bool', 'label' => 'Fetch RBZ rate daily', 'default' => false, 'help' => 'Otherwise set the rate manually below.'],
             'zig_per_usd' => ['type' => 'decimal', 'label' => 'ZiG per USD', 'default' => 26.8],
             'vat_pct' => ['type' => 'percent', 'label' => 'VAT', 'default' => 15.5],

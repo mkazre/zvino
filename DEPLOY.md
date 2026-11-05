@@ -68,6 +68,13 @@ driver dispatch), queued jobs, campaigns, payouts, monthly company invoices and 
 - Optional: Pusher (`BROADCAST_CONNECTION=pusher`, `PUSHER_*`) for instant updates; Sentry (`SENTRY_LARAVEL_DSN`).
 - Check readiness any time: the last lines of `~/zvino-deploy.log` show `zvino:doctor` (green = ready).
 
+## Sign-ups, emails and notifications
+- Sign-up forms: `/partners/apply` (restaurants & shops), `/drive/apply` (drivers), `/business/apply` (corporate).
+  Each submission arrives in **Admin → Applications** as a draft, with its documents stored privately in
+  `~/zvino-app/storage/app/private/applications`. Approving creates the store, driver or company account.
+- The applicant and the reviewers get emails, so set up email (below) or they only go to the log file.
+  Reviewers also see each new application on the bell in the admin top bar.
+
 ## Mobile apps
 `mobile/eas.json` profiles `customer`, `driver`, `merchant` (store builds) and `*-online` (installable test APKs)
 all talk to `https://zvino.online`. Build with `npx eas-cli build -p android --profile customer-online`.

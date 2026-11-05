@@ -1,14 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Input, Select, Textarea } from '@/components/z';
 import SiteLayout from '@/layouts/site-layout';
-import { usd, zig } from '@/lib/money';
+import { alt, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Gift, Globe, MessageSquare } from 'lucide-react';
 
 export default function GiftCards({ amounts, enabled, seo }: { amounts: number[]; enabled: boolean; seo: { title: string } }) {
-    const { auth, zigPerUsd } = usePage<SharedData>().props;
+    const { auth } = usePage<SharedData>().props;
     const { data, setData, post, processing, errors } = useForm({ amount_zig: amounts[1] ?? amounts[0], recipient_name: '', recipient_phone: '', message: '', method: 'card', phone: '' });
 
     return (
@@ -29,7 +29,7 @@ export default function GiftCards({ amounts, enabled, seo }: { amounts: number[]
                 <div className="rounded-3xl border p-6 md:p-8">
                     <div className="relative flex aspect-[1.6] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-brand)] to-[#073e2c] p-6 text-white shadow-xl">
                         <span className="text-lg font-extrabold">zvino</span>
-                        <div><div className="tabular text-4xl font-extrabold">{zig(data.amount_zig)}</div><div className="text-sm text-white/70">{data.recipient_name ? `For ${data.recipient_name}` : 'Gift card'} · ≈ {usd(data.amount_zig / zigPerUsd)}</div></div>
+                        <div><div className="tabular text-4xl font-extrabold">{zig(data.amount_zig)}</div><div className="text-sm text-white/70">{data.recipient_name ? `For ${data.recipient_name}` : 'Gift card'} {alt(data.amount_zig) && ` · ≈ ${alt(data.amount_zig)}`}</div></div>
                         <Gift className="absolute -right-4 -bottom-4 size-32 text-white/10" />
                     </div>
                     {!enabled ? <p className="text-muted-foreground mt-6">Gift cards are coming soon.</p> : (

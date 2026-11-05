@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Avatar, Popover } from '@/components/z';
 import { cart, useCart } from '@/lib/cart';
-import { usd, zig } from '@/lib/money';
+import { alt, zig } from '@/lib/money';
 import { useLocale, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
@@ -10,6 +10,8 @@ import { ChevronDown, Globe, MapPin, Minus, Plus, Search, ShoppingBag, Trash2, X
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
+import { CurrencySwitch } from '@/components/currency-switch';
+import { StoreBadges } from '@/components/store-badges';
 
 export interface SiteProps extends SharedData {
     site: {
@@ -76,7 +78,7 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
 
     return (
         <header className={cn('sticky top-0 z-40 transition-colors', scrolled ? 'border-b bg-white/90 backdrop-blur-md dark:bg-[#0c0e0d]/90' : 'bg-transparent')}>
-            <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 md:h-[72px] md:gap-6 md:px-6">
+            <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-3 md:h-[72px] md:gap-6 md:px-6">
                 <Link href="/" className="shrink-0"><Logo inverse={!scrolled} /></Link>
 
                 {site.platform_mode === 'marketplace' && (
@@ -103,6 +105,7 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
                 )}
 
                 <nav className="ml-auto flex items-center gap-1.5">
+                    <CurrencySwitch tone={scrolled ? 'light' : 'glass'} />
                     {!hideCart && (
                         <button onClick={onCart} className={cn('relative flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold transition', count ? 'bg-[#1c1c1c] text-white dark:bg-white dark:text-black' : scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>
                             <ShoppingBag className="size-[18px]" />
@@ -120,7 +123,7 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
                     ) : user ? (
                         <Button asChild size="sm" variant="dark" className="rounded-full"><Link href="/dashboard">Admin</Link></Button>
                     ) : (
-                        <Button asChild variant={scrolled ? 'dark' : 'secondary'} className="h-11 rounded-full px-5"><Link href="/signin">{t('Sign in')}</Link></Button>
+                        <Button asChild variant={scrolled ? 'dark' : 'secondary'} className="h-10 rounded-full px-4 md:h-11 md:px-5"><Link href="/signin">{t('Sign in')}</Link></Button>
                     )}
                 </nav>
             </div>
@@ -130,7 +133,6 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
 
 function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
     const { vendor, lines, subtotal, count } = useCart();
-    const { zigPerUsd, auth } = usePage<SiteProps>().props;
     const short = vendor ? Math.max(0, vendor.min_order_zig - subtotal) : 0;
 
     return (
@@ -175,7 +177,7 @@ function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                         </ul>
                         <footer className="border-t px-6 py-5">
                             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal · {count} items</span><span className="tabular font-semibold">{zig(subtotal)}</span></div>
-                            <div className="text-muted-foreground mb-4 text-right text-xs">{usd(subtotal / zigPerUsd)} · fees calculated at checkout</div>
+                            <div className="text-muted-foreground mb-4 text-right text-xs">{[alt(subtotal), 'fees calculated at checkout'].filter(Boolean).join(' · ')}</div>
                             {short > 0 && <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-900">Add {zig(short)} more to reach the {zig(vendor!.min_order_zig)} minimum.</p>}
                             <Button className="h-14 w-full rounded-full text-base" variant="dark" disabled={short > 0} onClick={() => { onClose(); router.visit('/checkout'); }}>
                                 Go to checkout · {zig(subtotal)}
@@ -203,7 +205,7 @@ function Footer() {
     const { site, brand } = usePage<SiteProps>().props;
     const cols: [string, [string, string][]][] = [
         ['Zvino', [['About us', '/p/about'], ['Zvino+', '/plus'], ['Gift cards', '/gift-cards'], ['Send groceries home', '/hampers'], ['Catering', '/catering'], ['Help & FAQ', '/p/faq']]],
-        ['Work with us', [['Add your restaurant', '/partners'], ['Drive with Zvino', '/drive'], ['Corporate accounts', '/p/about']]],
+        ['Work with us', [['Add your restaurant or shop', '/partners/apply'], ['Drive with Zvino', '/drive/apply'], ['Corporate accounts', '/business'], ['Partner benefits', '/partners']]],
         ['Legal', [['Terms of service', '/p/terms'], ['Privacy policy', '/p/privacy']]],
     ];
     return (
@@ -212,13 +214,7 @@ function Footer() {
                 <div>
                     <Logo inverse />
                     <p className="mt-4 max-w-xs text-sm text-white/60">{site.tagline}</p>
-                    <div className="mt-6 flex flex-wrap gap-2">
-                        {['ios', 'android'].map((k) => (
-                            <a key={k} href={site.apps[k as 'ios' | 'android'] || '#'} className="flex items-center gap-2 rounded-lg border border-white/15 px-3.5 py-2 text-xs hover:bg-white/5">
-                                <span className="text-lg">{k === 'ios' ? '' : '▶'}</span><span><span className="block text-[10px] opacity-60">{k === 'ios' ? 'Download on the' : 'Get it on'}</span><span className="font-semibold">{k === 'ios' ? 'App Store' : 'Google Play'}</span></span>
-                            </a>
-                        ))}
-                    </div>
+                    <StoreBadges className="mt-6" size="sm" />
                 </div>
                 {cols.map(([title, links]) => (
                     <div key={title}>

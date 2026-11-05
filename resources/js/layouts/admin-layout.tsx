@@ -4,10 +4,11 @@ import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Command } from 'cmdk';
-import { BarChart3, Bell, Bike, Building2, Calculator, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Smartphone, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
+import { BarChart3, Bell, Bike, Building2, Calculator, ClipboardCheck, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Smartphone, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
+import { CurrencySwitch } from '@/components/currency-switch';
 
 interface NavItem {
     title: string;
@@ -26,6 +27,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
         items: [
             { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, can: 'orders.view' },
             { title: 'Command centre', href: '/admin/dispatch', icon: Radar, can: 'dispatch.manage', badge: 'unassigned', badgeTone: 'red' },
+            { title: 'Applications', href: '/admin/applications', icon: ClipboardCheck, can: 'applications.review', badge: 'applications', badgeTone: 'red' },
         ],
     },
     {
@@ -235,6 +237,7 @@ function Topbar({ title, onMenu, onSearch }: { title: string; onMenu: () => void
                 <span className="text-muted-foreground hidden items-center gap-2 rounded-lg px-2.5 text-xs font-medium xl:flex" title="Today's ZiG/USD rate">
                     <span className="tabular">1 USD = {zigPerUsd} ZiG</span>
                 </span>
+                <CurrencySwitch />
                 <span className="text-muted-foreground hidden items-center gap-2 px-2.5 text-xs font-medium sm:flex" title={pusher.key ? 'Live updates via Pusher' : 'Live updates by polling'}>
                     <LiveDot /> Live
                 </span>
@@ -248,9 +251,7 @@ function Topbar({ title, onMenu, onSearch }: { title: string; onMenu: () => void
                 >
                     {dark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
                 </button>
-                <Link href="/admin/support" className="text-muted-foreground hover:bg-muted hover:text-foreground relative rounded-lg p-2" aria-label="Notifications">
-                    <Bell className="size-[18px]" />
-                </Link>
+                <NotificationBell />
                 <Popover
                     trigger={
                         <button className="hover:bg-muted ml-1 flex items-center gap-2 rounded-lg py-1 pr-2 pl-1">
@@ -273,6 +274,53 @@ function Topbar({ title, onMenu, onSearch }: { title: string; onMenu: () => void
                 </Popover>
             </div>
         </header>
+    );
+}
+
+/** Bell: new applications and other alerts for this staff member. */
+function NotificationBell() {
+    const { notifications } = usePage<SharedData>().props;
+    const unread = notifications?.unread ?? 0;
+    const list = notifications?.latest ?? [];
+    return (
+        <Popover
+            align="end"
+            className="w-[min(22rem,calc(100vw-2rem))] p-0"
+            trigger={
+                <button className="text-muted-foreground hover:bg-muted hover:text-foreground relative rounded-lg p-2" aria-label={unread ? `${unread} unread notifications` : 'Notifications'}>
+                    <Bell className="size-[18px]" />
+                    {unread > 0 && <span className="bg-zred absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-4 font-bold text-white">{unread > 9 ? '9+' : unread}</span>}
+                </button>
+            }
+        >
+            <div className="flex items-center justify-between border-b px-4 py-3">
+                <span className="text-sm font-semibold">Notifications</span>
+                {unread > 0 && <button onClick={() => router.post('/admin/notifications/read', {}, { preserveScroll: true, preserveState: true })} className="text-muted-foreground hover:text-foreground text-xs font-medium">Mark all read</button>}
+            </div>
+            {list.length === 0 ? (
+                <p className="text-muted-foreground px-4 py-8 text-center text-sm">You’re all caught up.</p>
+            ) : (
+                <ul className="max-h-96 overflow-y-auto py-1">
+                    {list.map((n) => (
+                        <li key={n.id}>
+                            <Link href={`/admin/notifications/${n.id}`} className="hover:bg-muted flex gap-3 px-4 py-2.5">
+                                <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', n.read_at ? 'bg-transparent' : 'bg-brand')} />
+                                <span className="min-w-0 flex-1">
+                                    <span className={cn('block truncate text-sm', !n.read_at && 'font-semibold')}>{n.title}</span>
+                                    <span className="text-muted-foreground block truncate text-xs">{n.body}</span>
+                                    <span className="text-muted-foreground text-[11px]">{new Date(n.created_at).toLocaleString('en-ZW', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                                </span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <div className="border-t px-4 py-2.5 text-xs">
+                <Link href="/admin/applications" className="font-medium hover:underline">All applications</Link>
+                <span className="text-muted-foreground"> · </span>
+                <Link href="/admin/support" className="font-medium hover:underline">Support</Link>
+            </div>
+        </Popover>
     );
 }
 

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Badge, Drawer, Field, Input, Modal, SearchInput, Segmented, StatusPill, Thumb } from '@/components/z';
 import { QrCode } from '@/components/qr';
 import AdminLayout from '@/layouts/admin-layout';
-import { label, timeAgo, usd, zig } from '@/lib/money';
+import { alt, fmtUsd, fmtZig, label, timeAgo, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Item, type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
@@ -171,7 +171,7 @@ export default function Pos(p: Props) {
                         <div className="text-muted-foreground flex justify-between text-sm"><span>VAT {p.vatPct}% (included)</span><span className="tabular">{zig(vat)}</span></div>
                         <div className="mt-1 flex items-end justify-between">
                             <span className="text-lg font-bold">Total</span>
-                            <span className="text-right"><span className="tabular block text-[28px] leading-none font-bold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{usd(total / p.zigPerUsd)}</span></span>
+                            <span className="text-right"><span className="tabular block text-[28px] leading-none font-bold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{alt(total)}</span></span>
                         </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 border-t p-4">
@@ -199,7 +199,7 @@ export default function Pos(p: Props) {
             {receipt && <Receipt r={receipt} p={p} cashier={auth.user.name} onClose={() => setReceipt(null)} />}
             <Drawer open={shiftOpen} onClose={() => setShiftOpen(false)} title="Today’s shift" description={`${p.shift.sales} paid sales`}>
                 <div className="grid gap-5">
-                    <div className="bg-foreground text-background rounded-xl p-5"><div className="text-sm opacity-70">Takings today</div><div className="tabular text-3xl font-bold">{zig(p.shift.total_zig)}</div><div className="tabular text-sm opacity-70">{usd(p.shift.total_zig / p.zigPerUsd)}</div></div>
+                    <div className="bg-foreground text-background rounded-xl p-5"><div className="text-sm opacity-70">Takings today</div><div className="tabular text-3xl font-bold">{zig(p.shift.total_zig)}</div><div className="tabular text-sm opacity-70">{alt(p.shift.total_zig)}</div></div>
                     <div className="grid gap-2">{p.shift.by_method.map((m) => <div key={m.payment_method} className="flex justify-between rounded-lg border px-4 py-3 text-sm"><span className="font-medium">{label(m.payment_method)} <span className="text-muted-foreground">· {m.c}</span></span><span className="tabular font-semibold">{zig(m.t)}</span></div>)}</div>
                     <div>
                         <div className="text-muted-foreground mb-2 text-xs font-medium uppercase">Recent sales</div>
@@ -251,7 +251,7 @@ function ChargeModal({ method, total, rate, onClose, onCharge }: { method: strin
     const mobile = ['ecocash', 'onemoney', 'innbucks'].includes(method);
 
     return (
-        <Modal open onClose={onClose} title={`${label(method)} payment`} description={<span className="tabular">Due <b className="text-foreground">{zig(total)}</b> · {usd(dueUsd)}</span>}
+        <Modal open onClose={onClose} title={`${label(method)} payment`} description={<span className="tabular">Due <b className="text-foreground">{fmtZig(total)}</b> · {fmtUsd(dueUsd)}</span>}
             footer={<><Button variant="outline" onClick={onClose}><X /> Back</Button><Button size="lg" disabled={(method === 'cash' && t > 0 && change < 0) || (mobile && phone.length < 9)} onClick={() => onCharge(method === 'cash' ? (t ? { tendered: t, tendered_currency: currency } : {}) : mobile ? { phone } : {})}>{method === 'cash' ? 'Complete sale' : mobile ? 'Send payment request' : 'Card approved'}</Button></>}>
             {method === 'cash' && (
                 <div className="grid gap-4">
@@ -262,7 +262,7 @@ function ChargeModal({ method, total, rate, onClose, onCharge }: { method: strin
                         <div className={cn('rounded-xl p-4', change >= 0 ? 'bg-brand-50 dark:bg-brand/10' : 'bg-zred-50 dark:bg-zred/10')}>
                             <div className="text-sm font-medium">{change >= 0 ? 'Change to give' : 'Still owed'}</div>
                             <div className="tabular text-2xl font-bold">{zig(Math.abs(change))}</div>
-                            <div className="tabular text-muted-foreground text-sm">or {usd(Math.abs(change) / rate)}</div>
+                            <div className="tabular text-muted-foreground text-sm">or {fmtUsd(Math.abs(change) / rate)}</div>
                         </div>
                     )}
                 </div>

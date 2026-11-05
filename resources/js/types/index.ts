@@ -28,10 +28,12 @@ export interface SharedData {
     auth: Auth;
     platformMode: 'single' | 'marketplace';
     zigPerUsd: number;
+    currency: import('@/lib/money').CurrencyProps;
     pusher: { key: string | null; cluster: string | null };
     flash: { success: string | null; error: string | null };
     can: string[];
-    badges: { orders?: number; incoming?: number; unassigned?: number; refunds?: number; drivers?: number; support?: number };
+    badges: { orders?: number; incoming?: number; unassigned?: number; refunds?: number; drivers?: number; support?: number; applications?: number };
+    notifications?: { unread: number; latest: { id: number; type: string; title: string; body: string; read_at: string | null; created_at: string }[] } | null;
     brand: { name: string; logo: string | null };
     [key: string]: unknown;
 }

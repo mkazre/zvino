@@ -2,10 +2,10 @@ import { Button } from '@/components/ui/button';
 import { StoreCard, type StoreCardData } from '@/components/site';
 import { Input, Progress, Select, Switch } from '@/components/z';
 import SiteLayout from '@/layouts/site-layout';
-import { label, timeAgo, usd, zig } from '@/lib/money';
+import { alt, label, timeAgo, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
-import { type Money, type Order, type SharedData } from '@/types';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { type Money, type Order } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Copy, Gift, Heart, Home, MapPin, Plus, ReceiptText, Share2, Trash2, User, Wallet, Crown } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -101,7 +101,6 @@ function OrderRow({ o, live }: { o: Order & { review?: unknown }; live?: boolean
 }
 
 function WalletTab({ wallet, loyalty, rewards }: Props) {
-    const { zigPerUsd } = usePage<SharedData>().props;
     const [code, setCode] = useState('');
     const pct = loyalty.next ? (loyalty.lifetime / loyalty.next.threshold) * 100 : 100;
     return (
@@ -110,7 +109,7 @@ function WalletTab({ wallet, loyalty, rewards }: Props) {
                 <div className="rounded-3xl bg-[#222222] p-6 text-white">
                     <div className="text-sm text-white/60">Zvino wallet</div>
                     <div className="tabular mt-1 text-4xl font-extrabold tracking-tight">{zig(wallet.balance.zig)}</div>
-                    <div className="tabular text-sm text-white/60">{usd(wallet.balance.zig / zigPerUsd)}</div>
+                    <div className="tabular text-sm text-white/60">{alt(wallet.balance.zig)}</div>
                     <form onSubmit={(e) => { e.preventDefault(); router.post('/account/gift-cards/redeem', { code }, { preserveScroll: true, onSuccess: () => setCode('') }); }} className="mt-5 flex gap-2">
                         <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Gift card code" className="h-11 flex-1 rounded-xl bg-white/10 px-3 font-mono text-sm outline-none placeholder:text-white/40" />
                         <Button className="h-11 rounded-xl bg-white text-black hover:bg-white/90" disabled={!code}>Redeem</Button>

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Badge, Card, CardBody, CardHeader, EmptyState, Grid, LiveDot, Money, Page, PageHeader, Segmented, StatCard, StatusPill, Thumb, Stars, Modal, Select, Field } from '@/components/z';
 import { useLiveOrders } from '@/hooks/use-live-orders';
 import AdminLayout from '@/layouts/admin-layout';
-import { label, timeAgo, usd, zig } from '@/lib/money';
+import { alt, label, timeAgo, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Order, type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
@@ -32,7 +32,7 @@ const greeting = () => {
 };
 
 export default function Dashboard(p: Props) {
-    const { auth, zigPerUsd, can } = usePage<SharedData>().props;
+    const { auth, can } = usePage<SharedData>().props;
     useLiveOrders(auth.user.vendor_id ?? p.vendors[0]?.id, ['kpis', 'live', 'liveOrders', 'fleet', 'alerts']);
     const [modeOpen, setModeOpen] = useState(false);
     const totalPay = p.payments.reduce((s, x) => s + x.gmv, 0) || 1;
@@ -82,9 +82,9 @@ export default function Dashboard(p: Props) {
                 )}
 
                 <Grid cols={4}>
-                    <StatCard tone="inverse" label="Sales today" value={zig(p.kpis.gmv_today)} delta={p.kpis.gmv_change} hint={`${usd(p.kpis.gmv_today / zigPerUsd)} · vs same time yesterday`} trend={p.series.map((s) => s.gmv)} />
+                    <StatCard tone="inverse" label="Sales today" value={zig(p.kpis.gmv_today)} delta={p.kpis.gmv_change} hint={[alt(p.kpis.gmv_today), 'vs same time yesterday'].filter(Boolean).join(' · ')} trend={p.series.map((s) => s.gmv)} />
                     <StatCard label="Orders today" value={p.kpis.orders_today} delta={p.kpis.orders_change} hint="vs same time yesterday" icon={ShoppingBag} />
-                    <StatCard label="Avg. order value" value={zig(p.kpis.aov_30d)} hint={`${usd(p.kpis.aov_30d / zigPerUsd)} · last 30 days`} icon={Zap} />
+                    <StatCard label="Avg. order value" value={zig(p.kpis.aov_30d)} hint={[alt(p.kpis.aov_30d), 'last 30 days'].filter(Boolean).join(' · ')} icon={Zap} />
                     <StatCard label="Avg. delivery time" value={`${p.kpis.avg_delivery_min || '–'} min`} hint={`${p.kpis.cancel_rate_7d}% cancelled (7d)`} icon={Clock} />
                 </Grid>
 

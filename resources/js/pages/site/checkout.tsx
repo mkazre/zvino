@@ -3,7 +3,7 @@ import { Input, Modal, Select, Textarea } from '@/components/z';
 import { AddressModal } from '@/components/site-address';
 import SiteLayout, { type SiteProps } from '@/layouts/site-layout';
 import { cart as browserCart, useCart } from '@/lib/cart';
-import { label, usd, zig } from '@/lib/money';
+import { alt, fmtUsd, fmtZig, label, zig } from '@/lib/money';
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { type Money } from '@/types';
@@ -238,7 +238,7 @@ export default function Checkout(p: Props) {
                             <div className="mt-3 rounded-2xl bg-neutral-50 p-4 dark:bg-white/5">
                                 <label className="flex items-center gap-2 text-sm font-semibold"><Banknote className="size-4" /> Pay part in cash? <span className="text-muted-foreground font-normal">(optional)</span></label>
                                 <Input className="mt-2 h-11 w-48" type="number" min={0} prefix="ZiG" value={form.data.cash_part} onChange={(e) => form.setData('cash_part', e.target.value)} placeholder="0" />
-                                {cashPart > 0 && <p className="text-muted-foreground mt-2 text-xs">Hand {zig(cashPart)} (≈ {usd(cashPart / zigPerUsd)}) to your driver, the rest {zig(due)} by {form.data.payment_method === 'card' ? 'card' : label(form.data.payment_method)}.</p>}
+                                {cashPart > 0 && <p className="text-muted-foreground mt-2 text-xs">Hand {fmtZig(cashPart)} (≈ {fmtUsd(cashPart / zigPerUsd)}) to your driver, the rest {zig(due)} by {form.data.payment_method === 'card' ? 'card' : label(form.data.payment_method)}.</p>}
                             </div>
                         )}
                         {splitOk && (
@@ -330,7 +330,7 @@ export default function Checkout(p: Props) {
                         </dl>
                         <div className="mt-4 flex items-end justify-between border-t pt-4">
                             <span className="font-bold">{t('Total')}</span>
-                            <span className="text-right"><span className="tabular block text-2xl font-extrabold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{usd(totals.total.usd || total / zigPerUsd)} · VAT incl.</span></span>
+                            <span className="text-right"><span className="tabular block text-2xl font-extrabold tracking-tight">{zig(total)}</span><span className="tabular text-muted-foreground text-sm">{[alt(total), 'VAT incl.'].filter(Boolean).join(' · ')}</span></span>
                         </div>
                         <p className="text-muted-foreground mt-1 text-right text-[11px]">Rate today: 1 USD = {zigPerUsd} ZiG</p>
                         {(walletPart > 0 || cashPart > 0 || friendsTotal > 0) && (

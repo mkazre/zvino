@@ -30,7 +30,7 @@ class SiteController extends Controller
 
     private function storeCards($vendors): array
     {
-        return $vendors->map(fn (Vendor $v) => (new VendorResource($v))->resolve() + ['availability' => $this->availability->status($v)])->all();
+        return $vendors->map(fn (Vendor $v) => (new VendorResource($v))->resolve() + ['availability' => $this->availability->status($v)])->values()->all();
     }
 
     private function vendorQuery(?string $city)
@@ -50,8 +50,13 @@ class SiteController extends Controller
         }
         $city = $request->query('city', session('city'));
 
-        $blocks = HomeBlock::where('is_visible', true)->where(fn ($q) => $q->whereNull('city_scope')->orWhere('city_scope', $city))->orderBy('sort_order')->get();
+        $blocks = HomeBlock::where('is_visible', true)
+            ->where(fn ($q) => $q->whereNull('published_at')->orWhere('published_at', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('city_scope')->orWhere('city_scope', $city))
+            ->orderBy('sort_order')->get()
+            ->filter(fn (HomeBlock $b) => $b->liveFor('web'))->values();
         $vendors = $this->vendorQuery($city)->orderByDesc('is_featured')->orderByDesc('rating')->limit(24)->get();
+        $stats = ['stores' => Vendor::active()->count(), 'cities' => count(Setting::get('general.cities'))];
 
         return Inertia::render('site/home', [
             'seo' => $this->seo(Setting::get('apps.seo_title'), null, null, [
@@ -59,14 +64,33 @@ class SiteController extends Controller
                 'contactPoint' => ['@type' => 'ContactPoint', 'telephone' => Setting::get('general.support_phone'), 'contactType' => 'customer service', 'areaServed' => 'ZW'],
             ]),
             'city' => $city,
-            'blocks' => $blocks->map->only('id', 'type', 'title', 'subtitle', 'cta_label', 'link_to', 'payload'),
-            'categories' => Category::whereNull('vendor_id')->orderBy('sort_order')->get(['id', 'name', 'icon']),
+            'blocks' => $blocks->map(fn (HomeBlock $b) => $b->only('id', 'type', 'title', 'subtitle', 'cta_label', 'link_to', 'payload') + ['data' => $this->blockData($b, $city, $vendors, $stats, $request)])->values(),
             'stores' => $this->storeCards($vendors),
-            'specials' => ItemResource::collection(Item::with('vendor')->where('is_available', true)
-                ->where(fn ($q) => $q->where('is_special', true)->orWhereNotNull('special_price_zig'))
-                ->whereHas('vendor', fn ($v) => $v->where('status', 'active')->when($city, fn ($w) => $w->where('city', $city)))->limit(12)->get()),
-            'stats' => ['stores' => Vendor::active()->count(), 'cities' => count(Setting::get('general.cities'))],
+            'stats' => $stats,
         ]);
+    }
+
+    /** Live data for a website home block (stores, dishes, categories, numbers). */
+    private function blockData(HomeBlock $b, ?string $city, $vendors, array $stats, Request $request): mixed
+    {
+        $p = $b->payload ?? [];
+        $limit = max(1, min(24, (int) ($p['limit'] ?? 8)));
+        $items = fn () => Item::with('vendor')->where('is_available', true)->whereHas('vendor', fn ($v) => $v->where('status', 'active')->when($city, fn ($w) => $w->where('city', $city)));
+
+        return match ($b->type) {
+            'hero' => ['stores' => $this->storeCards($vendors->where('is_featured', true)->take(4)->whenEmpty(fn () => $vendors->take(4))), 'stats' => $stats],
+            'categories' => Category::whereNull('vendor_id')->orderBy('sort_order')->get(['id', 'name', 'icon']),
+            'specials' => ItemResource::collection($items()->where(fn ($q) => $q->where('is_special', true)->orWhereNotNull('special_price_zig'))->limit($limit)->get())->resolve(),
+            'dish_collection' => ($ids = array_map('intval', (array) ($p['item_ids'] ?? []))) ? ItemResource::collection($items()->whereIn('id', $ids)->get()->sortBy(fn ($i) => array_search($i->id, $ids))->values())->resolve() : [],
+            'vendors' => $this->storeCards(($p['featured_only'] ?? false) ? $vendors->where('is_featured', true)->take($limit) : $vendors->take($limit)),
+            'store_collection' => ($ids = array_map('intval', (array) ($p['vendor_ids'] ?? []))) ? $this->storeCards($this->vendorQuery(null)->whereIn('id', $ids)->get()->sortBy(fn ($v) => array_search($v->id, $ids))->values()) : [],
+            'new_stores' => $this->storeCards($this->vendorQuery($city)->where('created_at', '>=', now()->subDays((int) ($p['days'] ?? 60)))->latest()->limit($limit)->get()),
+            'top_rated' => $this->storeCards($this->vendorQuery($city)->where('rating', '>=', (float) ($p['min_rating'] ?? 4.2))->orderByDesc('rating')->limit($limit)->get()),
+            'free_delivery' => $this->storeCards($this->vendorQuery($city)->where('delivery_fee_zig', 0)->orderByDesc('rating')->limit($limit)->get()),
+            'rewards' => ['rewards' => \App\Models\Reward::where('is_active', true)->orderBy('points_cost')->limit(3)->get(['id', 'name', 'points_cost'])],
+            'stats' => $stats,
+            default => null,
+        };
     }
 
     public function stores(Request $request)
@@ -207,6 +231,13 @@ class SiteController extends Controller
         $request->user()?->update(['locale' => $locale]);
 
         return back()->withCookie(cookie()->forever('zvino_locale', $locale));
+    }
+
+    public function setCurrency(Request $request)
+    {
+        $currency = $request->validate(['currency' => ['required', 'in:ZIG,USD']])['currency'];
+
+        return back()->withCookie(cookie()->forever(\App\Support\Money::COOKIE, $currency));
     }
 
     public function setCity(Request $request)

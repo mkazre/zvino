@@ -26,7 +26,9 @@ class HomeLayoutController extends Controller
             ->where(fn ($q) => $q->whereNull('city_scope')->orWhere('city_scope', $city))
             ->when($single, fn ($q) => $q->whereNotIn('type', HomeBlock::MARKETPLACE_ONLY))
             ->orderBy('sort_order')
-            ->get();
+            ->get()
+            // The app draws the original block types only; website-only sections are skipped.
+            ->filter(fn (HomeBlock $b) => $b->liveFor('app'))->values();
 
         return response()->json([
             'platform_mode' => $single ? 'single' : 'marketplace',

@@ -5,6 +5,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { route as routeFn } from 'ziggy-js';
 import { initializeTheme } from './hooks/use-appearance';
+import { configureMoney } from './lib/money';
 
 declare global {
     const route: typeof routeFn;
@@ -19,7 +20,16 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        root.render(<App {...props} />);
+        // Set the display currency from the page props before the page renders, so every price on
+        // the page (and its layout) uses the same primary currency and rate.
+        root.render(
+            <App {...props}>
+                {({ Component, key, props: pageProps }) => {
+                    configureMoney(pageProps as Parameters<typeof configureMoney>[0]);
+                    return <Component key={key} {...pageProps} />;
+                }}
+            </App>,
+        );
     },
     progress: {
         color: 'var(--color-brand)',
