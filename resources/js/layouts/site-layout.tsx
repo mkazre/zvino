@@ -12,6 +12,7 @@ import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
 import { CurrencySwitch } from '@/components/currency-switch';
 import { StoreBadges } from '@/components/store-badges';
+import { OrderAlerts } from '@/components/order-alerts';
 import { AddressPicker, LocationProvider, type ActiveLocation, type SavedAddress } from '@/components/address-picker';
 
 export interface SiteProps extends SharedData {
@@ -59,6 +60,7 @@ export default function SiteLayout({ children, transparent = false, hideCart = f
             <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
             <MobileCartBar hidden={hideCart} onOpen={() => setCartOpen(true)} />
             <Toaster position="top-center" toastOptions={{ className: 'font-sans !rounded-xl' }} />
+            <OrderAlerts />
         </div>
         </LocationProvider>
     );

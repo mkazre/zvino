@@ -133,7 +133,7 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
     const kg = (n: number) => `${+(n * step).toFixed(3)} kg`;
     const base = (item.special_price?.zig ?? item.price.zig) * (perKg ? step : 1);
     const unit = useMemo(
-        () => base + (item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + mods.reduce((s, m) => s + (groups.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0),
+        () => base + Number(item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + mods.reduce((s, m) => s + Number(groups.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0),
         [base, variant, mods, item, groups],
     );
     const missing = groups.find((g) => g.options.filter((o) => mods.includes(o.name)).length < g.min);

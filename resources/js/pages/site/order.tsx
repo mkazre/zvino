@@ -5,6 +5,7 @@ import { useT } from '@/lib/i18n';
 import { label, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type OrderView } from '@/types/order-view';
+import { EnableAlertsCard } from '@/components/order-alerts';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Check, CircleHelp, Download, HelpCircle, Mail, MessageCircle, Phone, RotateCcw, Star, Store, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -26,10 +27,12 @@ export default function OrderPage({ view: initial, mapsKey }: { view: OrderView;
     // Live updates while the order is moving (Pusher pushes too when configured).
     useEffect(() => {
         if (v.is_done) return;
-        const timer = setInterval(() => {
-            fetch(`/orders/${v.id}/status`, { headers: { Accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).then((d) => d?.view && setV(d.view)).catch(() => {});
-        }, 10000);
-        return () => clearInterval(timer);
+        const refresh = () => fetch(`/orders/${v.id}/status`, { headers: { Accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).then((d) => d?.view && setV(d.view)).catch(() => {});
+        const timer = setInterval(refresh, 10000);
+        // An order alert just arrived (OrderAlerts): refresh straight away.
+        const onAlert = (e: Event) => (e as CustomEvent<{ data?: { order_id?: number } }>).detail?.data?.order_id === v.id && refresh();
+        window.addEventListener('zvino:order-update', onAlert);
+        return () => { clearInterval(timer); window.removeEventListener('zvino:order-update', onAlert); };
     }, [v.is_done, v.id]);
 
     const go = (next: Tab) => {
@@ -106,6 +109,7 @@ function Tracking({ v, mapsKey }: { v: OrderView; mapsKey: string | null }) {
     return (
         <>
             <StageBanner image={v.banner.image} title={v.banner.title} subtitle={v.banner.subtitle} />
+            {!v.is_done && <EnableAlertsCard />}
 
             <ol className="grid gap-1 px-1">
                 {v.timeline.map((s) => (

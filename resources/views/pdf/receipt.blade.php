@@ -28,6 +28,7 @@
     <div style="max-width: 760px; margin: 0 auto 16px; padding: 12px 16px; background: #fffbd9; border-radius: 8px; font-family: sans-serif;">
         <b>Your receipt</b> · use your browser’s Print button (or Share → Print / Save as PDF) to keep a copy.
         <button onclick="window.print()" style="margin-left: 8px; padding: 6px 12px; border-radius: 999px; border: 0; background: #222; color: #fff; cursor: pointer;">Print / Save PDF</button>
+        @if (! empty($pdf_error))<div style="margin-top: 8px; font-size: 12px; color: #8a1c1c;">Staff only · PDF error: {{ $pdf_error }}</div>@endif
     </div>
     <style>@media print { body > div:first-child { display: none; } } body { max-width: 760px; margin: 24px auto; }</style>
 @endif

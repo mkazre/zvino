@@ -69,6 +69,17 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
         Route::post('checkout', [CheckoutController::class, 'place'])->name('checkout.place');
 
         Route::get('account', [AccountController::class, 'index'])->name('account');
+        // Browser alerts: order updates since the last one this browser saw (polled every ~15 s).
+        Route::get('account/alerts', function (\Illuminate\Http\Request $request) {
+            $after = $request->integer('after');
+            $q = $request->user()->appNotifications()->whereIn('type', ['order_status', 'late_credit', 'split_declined']);
+            if (! $request->has('after')) {
+                return response()->json(['latest_id' => (int) $q->max('id'), 'items' => []]);
+            }
+            $items = $q->where('id', '>', $after)->orderBy('id')->limit(10)->get(['id', 'type', 'title', 'body', 'data', 'created_at']);
+
+            return response()->json(['latest_id' => (int) ($items->max('id') ?? $after), 'items' => $items]);
+        })->middleware('throttle:120,1')->name('account.alerts');
         Route::post('account/profile', [AccountController::class, 'updateProfile'])->name('account.profile');
         Route::post('account/addresses', [AccountController::class, 'storeAddress'])->name('account.addresses');
         Route::delete('account/addresses/{id}', [AccountController::class, 'destroyAddress'])->name('account.addresses.destroy');

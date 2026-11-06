@@ -720,6 +720,7 @@ class ComposerStaticInit10ac234cfd3462f4dc8e46b3ede094c4
         'App\\Services\\GrowthService' => __DIR__ . '/../..' . '/app/Services/GrowthService.php',
         'App\\Services\\LedgerService' => __DIR__ . '/../..' . '/app/Services/LedgerService.php',
         'App\\Services\\LoyaltyService' => __DIR__ . '/../..' . '/app/Services/LoyaltyService.php',
+        'App\\Services\\OrderMailer' => __DIR__ . '/../..' . '/app/Services/OrderMailer.php',
         'App\\Services\\OrderService' => __DIR__ . '/../..' . '/app/Services/OrderService.php',
         'App\\Services\\OtpService' => __DIR__ . '/../..' . '/app/Services/OtpService.php',
         'App\\Services\\Payments\\PaynowGateway' => __DIR__ . '/../..' . '/app/Services/Payments/PaynowGateway.php',

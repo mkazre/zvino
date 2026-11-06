@@ -154,6 +154,7 @@ return array(
     'App\\Services\\GrowthService' => $baseDir . '/app/Services/GrowthService.php',
     'App\\Services\\LedgerService' => $baseDir . '/app/Services/LedgerService.php',
     'App\\Services\\LoyaltyService' => $baseDir . '/app/Services/LoyaltyService.php',
+    'App\\Services\\OrderMailer' => $baseDir . '/app/Services/OrderMailer.php',
     'App\\Services\\OrderService' => $baseDir . '/app/Services/OrderService.php',
     'App\\Services\\OtpService' => $baseDir . '/app/Services/OtpService.php',
     'App\\Services\\Payments\\PaynowGateway' => $baseDir . '/app/Services/Payments/PaynowGateway.php',

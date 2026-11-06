@@ -583,6 +583,7 @@ class OrderService
                 'time' => $order->scheduled_for?->format('D H:i'),
             ]);
             $this->push->toUser($order->user, 'order_status', $title, $body, ['order_id' => $order->id, 'status' => $status]);
+            app(OrderMailer::class)->statusChanged($order, $status);
 
             // SMS fallback (#45): customers with no app installed still hear about the key moments.
             if (Setting::get('orders.sms_fallback') && $order->user->phone && in_array($status, ['accepted', 'picked_up', 'delivered', 'rejected', 'cancelled'], true)

@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Setting;
+use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -10,6 +11,8 @@ use Illuminate\Mail\Mailables\Envelope;
 /** A simple branded email: heading, paragraphs, an optional key/value table and one button. */
 class ZvinoMail extends Mailable
 {
+    use Queueable;
+
     /**
      * @param  string[]  $lines
      * @param  array<string, string>  $table

@@ -37,9 +37,10 @@ class ItemResource extends JsonResource
                 'required' => $g->isRequired(),
                 'options' => $g->options->where('is_available', true)->values()->map(fn ($o) => ['id' => $o->id, 'name' => $o->name, 'price_delta' => Money::both($o->price_delta_zig)]),
             ])),
-            'variants' => collect($this->variants ?? [])->map(fn ($v) => $v + ['price_delta' => Money::both($v['price_delta_zig'] ?? 0)]),
+            // Stored JSON can hold numbers as strings ("0"): always send numbers, or apps would join text instead of adding.
+            'variants' => collect($this->variants ?? [])->map(fn ($v) => array_merge($v, ['price_delta_zig' => (float) ($v['price_delta_zig'] ?? 0), 'price_delta' => Money::both((float) ($v['price_delta_zig'] ?? 0))])),
             'modifiers' => collect($this->modifiers ?? [])->map(fn ($g) => $g + [
-                'options' => collect($g['options'] ?? [])->map(fn ($o) => $o + ['price_delta' => Money::both($o['price_delta_zig'] ?? 0)]),
+                'options' => collect($g['options'] ?? [])->map(fn ($o) => array_merge($o, ['price_delta_zig' => (float) ($o['price_delta_zig'] ?? 0), 'price_delta' => Money::both((float) ($o['price_delta_zig'] ?? 0))])),
             ]),
             'vendor' => $this->whenLoaded('vendor', fn () => $this->vendor->only('id', 'name', 'slug')),
         ];

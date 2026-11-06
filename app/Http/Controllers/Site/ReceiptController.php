@@ -27,8 +27,9 @@ class ReceiptController extends Controller
         } catch (\Throwable $e) {
             // Never a blank error page: log the cause and show the same receipt as a printable page.
             report($e);
+            $staff = $request->user()?->isStaff() || config('app.debug');
 
-            return response()->view('pdf.receipt', $this->data($order) + ['printable' => true]);
+            return response()->view('pdf.receipt', $this->data($order) + ['printable' => true, 'pdf_error' => $staff ? class_basename($e).': '.$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')' : null]);
         }
 
         return response($output, 200, [
@@ -48,14 +49,31 @@ class ReceiptController extends Controller
         if (! $user->email && ! \App\Models\User::where('email', $email)->exists()) {
             $user->update(['email' => $email]); // remember it for next time
         }
+        if (config('mail.default') === 'log') {
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Email isn’t set up on Zvino yet. Please download the receipt instead.'], 503)
+                : back()->with('error', 'Email isn’t set up on Zvino yet. Please download the receipt instead.');
+        }
+        // The PDF is attached when it can be made; otherwise the email links to the receipt page.
+        $link = \Illuminate\Support\Facades\URL::temporarySignedRoute('site.order.receipt', now()->addDays(30), ['order' => $order->id]);
         try {
-            $mail = new ZvinoMail("Your Zvino receipt #{$order->reference}", 'Here’s your receipt', ["Thanks for ordering from {$order->vendor->name}. Your receipt for order #{$order->reference} is attached."]);
-            $mail->attachData($this->render($order)->output(), "Zvino-receipt-{$order->reference}.pdf", ['mime' => 'application/pdf']);
+            $pdf = $this->render($order)->output();
+        } catch (\Throwable $e) {
+            report($e);
+            $pdf = null;
+        }
+        try {
+            $mail = new ZvinoMail("Your Zvino receipt #{$order->reference}", 'Here’s your receipt',
+                ["Thanks for ordering from {$order->vendor->name}. ".($pdf ? "Your receipt for order #{$order->reference} is attached." : "View or print your receipt for order #{$order->reference} with the button below.")],
+                [], 'View receipt', $link);
+            if ($pdf) {
+                $mail->attachData($pdf, "Zvino-receipt-{$order->reference}.pdf", ['mime' => 'application/pdf']);
+            }
             Mail::to($email)->send($mail);
         } catch (\Throwable $e) {
             report($e);
 
-            return $request->expectsJson() ? response()->json(['message' => 'We couldn’t send the email. Please download the PDF instead.'], 500) : back()->with('error', 'We couldn’t send the email. Please download the PDF instead.');
+            return $request->expectsJson() ? response()->json(['message' => 'We couldn’t send the email right now. Please download the receipt instead.'], 500) : back()->with('error', 'We couldn’t send the email right now. Please download the receipt instead.');
         }
 
         return $request->expectsJson() ? response()->json(['message' => "Receipt sent to $email."]) : back()->with('success', "Receipt sent to $email.");
