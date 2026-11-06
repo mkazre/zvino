@@ -9,7 +9,7 @@ export default function Drivers({ basePay, perKm, seo }: { basePay: number; perK
     return (
         <SiteLayout transparent>
             <Head title={seo.title} />
-            <section className="-mt-16 bg-[#222222] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
+            <section className="-mt-[112px] bg-[#222222] pt-[112px] text-white md:-mt-[72px] md:pt-[72px]">
                 <div className="mx-auto max-w-6xl px-4 py-20 md:px-6 md:py-28">
                     <p className="font-bold text-gold">Zvino Driver</p>
                     <h1 className="mt-4 max-w-3xl text-[44px] leading-[1.03] font-extrabold tracking-[-0.045em] md:text-[64px]">Your bike. Your hours. Your money.</h1>

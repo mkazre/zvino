@@ -101,6 +101,7 @@ class DatabaseSeeder extends Seeder
             HomeBlock::create(compact('type', 'title', 'subtitle', 'payload') + ['cta_label' => $cta, 'link_to' => $link, 'sort_order' => $i, 'published_at' => now()]);
         }
         HomeBlock::addStarterWebBlocks(count($blocks));
+        HomeBlock::addStoreFeedBlocks();
 
         PromoCode::create(['code' => 'ZVINO20', 'type' => 'percent', 'value' => 20, 'min_order_zig' => 50, 'max_uses' => 1000]);
         PromoCode::create(['code' => 'FREEDEL', 'type' => 'free_delivery', 'value' => 0, 'min_order_zig' => 150]);

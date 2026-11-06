@@ -9,7 +9,7 @@
  * starts_at, ends_at.
  */
 import {
-    Bell, Flame, Gift, GalleryHorizontal, Grid2x2, Handshake, HelpCircle, Image, LayoutGrid, Megaphone, MessageSquareQuote,
+    BadgeCheck, Bell, Clock3, Filter, Flame, Gift, GalleryHorizontal, Grid2x2, Handshake, HelpCircle, History, Image, LayoutGrid, LayoutList, Megaphone, MessageSquareQuote, Shapes, ShoppingBasket, Tag, ThumbsUp,
     MoveVertical, Rocket, ShieldCheck, Smartphone, Sparkles, Star, Store, TicketPercent, Timer, Truck, Type, UtensilsCrossed, Video, type LucideIcon, BarChart3, ListChecks, PanelTop,
 } from 'lucide-react';
 
@@ -150,7 +150,7 @@ export const BLOCKS: Record<string, BlockDef> = {
         style: 'basic',
     },
     store_collection: {
-        name: 'Hand-picked stores', desc: 'Choose exactly which stores', icon: Sparkles, group: 'Stores & food',
+        name: 'Hand-picked stores', desc: 'Choose exactly which stores', icon: Sparkles, group: 'Stores & food', app: true,
         base: { title: 'Heading', subtitle: 'Text', cta: true }, fields: [{ k: 'vendor_ids', t: 'stores', label: 'Stores (in this order)' }, LAYOUT, COLUMNS(4)],
         defaults: { title: 'Editor’s picks', payload: { vendor_ids: [], layout: 'rail', columns: '4' } }, style: 'basic',
     },
@@ -160,17 +160,17 @@ export const BLOCKS: Record<string, BlockDef> = {
         defaults: { title: 'Dishes we love', payload: { item_ids: [], layout: 'grid', columns: '3' } }, style: 'basic',
     },
     new_stores: {
-        name: 'New on Zvino', desc: 'Newest stores, automatically', icon: Rocket, group: 'Stores & food',
+        name: 'New on Zvino', desc: 'Newest stores, automatically', icon: Rocket, group: 'Stores & food', app: true,
         base: { title: 'Heading', cta: true }, fields: [LIMIT, { k: 'days', t: 'number', label: 'Joined in the last', min: 1, max: 365, suffix: 'days' }, LAYOUT, COLUMNS(4)],
         defaults: { title: 'New on Zvino', payload: { limit: 8, days: 60, layout: 'rail', columns: '4' } }, style: 'basic',
     },
     top_rated: {
-        name: 'Top rated', desc: 'Best-reviewed stores', icon: Star, group: 'Stores & food',
+        name: 'Top rated', desc: 'Best-reviewed stores', icon: Star, group: 'Stores & food', app: true,
         base: { title: 'Heading', cta: true }, fields: [LIMIT, { k: 'min_rating', t: 'range', label: 'Minimum rating', min: 3, max: 5, step: 0.1 }, LAYOUT, COLUMNS(4)],
         defaults: { title: 'Top rated near you', payload: { limit: 8, min_rating: 4.2, layout: 'grid', columns: '4' } }, style: 'basic',
     },
     free_delivery: {
-        name: 'Free delivery stores', desc: 'Stores with no delivery fee', icon: Truck, group: 'Stores & food',
+        name: 'Free delivery stores', desc: 'Stores with no delivery fee', icon: Truck, group: 'Stores & food', app: true,
         base: { title: 'Heading', cta: true }, fields: [LIMIT, LAYOUT, COLUMNS(4)],
         defaults: { title: 'Free delivery', cta_label: 'See all', link_to: '/stores?free_delivery=1', payload: { limit: 8, layout: 'rail', columns: '4' } }, style: 'basic',
     },
@@ -242,6 +242,66 @@ export const BLOCKS: Record<string, BlockDef> = {
         fields: [{ k: 'cta2_label', t: 'text', label: 'Second button text' }, { k: 'cta2_link', t: 'url', label: 'Second button opens' }, { k: 'button_style', t: 'segmented', label: 'Main button', options: [['brand', 'Green'], ['dark', 'Dark'], ['light', 'White']] }],
         defaults: { title: 'Hungry? Let’s fix that.', subtitle: 'Hundreds of restaurants, one tap away.', cta_label: 'Order now', link_to: '/stores', payload: { bg_type: 'gradient', bg_from: '#17C74A', bg_to: '#108B34', bg_angle: 135, text_tone: 'dark', align: 'center', radius: 'xl', button_style: 'dark' } },
         style: 'full',
+    },
+    // ── Store feeds (location-aware; website and app) ─────────────────────────
+    order_again: {
+        name: 'Order again', desc: 'Stores this customer ordered from', icon: History, group: 'Stores & food', app: true,
+        base: { title: 'Heading', cta: true }, fields: [LIMIT, LAYOUT, COLUMNS(4)],
+        defaults: { title: 'Order again', payload: { limit: 10, layout: 'rail', columns: '4' } }, style: 'basic',
+    },
+    recommended: {
+        name: 'Recommended for you', desc: 'Matches their favourite cuisines', icon: ThumbsUp, group: 'Stores & food', app: true,
+        base: { title: 'Heading', cta: true }, fields: [LIMIT, LAYOUT, COLUMNS(4)],
+        defaults: { title: 'Recommended for you', payload: { limit: 10, layout: 'rail', columns: '4' } }, style: 'basic',
+    },
+    deals_near_you: {
+        name: 'Local deals near you', desc: 'Nearby stores with specials', icon: Tag, group: 'Stores & food', app: true,
+        base: { title: 'Heading', cta: true }, fields: [LIMIT, LAYOUT, COLUMNS(4)],
+        defaults: { title: 'Local deals near you', cta_label: 'See all', link_to: '/stores?offers=1', payload: { limit: 10, layout: 'rail', columns: '4' } }, style: 'basic',
+    },
+    shops_near_you: {
+        name: 'Shops near you', desc: 'Logo tiles of nearby shops', icon: ShoppingBasket, group: 'Stores & food', app: true,
+        base: { title: 'Heading', cta: true }, fields: [LIMIT, { k: 'shape', t: 'segmented', label: 'Tiles', options: [['square', 'Rounded square'], ['circle', 'Circle']] }],
+        defaults: { title: 'Shops near you', cta_label: 'See all', link_to: '/stores?segment=shops', payload: { limit: 12, shape: 'square' } }, style: 'basic',
+    },
+    brand_logos: {
+        name: 'Popular brands', desc: 'Logo tiles, hand-picked or featured', icon: BadgeCheck, group: 'Stores & food', app: true,
+        base: { title: 'Heading', cta: true },
+        fields: [{ k: 'vendor_ids', t: 'stores', label: 'Brands (leave empty for featured stores)' }, LIMIT, { k: 'shape', t: 'segmented', label: 'Tiles', options: [['square', 'Rounded square'], ['circle', 'Circle']] }, { k: 'ad_ids', t: 'stores', label: 'Mark as “Ad” (sponsored)' }],
+        defaults: { title: 'Popular brands', payload: { limit: 12, shape: 'square', vendor_ids: [], ad_ids: [] } }, style: 'basic',
+    },
+    all_stores: {
+        name: 'All stores near you', desc: 'Big list of every nearby store', icon: LayoutList, group: 'Stores & food', app: true,
+        base: { title: 'Heading ({count} = number of stores)' },
+        fields: [{ k: 'limit', t: 'number', label: 'Show up to', min: 5, max: 60 }, { k: 'columns', t: 'select', label: 'Columns on desktop', options: [['1', '1 (big cards)'], ['2', '2'], ['3', '3']] }],
+        defaults: { title: 'All {count} restaurants near you', payload: { limit: 30, columns: '2' } }, style: 'basic',
+    },
+    category_icons: {
+        name: 'Category icons', desc: 'Your own icons: Hot deals, Pizza…', icon: Shapes, group: 'Stores & food', app: true,
+        base: { title: 'Heading (optional)' },
+        fields: [{ k: 'tiles', t: 'list', label: 'Icons', add: 'Add icon', summary: 'label', max: 16, item: [{ k: 'label', t: 'text', label: 'Label' }, { k: 'image', t: 'image', label: 'Icon / illustration (square PNG)' }, { k: 'emoji', t: 'text', label: 'Or an emoji', placeholder: '🍕' }, { k: 'link', t: 'url', label: 'Opens', placeholder: '/stores?q=pizza' }] }, { k: 'size', t: 'segmented', label: 'Size', options: [['sm', 'Small'], ['md', 'Medium'], ['lg', 'Large']] }],
+        defaults: { payload: { size: 'md', tiles: [{ label: 'Hot deals', emoji: '🏷️', link: '/stores?offers=1' }, { label: 'Fast food', emoji: '🍟', link: '/stores?q=fast' }, { label: 'Comfort food', emoji: '🍲', link: '/stores?cuisine=Traditional' }, { label: 'Pizza', emoji: '🍕', link: '/stores?q=pizza' }, { label: 'Burgers', emoji: '🍔', link: '/stores?q=burger' }] } },
+        style: 'basic',
+    },
+    filter_chips: {
+        name: 'Filter chips', desc: 'Top rated, Fast, Halaal…', icon: Filter, group: 'Stores & food', app: true,
+        base: {},
+        fields: [{ k: 'chips', t: 'list', label: 'Chips', add: 'Add chip', summary: 'label', max: 12, item: [{ k: 'label', t: 'text', label: 'Label' }, { k: 'link', t: 'url', label: 'Opens', placeholder: '/stores?sort=rating' }] }],
+        defaults: { payload: { pad: 'sm', chips: [{ label: 'Top rated', link: '/stores?sort=rating' }, { label: 'Fast', link: '/stores?sort=fastest' }, { label: 'Free delivery', link: '/stores?free_delivery=1' }, { label: 'Offers', link: '/stores?offers=1' }, { label: 'Halaal', link: '/stores?q=halaal' }, { label: 'Vegetarian', link: '/stores?q=vegetarian' }] } },
+        style: 'none',
+    },
+    notice_banner: {
+        name: 'Notice strip with picture', desc: '“Delivery available from 7:00”', icon: Clock3, group: 'Heroes & banners', app: true,
+        base: { title: 'Heading ({opens} = next opening time)', subtitle: 'Text' },
+        fields: [{ k: 'image', t: 'image', label: 'Illustration (optional, square)' }, { k: 'only_when_closed', t: 'toggle', label: 'Only show when all nearby stores are closed' }, { k: 'tone', t: 'segmented', label: 'Colour', options: [['olive', 'Olive'], ['dark', 'Dark'], ['gold', 'Gold'], ['brand', 'Green']] }],
+        defaults: { title: 'Delivery available from {opens}', subtitle: 'In the meantime, click & collect may be available.', payload: { only_when_closed: true, tone: 'olive' } }, style: 'none',
+    },
+    promo_cards: {
+        name: 'Promo cards', desc: 'Swipeable cards with a button', icon: GalleryHorizontal, group: 'Promotions', app: true,
+        base: { title: 'Heading (optional)' },
+        fields: [{ k: 'cards', t: 'list', label: 'Cards', add: 'Add card', summary: 'title', max: 8, item: [{ k: 'title', t: 'text', label: 'Heading' }, { k: 'text', t: 'textarea', label: 'Text' }, { k: 'cta_label', t: 'text', label: 'Button', placeholder: 'Order now' }, { k: 'link', t: 'url', label: 'Opens' }, { k: 'image', t: 'image', label: 'Background picture' }, { k: 'color', t: 'color', label: 'Background colour' }, { k: 'tone', t: 'segmented', label: 'Text', options: [['light', 'White'], ['dark', 'Dark']] }] }],
+        defaults: { payload: { cards: [{ title: 'Paying less for more. Done!', text: 'Order your favourite meals for a lot less.', cta_label: 'Order now', link: '/stores?offers=1', color: '#111111', tone: 'light' }] } },
+        style: 'basic',
     },
     partner_cta: {
         name: 'Join Zvino cards', desc: 'Restaurants, drivers, corporate', icon: Handshake, group: 'Promotions',

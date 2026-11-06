@@ -30,7 +30,7 @@ class SiteController extends Controller
 
     private function storeCards($vendors): array
     {
-        return $vendors->map(fn (Vendor $v) => (new VendorResource($v))->resolve() + ['availability' => $this->availability->status($v)])->values()->all();
+        return $vendors->map(fn (Vendor $v) => (new VendorResource($v))->resolve() + ['availability' => $this->availability->status($v), 'distance_km' => $v->distance_km ?? null, 'rating_count' => (int) $v->rating_count])->values()->all();
     }
 
     private function vendorQuery(?string $city)
@@ -43,54 +43,38 @@ class SiteController extends Controller
         return $q->when($city, fn ($w) => $w->where('city', $city));
     }
 
-    public function home(Request $request)
+    /** Location for this visitor: the address picker / GPS (session), else the chosen city. */
+    private function ctx(Request $request, string $segment = 'restaurants'): array
+    {
+        $loc = \App\Support\CustomerLocation::fromRequest($request);
+
+        return ['city' => $request->query('city', session('city')), 'loc' => $loc && isset($loc['lat']) ? $loc : null, 'user' => $request->user(), 'segment' => $segment];
+    }
+
+    public function home(Request $request, \App\Support\HomeFeed $feed)
     {
         if (Setting::platformMode() === 'single' && ($v = Vendor::find(Setting::singleVendorId()))) {
             return redirect()->route('site.store', $v->slug);
         }
-        $city = $request->query('city', session('city'));
+        $ctx = $this->ctx($request);
 
         $blocks = HomeBlock::where('is_visible', true)
             ->where(fn ($q) => $q->whereNull('published_at')->orWhere('published_at', '<=', now()))
-            ->where(fn ($q) => $q->whereNull('city_scope')->orWhere('city_scope', $city))
+            ->where(fn ($q) => $q->whereNull('city_scope')->orWhere('city_scope', $ctx['city']))
             ->orderBy('sort_order')->get()
             ->filter(fn (HomeBlock $b) => $b->liveFor('web'))->values();
-        $vendors = $this->vendorQuery($city)->orderByDesc('is_featured')->orderByDesc('rating')->limit(24)->get();
-        $stats = ['stores' => Vendor::active()->count(), 'cities' => count(Setting::get('general.cities'))];
 
         return Inertia::render('site/home', [
             'seo' => $this->seo(Setting::get('apps.seo_title'), null, null, [
                 '@context' => 'https://schema.org', '@type' => 'Organization', 'name' => Setting::get('general.business_name'), 'url' => url('/'),
                 'contactPoint' => ['@type' => 'ContactPoint', 'telephone' => Setting::get('general.support_phone'), 'contactType' => 'customer service', 'areaServed' => 'ZW'],
             ]),
-            'city' => $city,
-            'blocks' => $blocks->map(fn (HomeBlock $b) => $b->only('id', 'type', 'title', 'subtitle', 'cta_label', 'link_to', 'payload') + ['data' => $this->blockData($b, $city, $vendors, $stats, $request)])->values(),
-            'stores' => $this->storeCards($vendors),
-            'stats' => $stats,
+            'city' => $ctx['city'],
+            'blocks' => $blocks->map(fn (HomeBlock $b) => $b->only('id', 'type', 'title', 'subtitle', 'cta_label', 'link_to', 'payload') + ['data' => $feed->blockData($b, $ctx)])->values(),
+            'stores' => $feed->cards($feed->vendors($ctx, 'all'), 40),
+            'stats' => $feed->stats($ctx),
+            'nearby' => ['has_location' => (bool) $ctx['loc'], 'count' => $feed->vendors($ctx, 'all')->count()],
         ]);
-    }
-
-    /** Live data for a website home block (stores, dishes, categories, numbers). */
-    private function blockData(HomeBlock $b, ?string $city, $vendors, array $stats, Request $request): mixed
-    {
-        $p = $b->payload ?? [];
-        $limit = max(1, min(24, (int) ($p['limit'] ?? 8)));
-        $items = fn () => Item::with('vendor')->where('is_available', true)->whereHas('vendor', fn ($v) => $v->where('status', 'active')->when($city, fn ($w) => $w->where('city', $city)));
-
-        return match ($b->type) {
-            'hero' => ['stores' => $this->storeCards($vendors->where('is_featured', true)->take(4)->whenEmpty(fn () => $vendors->take(4))), 'stats' => $stats],
-            'categories' => Category::whereNull('vendor_id')->orderBy('sort_order')->get(['id', 'name', 'icon']),
-            'specials' => ItemResource::collection($items()->where(fn ($q) => $q->where('is_special', true)->orWhereNotNull('special_price_zig'))->limit($limit)->get())->resolve(),
-            'dish_collection' => ($ids = array_map('intval', (array) ($p['item_ids'] ?? []))) ? ItemResource::collection($items()->whereIn('id', $ids)->get()->sortBy(fn ($i) => array_search($i->id, $ids))->values())->resolve() : [],
-            'vendors' => $this->storeCards(($p['featured_only'] ?? false) ? $vendors->where('is_featured', true)->take($limit) : $vendors->take($limit)),
-            'store_collection' => ($ids = array_map('intval', (array) ($p['vendor_ids'] ?? []))) ? $this->storeCards($this->vendorQuery(null)->whereIn('id', $ids)->get()->sortBy(fn ($v) => array_search($v->id, $ids))->values()) : [],
-            'new_stores' => $this->storeCards($this->vendorQuery($city)->where('created_at', '>=', now()->subDays((int) ($p['days'] ?? 60)))->latest()->limit($limit)->get()),
-            'top_rated' => $this->storeCards($this->vendorQuery($city)->where('rating', '>=', (float) ($p['min_rating'] ?? 4.2))->orderByDesc('rating')->limit($limit)->get()),
-            'free_delivery' => $this->storeCards($this->vendorQuery($city)->where('delivery_fee_zig', 0)->orderByDesc('rating')->limit($limit)->get()),
-            'rewards' => ['rewards' => \App\Models\Reward::where('is_active', true)->orderBy('points_cost')->limit(3)->get(['id', 'name', 'points_cost'])],
-            'stats' => $stats,
-            default => null,
-        };
     }
 
     public function stores(Request $request)
@@ -100,7 +84,11 @@ class SiteController extends Controller
         $q = $request->query('q');
         $sort = $request->query('sort', 'recommended');
 
-        $vendors = $this->vendorQuery($city)
+        $segment = in_array($request->query('segment'), ['restaurants', 'shops'], true) ? $request->query('segment') : 'all';
+        $loc = \App\Support\CustomerLocation::fromRequest($request);
+        $vendors = $this->vendorQuery(isset($loc['lat']) ? null : $city)
+            ->when($segment === 'restaurants', fn ($w) => $w->where(fn ($k) => $k->where('kind', 'restaurant')->orWhereNull('kind')))
+            ->when($segment === 'shops', fn ($w) => $w->whereNotNull('kind')->where('kind', '!=', 'restaurant'))
             ->when($cuisine, fn ($w) => $w->where('cuisine', $cuisine))
             ->when($q, fn ($w) => $w->where(fn ($x) => $x->where('name', 'like', "%$q%")->orWhere('cuisine', 'like', "%$q%")->orWhereHas('items', fn ($i) => $i->where('name', 'like', "%$q%"))))
             ->when($request->boolean('free_delivery'), fn ($w) => $w->where('delivery_fee_zig', 0))
@@ -109,6 +97,9 @@ class SiteController extends Controller
             ->when($sort === 'fastest', fn ($w) => $w->orderBy('prep_minutes'))
             ->when($sort === 'recommended', fn ($w) => $w->orderByDesc('is_featured')->orderByDesc('rating'))
             ->get();
+        if (isset($loc['lat'])) {
+            $vendors = \App\Support\Nearby::filter($vendors, $loc, in_array($sort, ['nearest', 'recommended'], true));
+        }
 
         $title = trim(($cuisine ? "$cuisine " : '').'food delivery'.($city ? " in $city" : ''));
 
@@ -116,7 +107,7 @@ class SiteController extends Controller
             'seo' => $this->seo(ucfirst($title).' | Zvino', 'Order from '.$vendors->count().' '.($cuisine ?? '').' restaurants'.($city ? " in $city" : '').'. Pay with EcoCash, InnBucks, OneMoney or card.'),
             'stores' => $this->storeCards($vendors),
             'cuisines' => Vendor::active()->whereNotNull('cuisine')->distinct()->orderBy('cuisine')->pluck('cuisine'),
-            'filters' => ['city' => $city, 'cuisine' => $cuisine, 'q' => $q, 'sort' => $sort, 'free_delivery' => $request->boolean('free_delivery'), 'offers' => $request->boolean('offers')],
+            'filters' => ['segment' => $segment, 'city' => $city, 'cuisine' => $cuisine, 'q' => $q, 'sort' => $sort, 'free_delivery' => $request->boolean('free_delivery'), 'offers' => $request->boolean('offers')],
             'matchingItems' => $q ? ItemResource::collection(Item::with('vendor')->where('is_available', true)->where('name', 'like', "%$q%")->whereHas('vendor', fn ($v) => $v->where('status', 'active'))->limit(12)->get()) : [],
         ]);
     }
@@ -142,6 +133,7 @@ class SiteController extends Controller
                 'offers_delivery' => $vendor->offers_delivery, 'offers_pickup' => $vendor->offers_pickup, 'accepts_scheduled' => $vendor->accepts_scheduled,
                 'price_level' => $vendor->price_level, 'power_out' => $vendor->power_out, 'rating_count' => $vendor->rating_count,
                 'zone_fee' => $vendor->zone ? ['base' => $vendor->zone->base_delivery_fee_zig, 'free_km' => $vendor->zone->free_km, 'per_km' => $vendor->zone->per_km_fee_zig] : null,
+                'distance_km' => ($loc = \App\Support\CustomerLocation::fromRequest($request)) && isset($loc['lat']) && $vendor->lat !== null ? round(\App\Support\Nearby::km($loc['lat'], $loc['lng'], (float) $vendor->lat, (float) $vendor->lng), 1) : null,
             ],
             'menu' => $menu,
             'deals' => \App\Models\PromoCode::autoFor($vendor)->filter(fn ($p) => $p->is_active)->map(fn ($p) => ['id' => $p->id, 'headline' => $p->headline(), 'live' => $p->inWindow()])->values(),
@@ -238,6 +230,55 @@ class SiteController extends Controller
         $currency = $request->validate(['currency' => ['required', 'in:ZIG,USD']])['currency'];
 
         return back()->withCookie(cookie()->forever(\App\Support\Money::COOKIE, $currency));
+    }
+
+    /**
+     * First visit (browser GPS) or "Use my current location": pick the saved address the visitor is
+     * standing at (within ~75 m), otherwise use the GPS point and ask them to save the address.
+     */
+    public function detectLocation(Request $request)
+    {
+        $d = $request->validate(['lat' => ['required', 'numeric', 'between:-90,90'], 'lng' => ['required', 'numeric', 'between:-180,180']]);
+        $match = \App\Support\Nearby::nearestAddress($request->user(), (float) $d['lat'], (float) $d['lng']);
+        if ($match) {
+            $loc = \App\Support\CustomerLocation::fromAddress($match);
+        } else {
+            $geo = $this->reverseGeocode((float) $d['lat'], (float) $d['lng']);
+            $loc = ['lat' => (float) $d['lat'], 'lng' => (float) $d['lng'], 'address_id' => null, 'label' => 'Current location', 'line' => $geo['line1'] ?? null, 'city' => $geo['city'] ?? null, 'suburb' => $geo['suburb'] ?? null];
+        }
+        \App\Support\CustomerLocation::remember($request, $loc);
+
+        return response()->json(['location' => $loc, 'matched' => (bool) $match, 'needs_address' => ! $match && (bool) $request->user()]);
+    }
+
+    /** Address picker: switch to a saved address. */
+    public function useAddress(Request $request)
+    {
+        $id = $request->validate(['address_id' => ['required', 'integer']])['address_id'];
+        $address = $request->user()?->addresses()->findOrFail($id);
+        \App\Support\CustomerLocation::remember($request, \App\Support\CustomerLocation::fromAddress($address));
+
+        return back();
+    }
+
+    public function clearLocation(Request $request)
+    {
+        \App\Support\CustomerLocation::remember($request, null);
+
+        return back();
+    }
+
+    private function reverseGeocode(float $lat, float $lng): array
+    {
+        try {
+            $r = \Illuminate\Support\Facades\Http::withHeaders(['User-Agent' => 'Zvino/1.0'])->timeout(5)
+                ->get('https://nominatim.openstreetmap.org/reverse', ['lat' => $lat, 'lon' => $lng, 'format' => 'json', 'addressdetails' => 1])->json();
+            $a = $r['address'] ?? [];
+
+            return ['line1' => trim(($a['house_number'] ?? '').' '.($a['road'] ?? '')) ?: null, 'suburb' => $a['suburb'] ?? $a['neighbourhood'] ?? null, 'city' => $a['city'] ?? $a['town'] ?? null];
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     public function setCity(Request $request)

@@ -17,7 +17,7 @@ export default function Plus({ plans, current, seo }: { plans: Plan[]; current: 
     return (
         <SiteLayout transparent>
             <Head title={seo.title} />
-            <section className="-mt-16 bg-[#222222] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
+            <section className="-mt-[112px] bg-[#222222] pt-[112px] text-white md:-mt-[72px] md:pt-[72px]">
                 <div className="mx-auto max-w-5xl px-4 py-20 text-center md:px-6">
                     <span className="inline-flex items-center gap-2 rounded-full bg-brand/15 px-4 py-1.5 text-sm font-bold text-brand"><Sparkles className="size-4" /> ZVINO+</span>
                     <h1 className="mt-6 text-[48px] leading-[1.02] font-extrabold tracking-[-0.045em] md:text-[72px]">Free delivery.<br />Every single order.</h1>

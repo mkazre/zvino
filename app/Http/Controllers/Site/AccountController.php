@@ -127,7 +127,7 @@ class AccountController extends Controller
         $data = $request->validate([
             'label' => ['nullable', 'string', 'max:40'], 'line1' => ['required', 'string', 'max:200'], 'landmark' => ['nullable', 'string', 'max:200'],
             'suburb' => ['nullable', 'string', 'max:100'], 'city' => ['required', 'string'], 'lat' => ['nullable', 'numeric'], 'lng' => ['nullable', 'numeric'],
-            'instructions' => ['nullable', 'string', 'max:300'], 'is_default' => ['boolean'],
+            'instructions' => ['nullable', 'string', 'max:300'], 'is_default' => ['boolean'], 'use_now' => ['boolean'],
         ]);
         $user = $request->user();
         if (! isset($data['lat']) && ($geo = $this->geocode("{$data['line1']}, ".($data['suburb'] ?? '').", {$data['city']}"))) {
@@ -137,7 +137,10 @@ class AccountController extends Controller
             $user->addresses()->update(['is_default' => false]);
             $data['is_default'] = true;
         }
-        $address = $user->addresses()->create($data + ['label' => $data['label'] ?? 'Home']);
+        $address = $user->addresses()->create(collect($data)->except('use_now')->all() + ['label' => $data['label'] ?? 'Home']);
+        if ($request->boolean('use_now') && $address->lat !== null) {
+            \App\Support\CustomerLocation::remember($request, \App\Support\CustomerLocation::fromAddress($address));
+        }
 
         return back()->with('success', 'Address saved.')->with('address_id', $address->id);
     }

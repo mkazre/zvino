@@ -8,7 +8,7 @@ export default function Partners({ commission, seo }: { commission: number; seo:
     return (
         <SiteLayout transparent>
             <Head title={seo.title} />
-            <section className="-mt-16 bg-[#1c1c1c] pt-16 text-white md:-mt-[72px] md:pt-[72px]">
+            <section className="-mt-[112px] bg-[#1c1c1c] pt-[112px] text-white md:-mt-[72px] md:pt-[72px]">
                 <div className="mx-auto max-w-6xl px-4 py-20 md:px-6 md:py-28">
                     <p className="font-bold text-brand">For restaurants, grocers & pharmacies</p>
                     <h1 className="mt-4 max-w-3xl text-[44px] leading-[1.03] font-extrabold tracking-[-0.045em] md:text-[64px]">More orders. Less hassle. Paid every week.</h1>

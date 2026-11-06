@@ -71,6 +71,10 @@ class HandleInertiaRequests extends Middleware
                 'apps' => ['ios' => Setting::get('apps.ios_store_url'), 'android' => Setting::get('apps.android_store_url')],
                 'web_ordering' => Setting::get('apps.web_ordering_enabled'),
                 'platform_mode' => Setting::platformMode(),
+                'location' => \App\Support\CustomerLocation::fromRequest($request),
+                'addresses' => $request->user() && ! $request->user()->isStaff()
+                    ? $request->user()->addresses()->orderByDesc('is_default')->get(['id', 'label', 'line1', 'suburb', 'city', 'lat', 'lng'])
+                    : [],
             ],
             'platformMode' => fn () => Setting::platformMode(),
             'i18n' => function () use ($request) {

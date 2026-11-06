@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('config', [CatalogController::class, 'config']);
 Route::get('app-content', [\App\Http\Controllers\Admin\AppContentController::class, 'forApp']); // onboarding + launch screen (published from the admin)
 Route::get('home-layout', HomeLayoutController::class);
+Route::get('shops', [HomeLayoutController::class, 'shops']);
+Route::post('location/resolve', [HomeLayoutController::class, 'resolveLocation'])->middleware('throttle:30,1');
 Route::get('categories', [CatalogController::class, 'categories']);
 Route::get('vendors', [CatalogController::class, 'vendors']);
 Route::get('vendors/{vendor}', [CatalogController::class, 'vendor']);
