@@ -21,10 +21,20 @@ class ReceiptController extends Controller
 {
     public function pdf(Request $request, Order $order)
     {
-        $pdf = $this->render($order);
         $name = "Zvino-receipt-{$order->reference}.pdf";
+        try {
+            $output = $this->render($order)->output();
+        } catch (\Throwable $e) {
+            // Never a blank error page: log the cause and show the same receipt as a printable page.
+            report($e);
 
-        return $request->boolean('inline') ? $pdf->stream($name) : $pdf->download($name);
+            return response()->view('pdf.receipt', $this->data($order) + ['printable' => true]);
+        }
+
+        return response($output, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($request->boolean('inline') ? 'inline' : 'attachment').'; filename="'.$name.'"',
+        ]);
     }
 
     public function email(Request $request, Order $order)
@@ -51,19 +61,41 @@ class ReceiptController extends Controller
         return $request->expectsJson() ? response()->json(['message' => "Receipt sent to $email."]) : back()->with('success', "Receipt sent to $email.");
     }
 
-    private function render(Order $order)
+    private function data(Order $order, bool $forPdf = false): array
     {
-        $view = OrderView::forCustomer($order);
         $logo = public_path('brand/logo.png');
+        // dompdf needs the GD extension to draw PNGs; without it, print the name instead of the logo.
+        $canDrawLogo = ! $forPdf || extension_loaded('gd');
 
-        return Pdf::loadView('pdf.receipt', [
-            'o' => $view,
+        return [
+            'o' => OrderView::forCustomer($order),
             'brand' => Setting::get('general.business_name') ?: 'Zvino',
-            'logo' => is_file($logo) ? 'data:image/png;base64,'.base64_encode(file_get_contents($logo)) : null,
+            'logo' => $canDrawLogo && is_file($logo) ? ($forPdf ? 'data:image/png;base64,'.base64_encode(file_get_contents($logo)) : '/brand/logo.png') : null,
             'business' => ['address' => Setting::get('general.address'), 'vat' => Setting::get('general.vat_number')],
             'support' => trim(Setting::get('general.support_phone').' · '.Setting::get('general.support_email'), ' ·'),
             'primary' => Money::defaultCurrency(),
             'rate' => (float) ($order->zig_per_usd ?: ExchangeRate::current()),
-        ])->setPaper('a4')->setOption(['isFontSubsettingEnabled' => true, 'defaultFont' => 'DejaVu Sans']);
+            'printable' => false,
+        ];
+    }
+
+    private function render(Order $order)
+    {
+        // Shared hosting: keep dompdf's font cache and temp files inside storage/ (always writable).
+        $dir = storage_path('app/dompdf');
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        return Pdf::loadView('pdf.receipt', $this->data($order, true))
+            ->setPaper('a4')
+            ->setOption([
+                'isFontSubsettingEnabled' => true,
+                'defaultFont' => 'DejaVu Sans',
+                'fontDir' => $dir,
+                'fontCache' => $dir,
+                'tempDir' => $dir,
+                'isRemoteEnabled' => false,
+            ]);
     }
 }

@@ -24,6 +24,13 @@
     </style>
 </head>
 <body>
+@if (! empty($printable))
+    <div style="max-width: 760px; margin: 0 auto 16px; padding: 12px 16px; background: #fffbd9; border-radius: 8px; font-family: sans-serif;">
+        <b>Your receipt</b> · use your browser’s Print button (or Share → Print / Save as PDF) to keep a copy.
+        <button onclick="window.print()" style="margin-left: 8px; padding: 6px 12px; border-radius: 999px; border: 0; background: #222; color: #fff; cursor: pointer;">Print / Save PDF</button>
+    </div>
+    <style>@media print { body > div:first-child { display: none; } } body { max-width: 760px; margin: 24px auto; }</style>
+@endif
 @php($fmt = fn ($m) => $primary === 'USD' ? '$'.number_format($m['usd'], 2) : 'ZiG '.number_format($m['zig'], 2))
 @php($alt = fn ($m) => $primary === 'USD' ? 'ZiG '.number_format($m['zig'], 2) : '$'.number_format($m['usd'], 2))
 <table class="head">

@@ -37,7 +37,7 @@ else
   tar -C "$SRC" --exclude='./.git' --exclude='./.env' --exclude='./storage' --exclude='./public/storage' \
     --exclude='./bootstrap/cache/*.php' --exclude='./.cpanel.yml' -cf - . | tar -C "$APP" -xf -
 fi
-mkdir -p "$APP"/storage/app/public "$APP"/storage/app/private "$APP"/storage/framework/{cache/data,sessions,views} "$APP"/storage/logs "$APP"/bootstrap/cache
+mkdir -p "$APP"/storage/app/public "$APP"/storage/app/private "$APP"/storage/app/dompdf "$APP"/storage/framework/{cache/data,sessions,views} "$APP"/storage/logs "$APP"/bootstrap/cache
 
 cd "$APP"
 if [ ! -f .env ]; then
