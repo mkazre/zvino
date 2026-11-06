@@ -68,6 +68,7 @@ class AccountController extends Controller
                 'tip_zig' => $order->tip_zig,
                 'dropoff' => $order->dropoff,
             ]),
+            'view' => \App\Support\OrderView::forCustomer($order),
             'mapsKey' => Setting::get('integrations.google_maps_browser_key'),
             'support' => ['phone' => Setting::get('general.support_phone'), 'whatsapp' => Setting::get('general.support_whatsapp')],
         ]);
@@ -80,6 +81,7 @@ class AccountController extends Controller
         $order->load('driver.user');
 
         return response()->json([
+            'view' => \App\Support\OrderView::forCustomer($order),
             'status' => $order->status, 'payment_status' => $order->payment_status, 'status_history' => $order->status_history, 'estimated_delivery_at' => $order->estimated_delivery_at,
             'driver' => $order->driver ? ['name' => $order->driver->user->name, 'phone' => $order->driver->user->phone, 'vehicle' => $order->driver->vehicle_type, 'plate' => $order->driver->vehicle_plate, 'rating' => $order->driver->rating, 'lat' => $order->driver->lat, 'lng' => $order->driver->lng] : null,
         ]);

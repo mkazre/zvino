@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, ApiError, type Money } from '@/lib/api';
@@ -12,33 +14,44 @@ import { usePrefs } from '@/lib/prefs';
 import { useChannel } from '@/lib/realtime';
 import { useOnReconnect } from '@/lib/network';
 
-interface Order {
-    id: number; reference: string; status: string; fulfilment: string; payment_method: string; payment_status: string;
-    totals: { total: Money }; items: { name: string; quantity: number; line_total: Money }[];
-    vendor: { id: number; name: string; lat: number | null; lng: number | null }; status_history: { status?: string; at: string }[];
-    estimated_delivery_at: string | null; driver?: { name: string; phone: string; vehicle: string; plate: string | null; lat: number | null; lng: number | null } | null;
-    address?: { line1: string; lat: number | null; lng: number | null } | null;
+/** Mirrors App\Support\OrderView (the same data drives the website order page). */
+interface OrderView {
+    id: number; reference: string; status: string; fulfilment: 'delivery' | 'pickup'; is_done: boolean; placed_at: string;
+    time: { label: string; at: string | null };
+    banner: { key: string; image: string; title: string; subtitle: string | null };
+    review_banner: string | null;
+    timeline: { key: string; label: string; at: string | null; state: 'done' | 'current' | 'upcoming' | 'stopped'; detail: string | null }[];
+    store: { id: number; name: string; logo: string | null; address: string | null; phone: string | null; lat: number | null; lng: number | null };
+    driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null } | null;
+    delivery_pin: string | null; can_cancel: boolean; review: { vendor_rating: number } | null;
+    receipt: { lines: { name: string; quantity: number; options: string[]; notes: string | null; unit: Money; total: Money }[]; totals: { label: string; amount: Money; help?: string }[]; total: Money; vat: Money; wallet_applied: Money | null; pdf_url: string };
+    details: {
+        address: { label?: string; line1?: string; landmark?: string; suburb?: string; city?: string } | null; address_lat: number | null; address_lng: number | null;
+        instructions: string | null; dropoff: string | null; no_cutlery: boolean;
+        account: { name: string | null; phone: string | null; email: string | null };
+        payment: { method: string; status: string; cash_part: Money | null };
+    };
+    support: { phone: string; whatsapp: string };
 }
-interface Track { status: string; rider: { rider_name?: string } | null; destination: { lat: number | null; lng: number | null } | null; vendor: { lat: number | null; lng: number | null } }
+type Split = { payment_id: number; name: string | null; phone: string; amount: Money; status: string }[];
+type Tab = 'tracking' | 'receipt' | 'details';
 
-const STEPS = [['placed', 'Order received'], ['accepted', 'Restaurant confirmed'], ['preparing', 'Being prepared'], ['picked_up', 'On the way'], ['delivered', 'Delivered']] as const;
-const ORDER = ['pending_payment', 'scheduled', 'placed', 'accepted', 'preparing', 'ready', 'picked_up', 'arriving', 'delivered'];
-const HEADLINE: Record<string, string> = { placed: 'Waiting for the restaurant…', accepted: 'Confirmed! Getting started', preparing: 'Your food is being prepared', ready: 'Ready, driver on the way to collect', picked_up: 'On the way to you', arriving: 'Almost there!', delivered: 'Delivered. Enjoy! 🎉', cancelled: 'Order cancelled', rejected: 'The restaurant couldn’t take your order', pending_payment: 'Waiting for payment', scheduled: 'Scheduled' };
+const hhmm = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '–');
 
-export default function OrderTracking() {
+/** Order screen: Tracking (current-stage banner + all stages), Receipt (PDF / email) and Details tabs. */
+export default function OrderScreen() {
     const { dataLight } = usePrefs();
     const tr = useT();
     const t = useTheme();
     const { id } = useLocalSearchParams<{ id: string }>();
-    const [order, setOrder] = useState<Order & { delivery_pin?: string } | null>(null);
-    const [pin, setPin] = useState<string | null>(null);
-    const [split, setSplit] = useState<{ payment_id: number; name: string | null; phone: string; amount: Money; status: string }[]>([]);
+    const [v, setV] = useState<OrderView | null>(null);
+    const [split, setSplit] = useState<Split>([]);
+    const [tab, setTab] = useState<Tab>('tracking');
 
     const load = useCallback(async () => {
-        const r = await api.get<{ data: Order; delivery_pin?: string; split?: typeof split }>(`/orders/${id}`).catch(() => null);
-        if (r) {
-            setOrder(r.data);
-            setPin(r.delivery_pin ?? null);
+        const r = await api.get<{ view: OrderView; split?: Split }>(`/orders/${id}`).catch(() => null);
+        if (r?.view) {
+            setV(r.view);
             setSplit(r.split ?? []);
         }
     }, [id]);
@@ -51,88 +64,273 @@ export default function OrderTracking() {
         return () => clearInterval(timer);
     }, [load, dataLight]);
 
-    if (!order) return <Loading />;
-    const idx = ORDER.indexOf(order.status === 'ready' ? 'preparing' : order.status === 'arriving' ? 'picked_up' : order.status);
-    const done = ['delivered', 'cancelled', 'rejected'].includes(order.status);
-    const eta = order.estimated_delivery_at ? new Date(order.estimated_delivery_at) : null;
-    const dest = order.address?.lat ? { latitude: order.address.lat, longitude: order.address.lng! } : null;
-    const shop = order.vendor.lat ? { latitude: order.vendor.lat, longitude: order.vendor.lng! } : null;
+    if (!v) return <Loading />;
 
-    const cancel = () => Alert.alert('Cancel order?', 'You’ll be refunded to your Zvino wallet.', [{ text: 'Keep order', style: 'cancel' }, { text: 'Cancel order', style: 'destructive', onPress: async () => { try { await api.post(`/orders/${order.id}/cancel`, { reason: 'Changed my mind' }); load(); } catch (e) { Alert.alert('Can’t cancel', e instanceof ApiError ? e.friendly : ''); } } }]);
+    const cancel = () => Alert.alert('Cancel order?', 'You’ll be refunded to your Zvino wallet.', [{ text: 'Keep order', style: 'cancel' }, { text: 'Cancel order', style: 'destructive', onPress: async () => { try { await api.post(`/orders/${v.id}/cancel`, { reason: 'Changed my mind' }); load(); } catch (e) { Alert.alert('Can’t cancel', e instanceof ApiError ? e.friendly : ''); } } }]);
+    const help = () => {
+        const options: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [];
+        if (v.support.whatsapp) options.push({ text: 'WhatsApp support', onPress: () => Linking.openURL(`https://wa.me/${v.support.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi Zvino, I need help with order #${v.reference}`)}`) });
+        if (v.support.phone) options.push({ text: `Call ${v.support.phone}`, onPress: () => Linking.openURL(`tel:${v.support.phone}`) });
+        if (v.can_cancel) options.push({ text: 'Cancel order', style: 'destructive', onPress: cancel });
+        options.push({ text: 'Close', style: 'cancel' });
+        Alert.alert('Need help with this order?', `Quote order #${v.reference}.`, options);
+    };
+    const eta = v.time.at && !v.is_done && v.status !== 'scheduled' ? Math.max(0, Math.round((new Date(v.time.at).getTime() - Date.now()) / 60000)) : null;
 
     return (
         <View style={{ flex: 1, backgroundColor: t.bg }}>
-            {order.fulfilment === 'delivery' && !done && !dataLight && (dest || shop) ? (
-                <MapView style={{ height: 300 }} initialRegion={{ ...(dest ?? shop)!, latitudeDelta: 0.04, longitudeDelta: 0.04 }}>
-                    {shop && <Marker coordinate={shop} title={order.vendor.name} pinColor="#222222" />}
-                    {dest && <Marker coordinate={dest} title="You" pinColor="#17C74A" />}
-                </MapView>
-            ) : <View style={{ height: 110, backgroundColor: t.brand }} />}
-            <SafeAreaView edges={['top']} style={{ position: 'absolute', left: 16 }}>
-                <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/orders'))} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="arrow-back" size={20} color="#222222" /></Pressable>
+            <SafeAreaView edges={['top']} style={{ backgroundColor: '#1C1C1C' }}>
+                <Row style={{ paddingHorizontal: 12, paddingTop: 6 }} gap={8}>
+                    <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/orders'))} style={{ padding: 8 }} accessibilityLabel="Back"><Ionicons name="arrow-back" size={24} color="#fff" /></Pressable>
+                    <View style={{ flex: 1 }}><Text variant="heading" style={{ color: '#fff' }} numberOfLines={1}>Order #{v.reference}</Text></View>
+                </Row>
+                <Row gap={6} justify="center" style={{ paddingVertical: 12 }}>
+                    {(['tracking', 'receipt', 'details'] as Tab[]).map((k) => (
+                        <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} style={{ paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999, backgroundColor: tab === k ? t.brand : 'transparent' }}>
+                            <Text variant="label" style={{ color: tab === k ? '#111111' : 'rgba(255,255,255,0.8)', fontSize: 15 }}>{tr(k.charAt(0).toUpperCase() + k.slice(1))}</Text>
+                        </Pressable>
+                    ))}
+                </Row>
             </SafeAreaView>
-            <ScrollView style={{ marginTop: -24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: t.bg }} contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 48 }}>
-                <View>
-                    <Text variant="caption">{order.reference} · {order.vendor.name}</Text>
-                    <Text variant="title" style={{ marginTop: 4 }}>{HEADLINE[order.status] ?? label(order.status)}</Text>
-                    {eta && !done && <Text color="muted">Estimated arrival {eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>}
-                </View>
 
-                {!['cancelled', 'rejected'].includes(order.status) && (
-                    <View>
-                        {STEPS.filter(([k]) => order.fulfilment === 'delivery' || k !== 'picked_up').map(([k, l], i, arr) => {
-                            const reached = ORDER.indexOf(k) <= idx;
-                            const at = order.status_history.find((h) => h.status === k)?.at;
-                            return (
-                                <Row key={k} align="flex-start" gap={14}>
-                                    <View style={{ alignItems: 'center' }}>
-                                        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: reached ? t.brand : t.subtle, alignItems: 'center', justifyContent: 'center' }}>{reached && <Ionicons name="checkmark" size={16} color="#fff" />}</View>
-                                        {i < arr.length - 1 && <View style={{ width: 2, height: 26, backgroundColor: ORDER.indexOf(arr[i + 1][0]) <= idx ? t.brand : t.subtle }} />}
-                                    </View>
-                                    <View style={{ paddingTop: 2 }}><Text variant="label" color={reached ? 'ink' : 'muted'}>{tr(l)}</Text>{at && <Text variant="caption">{new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>}</View>
-                                </Row>
-                            );
-                        })}
-                    </View>
-                )}
-
-                {order.driver && !done && (
-                    <Card>
-                        <Row>
-                            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}><Text variant="heading" color="brand">{order.driver.name[0]}</Text></View>
-                            <View style={{ flex: 1 }}><Text variant="heading">{order.driver.name}</Text><Text variant="caption">{label(order.driver.vehicle ?? 'motorbike')} {order.driver.plate ? `· ${order.driver.plate}` : ''}</Text></View>
-                            <Pressable onPress={() => Linking.openURL(`tel:${order.driver!.phone}`)} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="call" size={20} color={t.ink} /></Pressable>
-                        </Row>
-                    </Card>
-                )}
-                {pin && !done && <Card tone="subtle"><Text variant="label">Delivery PIN</Text><Text variant="display" style={{ letterSpacing: 8 }}>{pin}</Text><Text variant="caption">Give this to your driver at the gate.</Text></Card>}
-
-                {split.length > 0 && order.status === 'pending_payment' && (
-                    <Card style={{ gap: 8 }}>
-                        <Text variant="heading">Split the bill</Text>
-                        {split.map((s) => (
-                            <Row key={s.payment_id} justify="space-between">
-                                <View style={{ flex: 1 }}><Text variant="label">{s.name || s.phone}</Text><Text variant="caption">{zig(s.amount.zig)} · {s.status === 'paid' ? 'Paid ✓' : ['failed', 'cancelled'].includes(s.status) ? 'Declined' : 'Waiting…'}</Text></View>
-                                {s.status !== 'paid' && (
-                                    <Row gap={10}>
-                                        <Pressable onPress={() => api.post(`/orders/${order.id}/split/${s.payment_id}/resend`, {}).then(load).catch((e) => Alert.alert('Resend', e instanceof ApiError ? e.friendly : ''))}><Text variant="label" color="brand">Resend</Text></Pressable>
-                                        <Pressable onPress={() => api.post(`/orders/${order.id}/split/${s.payment_id}/resend`, { pay_myself: true }).then(load).catch((e) => Alert.alert('Pay', e instanceof ApiError ? e.friendly : ''))}><Text variant="label">I’ll pay</Text></Pressable>
-                                    </Row>
-                                )}
-                            </Row>
-                        ))}
-                    </Card>
-                )}
-
+            <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}>
                 <Card>
-                    <Text variant="heading" style={{ marginBottom: 8 }}>Your order</Text>
-                    {order.items.map((i, k) => <Row key={k} justify="space-between" style={{ paddingVertical: 4 }}><Text>{i.quantity}× {i.name}</Text><Text>{zig(i.line_total.zig)}</Text></Row>)}
-                    <Row justify="space-between" style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderColor: t.border }}><Text variant="label">Total · {label(order.payment_method)}</Text><Text variant="label">{zig(order.totals.total.zig)}</Text></Row>
+                    <Row justify="space-between">
+                        <View style={{ flex: 1 }}>
+                            <Text variant="caption">{v.time.label}</Text>
+                            <Text variant="display" style={{ fontSize: 34 }}>{v.status === 'scheduled' && v.time.at ? new Date(v.time.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : hhmm(v.time.at)}</Text>
+                            {eta !== null && <Text variant="caption">about {eta} min</Text>}
+                        </View>
+                        <Pressable onPress={help} style={{ alignItems: 'center', padding: 6 }} accessibilityLabel="Help"><Ionicons name="help-circle-outline" size={32} color={t.ink} /><Text variant="caption" style={{ fontWeight: '700' }}>Help</Text></Pressable>
+                    </Row>
                 </Card>
-                {['pending_payment', 'scheduled', 'placed'].includes(order.status) && <Button title={tr('Cancel order')} tone="outline" onPress={cancel} />}
-                {order.status === 'delivered' && <Button title={tr('Reorder')} onPress={() => router.push(`/store/${order.vendor.id}`)} />}
-                {['delivered', 'accepted', 'preparing', 'ready', 'picked_up', 'scheduled', 'placed'].includes(order.status) && <Button title="🔁  Make this a regular order" tone="ghost" onPress={() => router.push(`/plans?fromOrder=${order.id}`)} />}
+
+                {tab === 'tracking' && <Tracking v={v} split={split} dataLight={dataLight} reload={load} cancel={cancel} />}
+                {tab === 'receipt' && <Receipt v={v} />}
+                {tab === 'details' && <Details v={v} />}
             </ScrollView>
         </View>
+    );
+}
+
+/** The illustrated card for the current stage: words on the left, art on the right. */
+function Banner({ image, title, subtitle }: { image: string; title: string; subtitle?: string | null }) {
+    return (
+        <View style={{ borderRadius: 22, overflow: 'hidden', aspectRatio: 1200 / 593 }}>
+            <Image source={{ uri: image }} style={{ position: 'absolute', width: '100%', height: '100%' }} contentFit="cover" transition={200} cachePolicy="disk" />
+            <View style={{ width: '50%', padding: 16, gap: 4 }}>
+                <Text variant="title" style={{ color: '#1C1C1C', fontSize: 24, lineHeight: 26 }}>{title}</Text>
+                {subtitle ? <Text style={{ color: '#1C1C1C', fontSize: 13, lineHeight: 17 }} numberOfLines={3}>{subtitle}</Text> : null}
+            </View>
+        </View>
+    );
+}
+
+function Tracking({ v, split, dataLight, reload, cancel }: { v: OrderView; split: Split; dataLight: boolean; reload: () => void; cancel: () => void }) {
+    const t = useTheme();
+    const tr = useT();
+    const dest = v.details.address_lat ? { latitude: v.details.address_lat, longitude: v.details.address_lng! } : null;
+    const shop = v.store.lat ? { latitude: v.store.lat, longitude: v.store.lng! } : null;
+    return (
+        <>
+            <Banner image={v.banner.image} title={v.banner.title} subtitle={v.banner.subtitle} />
+
+            <View style={{ gap: 4 }}>
+                {v.timeline.map((s) => {
+                    const on = s.state !== 'upcoming';
+                    return (
+                        <Row key={s.key} align="flex-start" gap={14} style={{ paddingVertical: 8 }}>
+                            <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: s.state === 'stopped' ? t.red : on ? t.brand : 'transparent', borderWidth: on ? 0 : 2, borderColor: t.border }}>
+                                {s.state === 'stopped' ? <Ionicons name="close" size={18} color="#fff" /> : on ? <Ionicons name="checkmark" size={18} color="#111" /> : null}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text variant="label" color={on ? 'ink' : 'muted'} style={{ fontSize: 16 }}>{s.label}{s.at && on ? `  ${hhmm(s.at)}` : ''}{s.state === 'current' && !v.is_done ? '  · Now' : ''}</Text>
+                                {s.detail && on ? <Text color="muted">{s.detail}</Text> : null}
+                            </View>
+                        </Row>
+                    );
+                })}
+            </View>
+
+            {v.driver && (
+                <Card>
+                    <Row>
+                        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}><Text variant="heading" color="brand">{v.driver.name[0]}</Text></View>
+                        <View style={{ flex: 1 }}><Text variant="heading">{v.driver.name}</Text><Text variant="caption">{label(v.driver.vehicle ?? 'motorbike')} {v.driver.plate ? `· ${v.driver.plate}` : ''}</Text></View>
+                        <Pressable onPress={() => Linking.openURL(`tel:${v.driver!.phone}`)} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel="Call driver"><Ionicons name="call" size={20} color={t.ink} /></Pressable>
+                    </Row>
+                </Card>
+            )}
+            {v.delivery_pin && <Card tone="subtle"><Text variant="label">Delivery PIN</Text><Text variant="display" style={{ letterSpacing: 8 }}>{v.delivery_pin}</Text><Text variant="caption">Give this to your driver at the gate.</Text></Card>}
+            {v.fulfilment === 'delivery' && !v.is_done && !dataLight && (dest || shop) && (
+                <View style={{ height: 220, borderRadius: 22, overflow: 'hidden' }}>
+                    <MapView style={{ flex: 1 }} initialRegion={{ ...(dest ?? shop)!, latitudeDelta: 0.04, longitudeDelta: 0.04 }}>
+                        {shop && <Marker coordinate={shop} title={v.store.name} pinColor="#222222" />}
+                        {dest && <Marker coordinate={dest} title="You" pinColor="#17C74A" />}
+                        {v.driver?.lat ? <Marker coordinate={{ latitude: v.driver.lat, longitude: v.driver.lng! }} title={v.driver.name} pinColor="#FDE500" /> : null}
+                    </MapView>
+                </View>
+            )}
+
+            {split.length > 0 && v.status === 'pending_payment' && (
+                <Card style={{ gap: 8 }}>
+                    <Text variant="heading">Split the bill</Text>
+                    {split.map((s) => (
+                        <Row key={s.payment_id} justify="space-between">
+                            <View style={{ flex: 1 }}><Text variant="label">{s.name || s.phone}</Text><Text variant="caption">{zig(s.amount.zig)} · {s.status === 'paid' ? 'Paid ✓' : ['failed', 'cancelled'].includes(s.status) ? 'Declined' : 'Waiting…'}</Text></View>
+                            {s.status !== 'paid' && (
+                                <Row gap={10}>
+                                    <Pressable onPress={() => api.post(`/orders/${v.id}/split/${s.payment_id}/resend`, {}).then(reload).catch((e) => Alert.alert('Resend', e instanceof ApiError ? e.friendly : ''))}><Text variant="label" color="brand">Resend</Text></Pressable>
+                                    <Pressable onPress={() => api.post(`/orders/${v.id}/split/${s.payment_id}/resend`, { pay_myself: true }).then(reload).catch((e) => Alert.alert('Pay', e instanceof ApiError ? e.friendly : ''))}><Text variant="label">I’ll pay</Text></Pressable>
+                                </Row>
+                            )}
+                        </Row>
+                    ))}
+                </Card>
+            )}
+
+            {v.review_banner && <><Banner image={v.review_banner} title="How was it?" subtitle={`Rate ${v.store.name}.`} /><Review v={v} reload={reload} /></>}
+            {v.can_cancel && <Button title={tr('Cancel order')} tone="outline" onPress={cancel} />}
+            {v.status === 'delivered' && <Button title={tr('Reorder')} onPress={() => router.push(`/store/${v.store.id}`)} />}
+            {!['cancelled', 'rejected', 'pending_payment'].includes(v.status) && <Button title="🔁  Make this a regular order" tone="ghost" onPress={() => router.push(`/plans?fromOrder=${v.id}`)} />}
+        </>
+    );
+}
+
+function Review({ v, reload }: { v: OrderView; reload: () => void }) {
+    const t = useTheme();
+    const [stars, setStars] = useState(0);
+    const [comment, setComment] = useState('');
+    const [busy, setBusy] = useState(false);
+    const send = async () => {
+        setBusy(true);
+        try {
+            await api.post(`/orders/${v.id}/review`, { vendor_rating: stars, driver_rating: v.fulfilment === 'delivery' ? stars : null, comment: comment || null });
+            reload();
+        } catch (e) {
+            Alert.alert('Review', e instanceof ApiError ? e.friendly : 'Please try again.');
+        } finally {
+            setBusy(false);
+        }
+    };
+    return (
+        <Card style={{ gap: 12 }}>
+            <Row gap={6}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setStars(n)} accessibilityLabel={`${n} stars`}><Ionicons name={n <= stars ? 'star' : 'star-outline'} size={34} color={n <= stars ? '#E5B700' : t.faint} /></Pressable>)}</Row>
+            {stars > 0 && (
+                <>
+                    <TextInput value={comment} onChangeText={setComment} placeholder="Tell others about your meal (optional)" placeholderTextColor={t.faint} multiline style={{ minHeight: 70, borderRadius: 12, backgroundColor: t.subtle, color: t.ink, padding: 12, textAlignVertical: 'top' }} />
+                    <Button title="Submit review" onPress={send} loading={busy} />
+                </>
+            )}
+        </Card>
+    );
+}
+
+function Totals({ v }: { v: OrderView }) {
+    const t = useTheme();
+    return (
+        <Card style={{ padding: 0 }}>
+            <View style={{ padding: 16, gap: 12 }}>
+                {v.receipt.totals.map((x) => (
+                    <Row key={x.label} justify="space-between">
+                        <Pressable disabled={!x.help} onPress={() => x.help && Alert.alert(x.label, x.help)}><Text>{x.label}{x.help ? '  ⓘ' : ''}</Text></Pressable>
+                        <Text variant="label">{zig(x.amount.zig)}</Text>
+                    </Row>
+                ))}
+            </View>
+            <Row justify="space-between" style={{ padding: 16, borderTopWidth: 1, borderColor: t.border }}>
+                <Text variant="title" style={{ fontSize: 22 }}>Total</Text>
+                <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 22 }}>{zig(v.receipt.total.zig)}</Text><Text variant="caption">VAT incl. {zig(v.receipt.vat.zig)}</Text></View>
+            </Row>
+        </Card>
+    );
+}
+
+function Receipt({ v }: { v: OrderView }) {
+    const t = useTheme();
+    const [email, setEmail] = useState(v.details.account.email ?? '');
+    const [asking, setAsking] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const sendEmail = async () => {
+        if (!email || !asking && !v.details.account.email) return setAsking(true);
+        setBusy(true);
+        try {
+            const r = await api.post<{ message: string }>(`/orders/${v.id}/receipt/email`, { email });
+            Alert.alert('Receipt', r.message);
+            setAsking(false);
+        } catch (e) {
+            Alert.alert('Receipt', e instanceof ApiError ? e.friendly : 'Could not send. Try Download PDF instead.');
+        } finally {
+            setBusy(false);
+        }
+    };
+    return (
+        <>
+            <Row gap={14}>
+                {v.store.logo ? <Image source={{ uri: v.store.logo }} style={{ width: 56, height: 56, borderRadius: 28 }} /> : <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="restaurant-outline" size={26} color={t.ink} /></View>}
+                <View style={{ flex: 1 }}><Text variant="title" style={{ fontSize: 22 }}>{v.store.name}</Text>{v.store.address ? <Text variant="caption">{v.store.address}</Text> : null}</View>
+            </Row>
+            <Card style={{ padding: 0 }}>
+                <View style={{ padding: 14, borderBottomWidth: 1, borderColor: t.border }}><Text variant="caption">{v.fulfilment === 'pickup' ? 'Pickup' : 'Delivery'} · {new Date(v.placed_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</Text></View>
+                {v.receipt.lines.map((l, i) => (
+                    <Row key={i} align="flex-start" style={{ padding: 14, borderBottomWidth: i < v.receipt.lines.length - 1 ? 1 : 0, borderColor: t.border }}>
+                        <View style={{ width: 34 }}><Text variant="heading">{l.quantity}×</Text></View>
+                        <View style={{ flex: 1, gap: 2 }}>
+                            <Text variant="label">{l.name}</Text>
+                            {l.options.map((o) => <Text key={o} color="muted">{o}</Text>)}
+                            {l.notes ? <Text color="muted">“{l.notes}”</Text> : null}
+                        </View>
+                        <Text variant="label">{zig(l.total.zig)}</Text>
+                    </Row>
+                ))}
+            </Card>
+            <Totals v={v} />
+            <Button title="Download PDF receipt" onPress={() => WebBrowser.openBrowserAsync(v.receipt.pdf_url).catch(() => Linking.openURL(v.receipt.pdf_url))} />
+            {asking && <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={t.faint} keyboardType="email-address" autoCapitalize="none" style={{ height: 50, borderRadius: 12, borderWidth: 1, borderColor: t.border, color: t.ink, paddingHorizontal: 14 }} />}
+            <Button title={asking ? 'Send receipt' : 'Email me the receipt'} tone="outline" loading={busy} onPress={sendEmail} />
+        </>
+    );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <View style={{ gap: 8 }}>
+            <Text variant="heading">{title}</Text>
+            <Card tone="subtle" style={{ gap: 2 }}>{children}</Card>
+        </View>
+    );
+}
+
+function Details({ v }: { v: OrderView }) {
+    const a = v.details.address;
+    return (
+        <>
+            {v.fulfilment === 'delivery' ? (
+                <Section title="Delivery address">
+                    {a ? <>{a.label ? <Text variant="label">{a.label}</Text> : null}<Text>{a.line1}</Text>{a.landmark ? <Text>Near {a.landmark}</Text> : null}<Text>{[a.suburb, a.city].filter(Boolean).join(', ')}</Text></> : <Text color="muted">No address</Text>}
+                    {v.details.dropoff ? <Text variant="caption" style={{ marginTop: 6 }}>Drop-off: {v.details.dropoff}</Text> : null}
+                </Section>
+            ) : (
+                <Section title="Collect from"><Text variant="label">{v.store.name}</Text>{v.store.address ? <Text>{v.store.address}</Text> : null}</Section>
+            )}
+            <Section title={v.fulfilment === 'delivery' ? 'Delivery instructions' : 'Notes'}>
+                <Text color={v.details.instructions ? 'ink' : 'muted'}>{v.details.instructions ?? 'No instructions'}</Text>
+                {v.details.no_cutlery ? <Text variant="caption">No cutlery, please</Text> : null}
+            </Section>
+            <Section title="Account details">
+                <Text>{v.details.account.name || 'Zvino customer'}</Text>
+                {v.details.account.phone ? <Text>{v.details.account.phone}</Text> : null}
+                {v.details.account.email ? <Text>{v.details.account.email}</Text> : null}
+            </Section>
+            <Section title="Payment method">
+                <Row justify="space-between"><Text>{v.details.payment.method}</Text><Text color="muted">{v.details.payment.status}</Text></Row>
+                {v.details.payment.cash_part ? <Text variant="caption">Cash to the driver: {zig(v.details.payment.cash_part.zig)}</Text> : null}
+                {v.receipt.wallet_applied ? <Text variant="caption">From your wallet: {zig(v.receipt.wallet_applied.zig)}</Text> : null}
+            </Section>
+            <View style={{ gap: 8 }}>
+                <Text variant="heading">Order summary</Text>
+                <Totals v={v} />
+            </View>
+        </>
     );
 }

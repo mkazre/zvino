@@ -49,6 +49,9 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
     Route::post('group/{code}/items', [\App\Http\Controllers\Api\GroupOrderController::class, 'addItem'])->middleware('throttle:30,1')->name('group.items');
     Route::post('group/{code}/checkout', [\App\Http\Controllers\Api\GroupOrderController::class, 'checkout'])->middleware('auth')->name('group.checkout');
 
+    // PDF receipt: signed link (works from the app and in any browser without signing in).
+    Route::get('orders/{order}/receipt.pdf', [\App\Http\Controllers\Site\ReceiptController::class, 'pdf'])->middleware('signed')->name('order.receipt');
+
     Route::get('signin', [SignInController::class, 'show'])->name('signin');
     Route::post('signin/code', [SignInController::class, 'sendCode'])->middleware('throttle:10,1')->name('signin.code');
     Route::post('signin/verify', [SignInController::class, 'verify'])->middleware('throttle:10,1')->name('signin.verify');
@@ -75,6 +78,7 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
         Route::get('orders/{order}', [AccountController::class, 'order'])->name('order');
         Route::get('orders/{order}/status', [AccountController::class, 'orderStatus'])->name('order.status');
         Route::post('orders/{order}/cancel', [AccountController::class, 'cancel'])->name('order.cancel');
+        Route::post('orders/{order}/receipt/email', [\App\Http\Controllers\Site\ReceiptController::class, 'email'])->middleware('throttle:6,1')->name('order.receipt.email');
         Route::post('orders/{order}/review', [AccountController::class, 'review'])->name('order.review');
         Route::post('orders/{order}/reorder', [AccountController::class, 'reorder'])->name('order.reorder');
     });

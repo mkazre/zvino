@@ -239,4 +239,3 @@ Route::get('pay/demo/{payment}', function (\App\Models\Payment $payment, \Illumi
 
     return response('<meta name="viewport" content="width=device-width"><body style="font-family:sans-serif;text-align:center;padding:60px"><h1>✅ Paid</h1><p>ZiG '.number_format($payment->amount_zig, 2).' (demo payment)</p></body>');
 })->name('pay.demo');
-

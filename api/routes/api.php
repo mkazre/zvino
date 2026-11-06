@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('orders/{order}', [OrderController::class, 'show']);
     Route::get('orders/{order}/track', [OrderController::class, 'track']);
     Route::post('orders/{order}/reorder', [OrderController::class, 'reorder']);
+    Route::post('orders/{order}/receipt/email', [\App\Http\Controllers\Site\ReceiptController::class, 'email'])->middleware('throttle:6,1');
 
     Route::post('payments/initiate', [PaymentController::class, 'initiate']);
     Route::get('payments/{payment}', [PaymentController::class, 'status']);
