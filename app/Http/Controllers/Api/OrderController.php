@@ -88,7 +88,7 @@ class OrderController extends Controller
         abort_unless($order->user_id === $request->user()->id, 404);
 
         return (new OrderResource($order->load('vendor', 'items', 'address', 'driver.user', 'review')))
-            ->additional(['delivery_pin' => $order->delivery_pin, 'split' => $order->payments()->where('provider', 'paynow')->get()
+            ->additional(['view' => \App\Support\OrderView::forCustomer($order, false), 'delivery_pin' => $order->delivery_pin, 'split' => $order->payments()->where('provider', 'paynow')->get()
                 ->filter(fn ($p) => ($p->raw['split_share'] ?? false) || ($p->raw['covered_by_host'] ?? false))
                 ->map(fn ($p) => ['payment_id' => $p->id, 'name' => $p->raw['name'] ?? null, 'phone' => $p->phone, 'amount' => \App\Support\Money::both($p->amount_zig), 'status' => $p->status])->values()]);
     }

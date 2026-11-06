@@ -1,151 +1,281 @@
 import { Button } from '@/components/ui/button';
 import { LiveMap, Modal, Textarea } from '@/components/z';
 import SiteLayout from '@/layouts/site-layout';
+import { useT } from '@/lib/i18n';
 import { label, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
-import { type Order } from '@/types';
-import { useT } from '@/lib/i18n';
+import { type OrderView } from '@/types/order-view';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Bike, Check, ChefHat, Clock, MessageCircle, Phone, ReceiptText, Star, X } from 'lucide-react';
+import { ArrowLeft, Check, CircleHelp, Download, HelpCircle, Mail, MessageCircle, Phone, RotateCcw, Star, Store, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-type Live = {
-    status: string;
-    payment_status: string;
-    status_history: { status?: string; at: string }[];
-    estimated_delivery_at: string | null;
-    driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null } | null;
-};
-interface Props {
-    order: Order & Live & {
-        address: { line1: string; landmark?: string; suburb?: string; city: string; lat?: number; lng?: number } | null;
-        store: { name: string; slug: string; phone: string | null; lat: number | null; lng: number | null; logo_path: string | null; address: string | null };
-        delivery_pin: string | null;
-        scheduled_for: string | null;
-        can_cancel: boolean;
-        review: { vendor_rating: number } | null;
-        tip_zig: number;
-        dropoff: string;
-    };
-    mapsKey: string | null;
-    support: { phone: string; whatsapp: string };
-}
+type Tab = 'tracking' | 'receipt' | 'details';
+const hhmm = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' }) : '–');
 
-const STEPS = [
-    { key: 'placed', label: 'Order received', icon: ReceiptText },
-    { key: 'accepted', label: 'Restaurant confirmed', icon: Check },
-    { key: 'preparing', label: 'Being prepared', icon: ChefHat },
-    { key: 'picked_up', label: 'On the way', icon: Bike },
-    { key: 'delivered', label: 'Delivered', icon: Check },
-];
-const ORDER = ['pending_payment', 'scheduled', 'placed', 'accepted', 'preparing', 'ready', 'picked_up', 'arriving', 'delivered'];
-
-const HEADLINE: Record<string, [string, string]> = {
-    pending_payment: ['Waiting for payment', 'Approve the prompt on your phone to confirm.'],
-    scheduled: ['Scheduled', 'We’ll send your order to the restaurant in time.'],
-    placed: ['Order received', 'Waiting for the restaurant to confirm…'],
-    accepted: ['Confirmed!', 'The restaurant is getting started.'],
-    preparing: ['Being prepared', 'Your food is being cooked fresh.'],
-    ready: ['Ready for pickup', 'Your driver is on the way to the restaurant.'],
-    picked_up: ['On the way', 'Your driver has your order.'],
-    arriving: ['Almost there!', 'Your driver is just around the corner.'],
-    delivered: ['Delivered. Enjoy! 🎉', 'Thanks for ordering with Zvino.'],
-    cancelled: ['Order cancelled', 'Any payment has been returned to your Zvino wallet.'],
-    rejected: ['Restaurant couldn’t take your order', 'You’ve been fully refunded to your Zvino wallet.'],
-};
-
-export default function OrderPage({ order: initial, mapsKey, support }: Props) {
-    const [live, setLive] = useState<Live>(initial);
-    const [cancelOpen, setCancelOpen] = useState(false);
-    const o = { ...initial, ...live };
-    const done = ['delivered', 'cancelled', 'rejected'].includes(o.status);
-
-    useEffect(() => {
-        if (done) return;
-        const t = setInterval(() => fetch(`/orders/${o.id}/status`, { headers: { Accept: 'application/json' } }).then((r) => r.ok && r.json()).then((d) => d && setLive(d)), 10000);
-        return () => clearInterval(t);
-    }, [done, o.id]);
-
-    const idx = ORDER.indexOf(o.status === 'ready' ? 'preparing' : o.status === 'arriving' ? 'picked_up' : o.status);
-    const eta = o.estimated_delivery_at ? new Date(o.estimated_delivery_at) : null;
-    const minsLeft = eta ? Math.max(0, Math.round((eta.getTime() - Date.now()) / 60000)) : null;
+/** Order page: Tracking (current-stage banner + stage list), Receipt (with PDF) and Details tabs. */
+export default function OrderPage({ view: initial, mapsKey }: { view: OrderView; mapsKey: string | null }) {
+    const [v, setV] = useState(initial);
+    const [tab, setTab] = useState<Tab>(() => {
+        const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+        return q === 'receipt' || q === 'details' ? q : 'tracking';
+    });
+    const [help, setHelp] = useState(false);
     const t = useT();
-    const [title, sub] = (HEADLINE[o.status] ?? [label(o.status), '']).map((x) => t(x));
-    const markers = [
-        ...(o.store.lat ? [{ id: 's', lat: o.store.lat, lng: o.store.lng!, kind: 'store' as const, label: o.store.name }] : []),
-        ...(o.address?.lat ? [{ id: 'h', lat: o.address.lat, lng: o.address.lng!, kind: 'dropoff' as const, label: 'You' }] : []),
-        ...(o.driver?.lat ? [{ id: 'd', lat: o.driver.lat, lng: o.driver.lng!, kind: 'driver' as const, label: o.driver.name }] : []),
-    ];
+    useEffect(() => setV(initial), [initial]);
+
+    // Live updates while the order is moving (Pusher pushes too when configured).
+    useEffect(() => {
+        if (v.is_done) return;
+        const timer = setInterval(() => {
+            fetch(`/orders/${v.id}/status`, { headers: { Accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).then((d) => d?.view && setV(d.view)).catch(() => {});
+        }, 10000);
+        return () => clearInterval(timer);
+    }, [v.is_done, v.id]);
+
+    const go = (next: Tab) => {
+        setTab(next);
+        const url = new URL(window.location.href);
+        if (next === 'tracking') url.searchParams.delete('tab');
+        else url.searchParams.set('tab', next);
+        window.history.replaceState(window.history.state, '', url);
+    };
 
     return (
         <SiteLayout>
-            <Head title={`Order ${o.reference} · Zvino`} />
-            <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1fr_380px]">
-                <div className="grid content-start gap-6">
-                    <div>
-                        <p className="text-muted-foreground text-sm font-medium">{o.reference} · {o.store.name}</p>
-                        <h1 className="mt-1 text-[34px] leading-tight font-extrabold tracking-[-0.04em]">{title}</h1>
-                        <p className="text-muted-foreground mt-1">{sub}</p>
-                        {!done && minsLeft !== null && o.status !== 'pending_payment' && o.status !== 'scheduled' && (
-                            <div className="mt-5 inline-flex items-center gap-3 rounded-2xl bg-[#222222] px-5 py-3 text-white"><Clock className="size-5" /><span><span className="tabular text-2xl font-extrabold">{eta!.toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}</span><span className="ml-2 text-sm text-white/60">estimated · {minsLeft} min</span></span></div>
-                        )}
-                        {o.scheduled_for && o.status === 'scheduled' && <div className="mt-5 inline-flex rounded-2xl bg-blue-50 px-5 py-3 font-semibold text-blue-900">Scheduled for {new Date(o.scheduled_for).toLocaleString('en-ZW', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}</div>}
+            <Head title={`Order #${v.reference}`} />
+            <div className="bg-[#1c1c1c] text-white">
+                <div className="mx-auto max-w-3xl px-4 pt-5 md:px-6">
+                    <div className="flex items-center gap-3">
+                        <Link href="/account?tab=orders" className="-ml-2 rounded-full p-2 hover:bg-white/10" aria-label="Back to orders"><ArrowLeft className="size-5" /></Link>
+                        <h1 className="truncate text-xl font-extrabold tracking-tight md:text-2xl">Order #{v.reference}</h1>
                     </div>
-
-                    {!['cancelled', 'rejected'].includes(o.status) && (
-                        <ol className="grid gap-0">
-                            {STEPS.filter((s) => o.fulfilment === 'delivery' || s.key !== 'picked_up').map((s, i, arr) => {
-                                const reached = ORDER.indexOf(s.key) <= idx;
-                                const current = reached && (i === arr.length - 1 || ORDER.indexOf(arr[i + 1].key) > idx);
-                                const at = o.status_history.find((h) => h.status === s.key)?.at;
-                                return (
-                                    <li key={s.key} className="flex gap-4">
-                                        <div className="flex flex-col items-center">
-                                            <span className={cn('flex size-10 items-center justify-center rounded-full border-2 transition', reached ? 'border-brand bg-brand text-white' : 'border-neutral-200 text-neutral-400', current && !done && 'ring-4 ring-brand/20')}><s.icon className="size-5" /></span>
-                                            {i < arr.length - 1 && <span className={cn('my-1 h-8 w-0.5', ORDER.indexOf(arr[i + 1].key) <= idx ? 'bg-brand' : 'bg-neutral-200')} />}
-                                        </div>
-                                        <div className="pt-2"><div className={cn('font-semibold', !reached && 'text-muted-foreground')}>{t(s.label)}</div>{at && <div className="text-muted-foreground text-xs">{new Date(at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}</div>}</div>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                    )}
-
-                    {o.fulfilment === 'delivery' && markers.length > 0 && !done && <LiveMap apiKey={mapsKey} markers={markers} className="h-72" />}
-
-                    {o.driver && !done && (
-                        <div className="flex items-center gap-4 rounded-3xl border p-5">
-                            <span className="flex size-14 items-center justify-center rounded-full bg-brand-50 text-xl font-bold text-brand-600">{o.driver.name[0]}</span>
-                            <div className="flex-1"><div className="font-bold">{o.driver.name}</div><div className="text-muted-foreground text-sm">{label(o.driver.vehicle)} {o.driver.plate && `· ${o.driver.plate}`} · ★ {o.driver.rating.toFixed(1)}</div></div>
-                            <Button variant="outline" size="icon" className="rounded-full" asChild><a href={`tel:${o.driver.phone}`} aria-label="Call driver"><Phone /></a></Button>
-                        </div>
-                    )}
-                    {o.delivery_pin && !done && o.dropoff === 'hand_to_me' && <div className="rounded-3xl bg-neutral-50 p-5 dark:bg-white/5"><div className="text-sm font-semibold">Your delivery PIN</div><div className="mt-1 font-mono text-3xl font-extrabold tracking-[0.3em]">{o.delivery_pin}</div><div className="text-muted-foreground mt-1 text-xs">Share it with your driver when they arrive.</div></div>}
-
-                    {o.status === 'delivered' && !o.review && <ReviewBox orderId={o.id} hasDriver={o.fulfilment === 'delivery'} />}
-                    {o.status === 'delivered' && <Link href={`/orders/${o.id}/reorder`} method="post" as="button" className="h-12 rounded-full bg-[#222222] font-semibold text-white">Order this again</Link>}
+                    <nav className="mt-4 flex justify-center gap-1 pb-4 sm:justify-start" role="tablist">
+                        {(['tracking', 'receipt', 'details'] as Tab[]).map((k) => (
+                            <button key={k} role="tab" aria-selected={tab === k} onClick={() => go(k)} className={cn('h-10 rounded-full px-5 text-[15px] font-semibold capitalize transition', tab === k ? 'bg-brand text-black' : 'text-white/75 hover:bg-white/10 hover:text-white')}>{t(k.charAt(0).toUpperCase() + k.slice(1))}</button>
+                        ))}
+                    </nav>
                 </div>
-
-                <aside className="grid content-start gap-4">
-                    <div className="rounded-3xl border p-6">
-                        <h2 className="font-bold">Order details</h2>
-                        <ul className="mt-3 grid gap-2 text-sm">{o.items?.map((i, k) => <li key={k} className="flex gap-3"><span className="tabular font-semibold">{i.quantity}×</span><span className="flex-1">{i.name}</span><span className="tabular">{zig(i.line_total.zig)}</span></li>)}</ul>
-                        <div className="mt-4 flex justify-between border-t pt-4 font-bold"><span>Total paid</span><span className="tabular">{zig(o.totals.total.zig)}</span></div>
-                        <p className="text-muted-foreground text-right text-xs">{label(o.payment_method)} · {label(o.payment_status)}</p>
-                        {o.address && <p className="text-muted-foreground mt-4 border-t pt-4 text-sm">📍 {o.address.line1}{o.address.landmark && ` (${o.address.landmark})`}, {o.address.city}</p>}
-                    </div>
-                    <div className="rounded-3xl border p-6">
-                        <h2 className="font-bold">Need help?</h2>
-                        <div className="mt-3 grid gap-2">
-                            {support.whatsapp && <a href={`https://wa.me/${support.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi Zvino, I need help with order ${o.reference}`)}`} className="flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold"><MessageCircle className="size-4" /> WhatsApp support</a>}
-                            <a href={`tel:${support.phone}`} className="flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold"><Phone className="size-4" /> Call {support.phone}</a>
-                            {o.can_cancel && <button onClick={() => setCancelOpen(true)} className="flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold text-zred"><X className="size-4" /> Cancel order</button>}
-                        </div>
-                    </div>
-                </aside>
             </div>
-            <CancelModal open={cancelOpen} onClose={() => setCancelOpen(false)} id={o.id} />
+
+            <div className="mx-auto grid max-w-3xl gap-6 px-4 py-6 md:px-6 md:py-8">
+                <TimeCard v={v} onHelp={() => setHelp(true)} />
+                {tab === 'tracking' && <Tracking v={v} mapsKey={mapsKey} />}
+                {tab === 'receipt' && <Receipt v={v} />}
+                {tab === 'details' && <Details v={v} />}
+            </div>
+            <HelpModal open={help} onClose={() => setHelp(false)} v={v} />
         </SiteLayout>
+    );
+}
+
+function TimeCard({ v, onHelp }: { v: OrderView; onHelp: () => void }) {
+    const eta = v.time.at && !v.is_done && v.status !== 'scheduled' ? Math.max(0, Math.round((new Date(v.time.at).getTime() - Date.now()) / 60000)) : null;
+    return (
+        <div className="flex items-center justify-between gap-4 rounded-3xl border px-5 py-4 md:px-6">
+            <div>
+                <div className="text-muted-foreground text-sm font-medium">{v.time.label}</div>
+                <div className="tabular text-[34px] leading-tight font-extrabold tracking-tight">{v.status === 'scheduled' && v.time.at ? new Date(v.time.at).toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : hhmm(v.time.at)}</div>
+                {eta !== null && <div className="text-muted-foreground text-sm">about {eta} min</div>}
+            </div>
+            <button onClick={onHelp} className="hover:bg-muted flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-sm font-semibold"><CircleHelp className="size-7" />Help</button>
+        </div>
+    );
+}
+
+/** The illustrated card for the current stage (text on the left, art on the right). */
+function StageBanner({ image, title, subtitle, children }: { image: string; title: string; subtitle?: string | null; children?: React.ReactNode }) {
+    return (
+        <div className="relative overflow-hidden rounded-3xl text-[#1c1c1c]">
+            <img src={image} alt="" className="block aspect-[1200/593] w-full object-cover" />
+            <div className="absolute inset-y-0 left-0 flex w-[48%] flex-col justify-start p-4 sm:p-6 md:p-8">
+                <h2 className="text-[22px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[30px] md:text-[38px]">{title}</h2>
+                {subtitle && <p className="mt-1.5 line-clamp-3 text-[13px] leading-snug sm:mt-2 sm:text-base md:text-lg">{subtitle}</p>}
+                {children}
+            </div>
+        </div>
+    );
+}
+
+function Tracking({ v, mapsKey }: { v: OrderView; mapsKey: string | null }) {
+    const markers = [
+        ...(v.store.lat ? [{ id: 's', lat: v.store.lat, lng: v.store.lng!, kind: 'store' as const, label: v.store.name }] : []),
+        ...(v.details.address_lat ? [{ id: 'h', lat: v.details.address_lat, lng: v.details.address_lng!, kind: 'dropoff' as const, label: 'You' }] : []),
+        ...(v.driver?.lat ? [{ id: 'd', lat: v.driver.lat, lng: v.driver.lng!, kind: 'driver' as const, label: v.driver.name }] : []),
+    ];
+    const [cancelOpen, setCancelOpen] = useState(false);
+    return (
+        <>
+            <StageBanner image={v.banner.image} title={v.banner.title} subtitle={v.banner.subtitle} />
+
+            <ol className="grid gap-1 px-1">
+                {v.timeline.map((s) => (
+                    <li key={s.key} className="flex items-start gap-4 py-2.5">
+                        <span className={cn('mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full',
+                            s.state === 'done' && 'bg-brand text-black',
+                            s.state === 'current' && 'bg-brand text-black ring-brand/25 ring-4',
+                            s.state === 'upcoming' && 'border-2 border-neutral-200 dark:border-white/15',
+                            s.state === 'stopped' && 'bg-[var(--color-zred)] text-white')}>
+                            {s.state === 'stopped' ? <X className="size-4" strokeWidth={3} /> : s.state !== 'upcoming' ? <Check className="size-4" strokeWidth={3} /> : null}
+                        </span>
+                        <div className="min-w-0">
+                            <div className={cn('text-[17px]', s.state === 'upcoming' ? 'text-muted-foreground font-medium' : 'font-bold')}>
+                                {s.label}{s.at && s.state !== 'upcoming' && <span className="tabular ml-2 font-normal">{hhmm(s.at)}</span>}
+                                {s.state === 'current' && !v.is_done && <span className="bg-brand/15 text-brand-700 dark:text-brand ml-2 rounded-full px-2 py-0.5 align-middle text-[11px] font-bold tracking-wide uppercase">Now</span>}
+                            </div>
+                            {s.detail && s.state !== 'upcoming' && <div className="text-muted-foreground text-[15px]">{s.detail}</div>}
+                        </div>
+                    </li>
+                ))}
+            </ol>
+
+            {v.driver && (
+                <div className="flex items-center gap-4 rounded-3xl border p-5">
+                    <span className="bg-brand/15 flex size-14 items-center justify-center rounded-full text-xl font-bold">{v.driver.name[0]}</span>
+                    <div className="min-w-0 flex-1"><div className="font-bold">{v.driver.name}</div><div className="text-muted-foreground text-sm">{label(v.driver.vehicle)}{v.driver.plate && ` · ${v.driver.plate}`} · ★ {v.driver.rating.toFixed(1)}</div></div>
+                    <Button variant="outline" size="icon" className="rounded-full" asChild><a href={`tel:${v.driver.phone}`} aria-label="Call driver"><Phone /></a></Button>
+                </div>
+            )}
+            {v.delivery_pin && <div className="bg-muted rounded-3xl p-5 dark:bg-white/5"><div className="text-sm font-semibold">Your delivery PIN</div><div className="mt-1 font-mono text-3xl font-extrabold tracking-[0.3em]">{v.delivery_pin}</div><div className="text-muted-foreground mt-1 text-xs">Give it to your driver when they arrive.</div></div>}
+            {v.fulfilment === 'delivery' && !v.is_done && markers.length > 0 && <LiveMap apiKey={mapsKey} markers={markers} className="h-64 rounded-3xl" />}
+
+            {v.review_banner && (
+                <>
+                    <StageBanner image={v.review_banner} title="How was it?" subtitle={`Rate ${v.store.name} and help others choose.`} />
+                    <ReviewBox orderId={v.id} hasDriver={v.fulfilment === 'delivery'} />
+                </>
+            )}
+            <div className="flex flex-wrap gap-3">
+                {v.status === 'delivered' && <Button asChild variant="ink" className="h-12 flex-1 rounded-full"><Link href={`/orders/${v.id}/reorder`} method="post" as="button"><RotateCcw /> Order this again</Link></Button>}
+                {v.can_cancel && <Button variant="outline" className="text-zred h-12 rounded-full" onClick={() => setCancelOpen(true)}><X /> Cancel order</Button>}
+            </div>
+            <CancelModal open={cancelOpen} onClose={() => setCancelOpen(false)} id={v.id} />
+        </>
+    );
+}
+
+function Receipt({ v }: { v: OrderView }) {
+    const [emailOpen, setEmailOpen] = useState(false);
+    return (
+        <>
+            <div className="flex items-center gap-4">
+                {v.store.logo ? <img src={v.store.logo} alt="" className="size-16 shrink-0 rounded-full border object-cover" /> : <span className="bg-muted flex size-16 shrink-0 items-center justify-center rounded-full"><Store className="size-7" /></span>}
+                <div className="min-w-0"><h2 className="text-2xl leading-tight font-extrabold tracking-tight">{v.store.name}</h2>{v.store.address && <p className="text-muted-foreground text-sm">{v.store.address}</p>}</div>
+            </div>
+            <div className="overflow-hidden rounded-3xl border">
+                <div className="border-b px-5 py-3 text-sm font-semibold capitalize">{v.fulfilment} · {new Date(v.placed_at).toLocaleString('en-ZW', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+                <ul className="divide-y">
+                    {v.receipt.lines.map((l, i) => (
+                        <li key={i} className="flex gap-4 px-5 py-4">
+                            <span className="tabular w-8 shrink-0 text-lg font-bold">{l.quantity}×</span>
+                            <div className="min-w-0 flex-1">
+                                <div className="font-bold">{l.name}</div>
+                                {l.options.map((o) => <div key={o} className="text-muted-foreground text-sm">{o}</div>)}
+                                {l.notes && <div className="text-muted-foreground text-sm italic">“{l.notes}”</div>}
+                                {l.quantity > 1 && <div className="text-muted-foreground mt-1 text-xs">{zig(l.unit.zig)} each</div>}
+                            </div>
+                            <span className="tabular shrink-0 font-semibold">{zig(l.total.zig)}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+            <Totals v={v} />
+            <div className="grid gap-3 sm:grid-cols-2">
+                <Button asChild className="h-12 rounded-full text-[15px]"><a href={v.receipt.pdf_url}><Download /> Download PDF receipt</a></Button>
+                <Button variant="outline" className="h-12 rounded-full text-[15px]" onClick={() => setEmailOpen(true)}><Mail /> Email me the receipt</Button>
+            </div>
+            <EmailModal open={emailOpen} onClose={() => setEmailOpen(false)} id={v.id} email={v.details.account.email} />
+        </>
+    );
+}
+
+function Totals({ v }: { v: OrderView }) {
+    return (
+        <div className="overflow-hidden rounded-3xl border">
+            <div className="grid gap-3 px-5 py-5">
+                {v.receipt.totals.map((t) => (
+                    <div key={t.label} className="flex justify-between gap-4 text-[15px]">
+                        <span className="flex items-center gap-1.5">{t.label}{t.help && <span title={t.help}><HelpCircle className="text-muted-foreground size-4" /></span>}</span>
+                        <span className="tabular font-semibold">{zig(t.amount.zig)}</span>
+                    </div>
+                ))}
+            </div>
+            <div className="flex items-baseline justify-between border-t px-5 py-4">
+                <span className="text-xl font-extrabold">Total</span>
+                <span className="tabular text-right"><span className="block text-2xl font-extrabold">{zig(v.receipt.total.zig)}</span><span className="text-muted-foreground text-xs">VAT incl. {zig(v.receipt.vat.zig)}</span></span>
+            </div>
+        </div>
+    );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <section>
+            <h2 className="mb-2.5 text-lg font-extrabold tracking-tight">{title}</h2>
+            <div className="bg-muted rounded-3xl px-5 py-4 text-[15px] leading-relaxed dark:bg-white/5">{children}</div>
+        </section>
+    );
+}
+
+function Details({ v }: { v: OrderView }) {
+    const a = v.details.address;
+    return (
+        <>
+            {v.fulfilment === 'delivery' ? (
+                <Section title="Delivery address">
+                    {a ? <>{a.label && <div className="font-semibold">{a.label}</div>}<div>{a.line1}</div>{a.landmark && <div>Near {a.landmark}</div>}<div>{[a.suburb, a.city].filter(Boolean).join(', ')}</div></> : <span className="text-muted-foreground">No address</span>}
+                    {v.details.dropoff && <div className="text-muted-foreground mt-2 text-sm">Drop-off: {v.details.dropoff}</div>}
+                </Section>
+            ) : (
+                <Section title="Collect from"><div className="font-semibold">{v.store.name}</div><div>{v.store.address}</div>{v.store.phone && <a href={`tel:${v.store.phone}`} className="underline">{v.store.phone}</a>}</Section>
+            )}
+            <Section title={v.fulfilment === 'delivery' ? 'Delivery instructions' : 'Notes'}>
+                {v.details.instructions ? <span className="whitespace-pre-line">{v.details.instructions}</span> : <span className="text-muted-foreground">No instructions</span>}
+                {v.details.no_cutlery && <div className="text-muted-foreground mt-1 text-sm">No cutlery, please</div>}
+            </Section>
+            <Section title="Account details">
+                <div>{v.details.account.name || 'Zvino customer'}</div>
+                {v.details.account.phone && <div>{v.details.account.phone}</div>}
+                {v.details.account.email && <div>{v.details.account.email}</div>}
+            </Section>
+            <Section title="Payment method">
+                <div className="flex justify-between gap-3"><span>{v.details.payment.method}</span><span className="text-muted-foreground">{v.details.payment.status}</span></div>
+                {v.details.payment.cash_part && <div className="text-muted-foreground text-sm">Cash to the driver: {zig(v.details.payment.cash_part.zig)}</div>}
+                {v.receipt.wallet_applied && <div className="text-muted-foreground text-sm">From your wallet: {zig(v.receipt.wallet_applied.zig)}</div>}
+            </Section>
+            <section>
+                <h2 className="mb-2.5 text-lg font-extrabold tracking-tight">Order summary</h2>
+                <Totals v={v} />
+            </section>
+        </>
+    );
+}
+
+function HelpModal({ open, onClose, v }: { open: boolean; onClose: () => void; v: OrderView }) {
+    const [cancel, setCancel] = useState(false);
+    const wa = v.support.whatsapp ? `https://wa.me/${v.support.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi Zvino, I need help with order #${v.reference}`)}` : null;
+    return (
+        <>
+            <Modal open={open} onClose={onClose} size="sm" title="Need help with this order?" description={`Quote order #${v.reference}.`} footer={<Button variant="outline" onClick={onClose}>Close</Button>}>
+                <div className="grid gap-2">
+                    {wa && <a href={wa} target="_blank" rel="noreferrer" className="hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><MessageCircle className="size-5" /> WhatsApp support</a>}
+                    {v.support.phone && <a href={`tel:${v.support.phone}`} className="hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><Phone className="size-5" /> Call {v.support.phone}</a>}
+                    {v.store.phone && !v.is_done && <a href={`tel:${v.store.phone}`} className="hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><Store className="size-5" /> Call {v.store.name}</a>}
+                    {v.can_cancel && <button onClick={() => { onClose(); setCancel(true); }} className="text-zred hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><X className="size-5" /> Cancel order</button>}
+                </div>
+            </Modal>
+            <CancelModal open={cancel} onClose={() => setCancel(false)} id={v.id} />
+        </>
+    );
+}
+
+function EmailModal({ open, onClose, id, email }: { open: boolean; onClose: () => void; id: number; email: string | null }) {
+    const { data, setData, post, processing, errors } = useForm({ email: email ?? '' });
+    return (
+        <Modal open={open} onClose={onClose} size="sm" title="Email the receipt" description="We’ll send a PDF copy."
+            footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={processing || !data.email} onClick={() => post(`/orders/${id}/receipt/email`, { preserveScroll: true, onSuccess: onClose })}><Mail /> Send</Button></>}>
+            <input type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder="you@example.com" className="h-12 w-full rounded-xl border px-4 outline-none focus:border-[#222222] dark:bg-white/5" />
+            {errors.email && <p className="text-zred mt-1.5 text-sm">{errors.email}</p>}
+        </Modal>
     );
 }
 
@@ -154,14 +284,13 @@ function ReviewBox({ orderId, hasDriver }: { orderId: number; hasDriver: boolean
     const tags = ['Hot & fresh', 'Great portions', 'Fast delivery', 'Friendly driver', 'Well packed'];
     return (
         <div className="rounded-3xl border p-6">
-            <h2 className="text-lg font-bold">How was it?</h2>
-            <div className="mt-3 flex gap-1">{[1, 2, 3, 4, 5].map((n) => <button key={n} onClick={() => setData('vendor_rating', n)} aria-label={`${n} stars`}><Star className={cn('size-9 transition', n <= data.vendor_rating ? 'fill-[var(--color-gold)] text-gold' : 'text-neutral-300')} /></button>)}</div>
+            <div className="flex gap-1">{[1, 2, 3, 4, 5].map((n) => <button key={n} onClick={() => setData('vendor_rating', n)} aria-label={`${n} stars`}><Star className={cn('size-9 transition', n <= data.vendor_rating ? 'fill-[var(--color-gold)] text-gold' : 'text-neutral-300')} /></button>)}</div>
             {data.vendor_rating > 0 && (
                 <>
                     <div className="mt-4 flex flex-wrap gap-2">{tags.map((t) => <button key={t} onClick={() => setData('tags', data.tags.includes(t) ? data.tags.filter((x) => x !== t) : [...data.tags, t])} className={cn('h-9 rounded-full px-3.5 text-sm font-medium', data.tags.includes(t) ? 'bg-[#1c1c1c] text-white' : 'bg-muted')}>{t}</button>)}</div>
                     <Textarea className="mt-3" value={data.comment} onChange={(e) => setData('comment', e.target.value)} placeholder="Tell others about your meal (optional)" />
                     {hasDriver && <div className="mt-3 flex items-center gap-3 text-sm"><span className="font-medium">Driver</span>{[1, 2, 3, 4, 5].map((n) => <button key={n} onClick={() => setData('driver_rating', n)}><Star className={cn('size-5', n <= data.driver_rating ? 'fill-[var(--color-gold)] text-gold' : 'text-neutral-300')} /></button>)}</div>}
-                    <Button variant="dark" className="mt-4 rounded-full" disabled={processing} onClick={() => post(`/orders/${orderId}/review`, { preserveScroll: true })}>Submit review</Button>
+                    <Button variant="ink" className="mt-4 rounded-full" disabled={processing} onClick={() => post(`/orders/${orderId}/review`, { preserveScroll: true })}>Submit review</Button>
                 </>
             )}
         </div>
