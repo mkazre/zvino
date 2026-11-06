@@ -28,7 +28,8 @@ interface CartCtx {
     syncToServer: () => Promise<void>;
 }
 
-const KEY = 'zvino.cart.v1';
+// v2: v1 baskets could hold prices joined as text ("85" + "0" = "850"); start fresh.
+const KEY = 'zvino.cart.v2';
 const Ctx = createContext<CartCtx>(null as unknown as CartCtx);
 
 export function CartProvider({ children }: { children: ReactNode }) {

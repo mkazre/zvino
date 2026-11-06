@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddressBar } from '@/features/address-bar';
+import { EmailCard } from '@/features/email-card';
 import { CartBar, Cover, LogoTile, StoreCard, type MenuItem, type Store } from '@/features/cards';
 import { Bell } from '@/features/bell';
 import { api } from '@/lib/api';
@@ -69,6 +70,7 @@ export function Feed({ segment }: { segment: 'restaurants' | 'shops' }) {
                 <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 12 }}>
                     <Row justify="space-between"><Logo height={28} /><Bell /></Row>
                     <AddressBar />
+                    {segment === 'restaurants' && <EmailCard />}
                     <Pressable onPress={() => router.push('/search')} style={{ height: 50, borderRadius: 16, backgroundColor: t.subtle, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>
                         <Ionicons name="search" size={20} color={t.muted} />
                         <Text color="muted">{segment === 'shops' ? 'Search shops & groceries' : 'Try “sadza”, “pizza”, “braai”'}</Text>

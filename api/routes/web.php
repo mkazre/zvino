@@ -195,6 +195,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
 
         Route::middleware('can:settings.manage')->group(function () {
             Route::get('settings/{group?}', [SettingsController::class, 'index'])->name('settings');
+            Route::post('settings/test-email', [SettingsController::class, 'testEmail'])->name('settings.test-email');
             Route::post('settings/{group}', [SettingsController::class, 'update'])->name('settings.update');
             Route::post('settings-platform-mode', [SettingsController::class, 'platformMode'])->name('settings.mode');
             Route::post('settings-exchange-rate', [SettingsController::class, 'exchangeRate'])->name('settings.rate');

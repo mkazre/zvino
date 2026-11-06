@@ -13,6 +13,9 @@ Notifications.setNotificationHandler({
  * Ask permission, get an Expo push token and give it to the API (POST /api/devices).
  * Needs a development or store build: Expo Go can't receive remote push on Android.
  */
+/** True once this phone has a working push token (then the in-app fallback stays quiet). */
+export const pushState = { ready: false };
+
 export async function registerForPush(): Promise<string | null> {
     if (!Device.isDevice) return null;
 
@@ -31,6 +34,7 @@ export async function registerForPush(): Promise<string | null> {
     try {
         const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
         await api.post('/devices', { token: data, platform: Platform.OS === 'ios' ? 'ios' : 'android' });
+        pushState.ready = true;
         return data;
     } catch {
         return null; // offline: retried on next launch

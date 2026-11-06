@@ -22,7 +22,8 @@ export interface Cart {
     promo?: string;
 }
 
-const KEY = 'zvino.cart.v1';
+// v2: v1 baskets could hold prices joined as text ("85" + "0" = "850"); start fresh.
+const KEY = 'zvino.cart.v2';
 const EMPTY: Cart = { vendor: null, lines: [] };
 let state: Cart = load();
 const listeners = new Set<() => void>();

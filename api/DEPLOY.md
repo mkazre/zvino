@@ -64,7 +64,10 @@ driver dispatch), queued jobs, campaigns, payouts, monthly company invoices and 
   also start from a clean database (remove `ZVINO_SEED_DEMO` and empty the database **before** the first live deploy).
 - Paynow keys (`PAYNOW_*`, `PAYNOW_FAKE=false`); result URL in Paynow: `https://zvino.online/api/payments/webhook/paynow`.
 - SMS provider in Admin → Settings → Notifications (login codes depend on it).
-- Email: create `orders@zvino.online` in cPanel → Email Accounts and set `MAIL_MAILER=smtp` + `MAIL_PASSWORD`.
+- Email (order updates, receipts, applications, password resets): cPanel → **Email Accounts → Create** `orders@zvino.online`.
+  In `~/zvino-app/.env` set `MAIL_MAILER=smtp`, `MAIL_HOST=mail.zvino.online`, `MAIL_PORT=465`, `MAIL_ENCRYPTION=ssl`,
+  `MAIL_USERNAME=orders@zvino.online`, `MAIL_PASSWORD=<that mailbox password>`, then **Deploy HEAD Commit** (reloads settings).
+  Check with Admin → Settings → Notifications → **Send a test email** (it shows the mail server's exact error if it fails).
 - Optional: Pusher (`BROADCAST_CONNECTION=pusher`, `PUSHER_*`) for instant updates; Sentry (`SENTRY_LARAVEL_DSN`).
 - Check readiness any time: the last lines of `~/zvino-deploy.log` show `zvino:doctor` (green = ready).
 

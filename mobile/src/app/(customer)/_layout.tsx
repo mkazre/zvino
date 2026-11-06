@@ -1,8 +1,10 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/ui';
+import { useOrderAlerts } from '@/features/order-alerts';
 
 export default function CustomerLayout() {
     const t = useTheme();
+    useOrderAlerts();
     return (
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
             <Stack.Screen name="(tabs)" />

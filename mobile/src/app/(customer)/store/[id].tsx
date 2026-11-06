@@ -162,10 +162,17 @@ export default function StoreScreen() {
                 renderItem={({ item: i }) => <View style={{ paddingHorizontal: 20, borderBottomWidth: 0.5, borderColor: t.border }}><DishRow i={i} onPress={() => setItem(i)} /></View>}
                 ListEmptyComponent={q ? <Text color="muted" style={{ textAlign: 'center', padding: 32 }}>No dishes match “{q}”.</Text> : undefined}
             />
-            {showTabs && sections.length > 1 && (
+            {showTabs && (
                 <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: t.bg, borderBottomWidth: 1, borderColor: t.border }}>
-                    <Row gap={6} style={{ paddingLeft: 8 }}>
+                    <Row gap={6} style={{ paddingLeft: 8, paddingRight: 16, paddingTop: 4 }}>
                         <Pressable onPress={() => router.back()} style={{ padding: 8 }} accessibilityLabel="Back"><Ionicons name="arrow-back" size={22} color={t.ink} /></Pressable>
+                        <Row gap={8} style={{ flex: 1, height: 42, borderRadius: 14, backgroundColor: t.subtle, paddingHorizontal: 12 }}>
+                            <Ionicons name="search" size={18} color={t.muted} />
+                            <TextInput value={q} onChangeText={setQ} placeholder={`Search ${store.name}`} placeholderTextColor={t.faint} style={{ flex: 1, fontSize: 15, color: t.ink }} />
+                            {!!q && <Pressable onPress={() => setQ('')}><Ionicons name="close-circle" size={18} color={t.muted} /></Pressable>}
+                        </Row>
+                    </Row>
+                    {sections.length > 1 && <Row gap={0} style={{ paddingLeft: 8 }}>
                         <ScrollView ref={tabs as never} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
                             {sections.map((s, i) => (
                                 <Pressable key={s.title} onPress={() => jump(i)} style={{ paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: 3, borderColor: i === activeTab ? t.ink : 'transparent' }}>
@@ -173,7 +180,7 @@ export default function StoreScreen() {
                                 </Pressable>
                             ))}
                         </ScrollView>
-                    </Row>
+                    </Row>}
                 </SafeAreaView>
             )}
             <CartBar />
@@ -200,7 +207,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
     const step = item.step_kg ?? 0.5;
     const kg = (n: number) => `${+(n * step).toFixed(3)} kg`;
     const base = (item.special_price?.zig ?? item.price.zig) * (perKg ? step : 1);
-    const unit = base + (item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + mods.reduce((s, m) => s + (groups.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0);
+    const unit = base + Number(item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + mods.reduce((s, m) => s + Number(groups.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0);
     const missing = groups.find((g) => g.options.filter((o) => mods.includes(o.name)).length < g.min);
 
     const toggle = (g: (typeof groups)[number], name: string) => {

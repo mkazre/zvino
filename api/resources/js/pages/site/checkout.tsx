@@ -171,7 +171,7 @@ export default function Checkout(p: Props) {
 
                     {/* Fulfilment */}
                     <Block title={t('How do you want it?')}>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             {p.store?.offers_delivery !== false && <Tile active={form.data.fulfilment === 'delivery'} onClick={() => form.setData('fulfilment', 'delivery')} icon={Bike} title={t('Delivery')} sub={server.eta_minutes ? `${server.eta_minutes[0]}–${server.eta_minutes[1]} min` : ''} />}
                             {p.store?.offers_pickup && <Tile active={form.data.fulfilment === 'pickup'} onClick={() => form.setData('fulfilment', 'pickup')} icon={Footprints} title={t('Pickup')} sub="No delivery fee" />}
                         </div>
@@ -195,7 +195,7 @@ export default function Checkout(p: Props) {
                             )}
                             {server.distance_km && <p className="text-muted-foreground mt-3 text-xs">{server.distance_km} km from the store</p>}
                             {server.batch && <div className="mt-3 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-600">🚐 <b>{server.batch.zone} run</b>: leaves {new Date(server.batch.departs_at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}, arrives about {new Date(server.batch.arrives_at).toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}.</div>}
-                            <div className="mt-4 grid grid-cols-2 gap-2">
+                            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 <Tile small active={form.data.dropoff === 'hand_to_me'} onClick={() => form.setData('dropoff', 'hand_to_me')} title="Hand it to me" />
                                 <Tile small active={form.data.dropoff === 'leave_at_door'} onClick={() => form.setData('dropoff', 'leave_at_door')} title="Leave at gate / door" sub="Driver sends a photo" />
                             </div>
@@ -203,8 +203,8 @@ export default function Checkout(p: Props) {
                     )}
 
                     <Block title={t('When?')}>
-                        <div className="grid grid-cols-2 gap-2">
-                            <Tile active={when === 'asap'} disabled={p.store?.availability.is_open === false} onClick={() => setWhen('asap')} icon={Zap} title={t('As soon as possible')} sub={p.store?.availability.is_open === false ? 'Store is closed now' : ''} />
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <Tile active={when === 'asap'} disabled={p.store?.availability.is_open === false} onClick={() => setWhen('asap')} icon={Zap} title={t('As soon as possible')} sub={p.store?.availability.is_open === false ? 'Store is closed now' : server.eta_minutes ? `About ${server.eta_minutes[0]}–${server.eta_minutes[1]} min` : 'Right away'} />
                             {p.scheduleDays > 0 && p.store?.accepts_scheduled && <Tile active={when === 'later'} onClick={() => setWhen('later')} icon={CalendarClock} title={t('Schedule for later')} sub={`Up to ${p.scheduleDays} days ahead`} />}
                         </div>
                         {when === 'later' && (
@@ -386,9 +386,10 @@ function Block({ title, action, children }: { title: string; action?: React.Reac
 
 function Tile({ active, onClick, icon: Icon, title, sub, disabled, small }: { active: boolean; onClick: () => void; icon?: typeof Bike; title: string; sub?: string; disabled?: boolean; small?: boolean }) {
     return (
-        <button type="button" disabled={disabled} onClick={onClick} className={cn('flex items-center gap-3 rounded-2xl border-2 text-left transition disabled:opacity-40', small ? 'p-3' : 'p-4', active ? 'border-[#222222] dark:border-white' : 'border-transparent bg-neutral-50 dark:bg-white/5')}>
-            {Icon && <Icon className="size-5 shrink-0" />}
-            <span><span className={cn('block font-semibold', small && 'text-sm')}>{title}</span>{sub && <span className="text-muted-foreground block text-xs">{sub}</span>}</span>
+        <button type="button" disabled={disabled} onClick={onClick} aria-pressed={active} className={cn('flex min-h-14 w-full items-center gap-3 rounded-2xl border-2 text-left transition disabled:opacity-40', small ? 'px-4 py-3' : 'px-4 py-3.5', active ? 'border-[#222222] bg-white dark:border-white dark:bg-white/5' : 'border-transparent bg-neutral-50 hover:bg-neutral-100 dark:bg-white/5')}>
+            {Icon && <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl', active ? 'bg-brand text-black' : 'bg-white shadow-sm dark:bg-white/10')}><Icon className="size-5" /></span>}
+            <span className="min-w-0 flex-1"><span className={cn('block leading-tight font-semibold', small && 'text-sm')}>{title}</span>{sub && <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">{sub}</span>}</span>
+            <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-[#222222] bg-[#222222] dark:border-white dark:bg-white' : 'border-neutral-300')}>{active && <span className="size-2 rounded-full bg-white dark:bg-black" />}</span>
         </button>
     );
 }

@@ -37,7 +37,7 @@ class ZvinoDoctor extends Command
             [false, config('mail.default') !== 'log', 'Email configured', 'Set MAIL_* in .env for receipts and password resets'],
             [false, Cache::get('zvino.scheduler_heartbeat') && now()->diffInMinutes(Cache::get('zvino.scheduler_heartbeat')) < 3, 'Cron scheduler running', 'Add the cPanel cron: * * * * * php artisan schedule:run'],
             [false, file_exists(public_path('storage')) || config('filesystems.disks.public.root') !== storage_path('app/public'), 'Storage link', 'php artisan storage:link'],
-            [false, extension_loaded('gd') && extension_loaded('dom') && extension_loaded('mbstring'), 'PDF receipts (gd, dom, mbstring)', 'cPanel → Select PHP Version → Extensions: enable gd, dom and mbstring'],
+            [false, ($pdf = $this->pdfCheck()) === true, 'PDF receipts', is_string($pdf) ? 'PDF failed: '.$pdf : ''],
         ];
 
         $blocking = 0;
@@ -65,5 +65,24 @@ class ZvinoDoctor extends Command
     {
         return User::where('email', 'like', '%@zvino.co.zw')->whereNotNull('password')->get()
             ->contains(fn ($u) => Hash::check('password', $u->password));
+    }
+
+    /** Render a tiny PDF exactly like the receipts do; returns true or the error message. */
+    private function pdfCheck(): bool|string
+    {
+        try {
+            $dir = storage_path('app/dompdf');
+            if (! is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            $missing = array_filter(['gd', 'dom', 'mbstring'], fn ($e) => ! extension_loaded($e));
+            \Barryvdh\DomPDF\Facade\Pdf::loadHTML('<p>Zvino PDF check ’ ZiG</p>')
+                ->setOption(['isFontSubsettingEnabled' => true, 'defaultFont' => 'DejaVu Sans', 'fontDir' => $dir, 'fontCache' => $dir, 'tempDir' => $dir])
+                ->output();
+
+            return $missing ? 'missing PHP extension(s): '.implode(', ', $missing) : true;
+        } catch (\Throwable $e) {
+            return class_basename($e).': '.$e->getMessage();
+        }
     }
 }

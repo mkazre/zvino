@@ -201,7 +201,9 @@ return [
             'sms_sender_id' => ['type' => 'string', 'label' => 'SMS sender ID', 'default' => 'ZVINO'],
             'quiet_hours_start' => ['type' => 'time', 'label' => 'Marketing quiet hours from', 'default' => '21:00'],
             'quiet_hours_end' => ['type' => 'time', 'label' => 'Marketing quiet hours until', 'default' => '07:00'],
-            'ops_alert_email' => ['type' => 'string', 'label' => 'Operations alert email', 'default' => ''],
+            'ops_alert_email' => ['type' => 'string', 'label' => 'Operations alert email', 'default' => '', 'help' => 'Gets staff emails too (in addition to admins with an email address).'],
+            'email_staff_new_orders' => ['type' => 'bool', 'label' => 'Email staff about every new order', 'default' => true],
+            'email_staff_problems' => ['type' => 'bool', 'label' => 'Email staff when an order is cancelled or declined', 'default' => true],
         ],
     ],
 

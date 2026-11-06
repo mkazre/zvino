@@ -51,7 +51,7 @@ export default function Pos(p: Props) {
 
     const base = (i: PosItem) => i.special_price?.zig ?? i.price.zig;
     const add = (item: PosItem, variant: string | null = null, modifiers: string[] = []) => {
-        const unit = base(item) + (item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + modifiers.reduce((s, m) => s + (item.modifier_groups?.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0);
+        const unit = base(item) + Number(item.variants.find((v) => v.name === variant)?.price_delta_zig ?? 0) + modifiers.reduce((s, m) => s + (item.modifier_groups?.flatMap((g) => g.options).find((o) => o.name === m)?.price_delta.zig ?? 0), 0);
         const key = `${item.id}:${variant ?? ''}:${modifiers.join(',')}`;
         setLines((ls) => (ls.some((l) => l.key === key) ? ls.map((l) => (l.key === key ? { ...l, quantity: l.quantity + 1 } : l)) : [...ls, { key, item, variant, modifiers, quantity: 1, unit }]));
     };

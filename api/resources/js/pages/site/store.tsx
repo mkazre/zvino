@@ -52,11 +52,32 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
         toast.success('Your usual is in the basket', { action: { label: 'View', onClick: () => window.dispatchEvent(new Event('zvino:open-cart')) } });
     }, [flash?.reorder]);
 
+    // The tab follows the category you're reading: the last section whose top has passed the pinned bar.
+    const tabsRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {
-        const obs = new IntersectionObserver((entries) => entries.forEach((e) => e.isIntersecting && setActive(Number(e.target.getAttribute('data-cat')))), { rootMargin: '-140px 0px -60% 0px' });
-        Object.values(refs.current).forEach((el) => el && obs.observe(el));
-        return () => obs.disconnect();
+        let raf = 0;
+        const onScroll = () => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                const line = (window.innerWidth >= 768 ? 140 : 240) + 8;
+                let current: number | null = null;
+                for (const [id, el] of Object.entries(refs.current)) {
+                    if (el && el.getBoundingClientRect().top <= line) current = Number(id);
+                }
+                const first = Object.keys(refs.current)[0];
+                setActive(current ?? (first ? Number(first) : null));
+            });
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf); };
     }, [menu]);
+    // Keep the active tab visible in the tab bar.
+    useEffect(() => {
+        const bar = tabsRef.current;
+        const tab = bar?.querySelector<HTMLElement>(`[data-tab="${active}"]`);
+        if (bar && tab) bar.scrollTo({ left: tab.offsetLeft - 16, behavior: 'smooth' });
+    }, [active]);
 
     const filtered = q ? menu.map((c) => ({ ...c, items: c.items.filter((i) => `${i.name} ${i.description}`.toLowerCase().includes(q.toLowerCase())) })).filter((c) => c.items.length) : menu;
     const closed = !s.availability.is_open;
@@ -120,14 +141,14 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                         {s.availability.is_busy && !closed && <div className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">This kitchen is busy, so orders are taking a little longer than usual.</div>}
                         {s.power_out && <div className="mt-5 flex items-center gap-2 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900"><Zap className="size-4" /> Load-shedding: some items are temporarily unavailable.</div>}
 
-                        <div className="relative mt-6 sm:hidden"><Search className="text-muted-foreground absolute top-1/2 left-4 size-4 -translate-y-1/2" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${s.name}`} className="bg-muted h-12 w-full rounded-full pr-4 pl-11 text-[15px] outline-none dark:bg-white/10" /></div>
-
-                        {/* Category nav */}
-                        <nav className="sticky top-16 z-20 -mx-4 mt-8 border-b bg-white/95 px-4 backdrop-blur md:top-[72px] md:mx-0 md:px-0 dark:bg-[#0c0e0d]/95">
+                        {/* Search + category tabs: stay pinned under the header while scrolling the menu.
+                            Phone header = 112px (logo row + address row); desktop header = 72px. */}
+                        <nav className="sticky top-[112px] z-20 -mx-4 mt-6 border-b bg-white/95 px-4 pt-3 backdrop-blur md:top-[72px] md:mx-0 md:px-0 md:pt-0 dark:bg-[#0c0e0d]/95">
+                            <div className="relative sm:hidden"><Search className="text-muted-foreground absolute top-1/2 left-4 size-4 -translate-y-1/2" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${s.name}`} className="bg-muted h-11 w-full rounded-full pr-4 pl-11 text-[15px] outline-none dark:bg-white/10" /></div>
                             <div className="flex items-center gap-4">
-                                <div className="scroll-quiet flex flex-1 gap-6 overflow-x-auto">
+                                <div ref={tabsRef} className="scroll-quiet flex flex-1 gap-6 overflow-x-auto">
                                     {menu.map((c) => (
-                                        <button key={c.id} onClick={() => refs.current[c.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={cn('shrink-0 border-b-2 py-4 text-[15px] font-semibold transition', active === c.id ? 'border-[#222222] dark:border-white' : 'text-muted-foreground border-transparent')}>{c.name}</button>
+                                        <button key={c.id} data-tab={c.id} onClick={() => { setActive(c.id); refs.current[c.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className={cn('shrink-0 border-b-2 py-3.5 text-[15px] font-semibold transition md:py-4', active === c.id ? 'border-[#222222] dark:border-white' : 'text-muted-foreground border-transparent')}>{c.name}</button>
                                     ))}
                                 </div>
                                 <div className="relative hidden sm:block"><Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${s.name}`} className="bg-muted h-10 w-52 rounded-full pr-3 pl-9 text-sm outline-none dark:bg-white/10" /></div>
@@ -168,7 +189,7 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                         )}
 
                         {filtered.map((c) => (
-                            <section key={c.id} ref={(el) => { refs.current[c.id] = el; }} data-cat={c.id} className="scroll-mt-36 pt-10">
+                            <section key={c.id} ref={(el) => { refs.current[c.id] = el; }} data-cat={c.id} className="scroll-mt-[232px] pt-10 md:scroll-mt-[140px]">
                                 <h2 className="mb-4 text-[22px] font-extrabold tracking-tight">{c.name}</h2>
                                 <div className="grid gap-4 xl:grid-cols-2">{c.items.map((i) => <DishCard key={i.id} i={i} onClick={() => setItem(i)} />)}</div>
                             </section>

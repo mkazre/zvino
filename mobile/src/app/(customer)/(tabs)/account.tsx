@@ -6,6 +6,7 @@ import { useSession } from '@/lib/session';
 import { Button, Card, Empty, Row, Screen, Text, Toggle, useTheme, Logo } from '@/ui';
 import { LanguagePicker } from '@/features/language';
 import { ThemePicker } from '@/features/theme-picker';
+import { EmailCard } from '@/features/email-card';
 import { usePrefs } from '@/lib/prefs';
 import { appVersion } from '@/lib/brand';
 
@@ -37,6 +38,7 @@ export default function Account() {
                     <Text variant="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>Plus half-price service fees on every order.</Text>
                 </Card>
             )}
+            <View style={{ marginTop: 16 }}><EmailCard dismissible={false} /></View>
             <View style={{ marginTop: 16 }}>
                 <Item icon="location-outline" title="Addresses" sub="Landmarks, gate photo, voice directions" onPress={() => router.push('/addresses')} />
                 <Item icon="repeat-outline" title="Regular orders" sub="Weekday lunch, month-end shop" onPress={() => router.push('/plans')} />

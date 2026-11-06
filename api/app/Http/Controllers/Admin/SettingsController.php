@@ -92,6 +92,28 @@ class SettingsController extends AdminController
         return back()->with('success', $changes ? count($changes).' setting'.(count($changes) > 1 ? 's' : '').' saved.' : 'No changes.');
     }
 
+    /** Settings → Notifications → "Send a test email": sends straight away and reports the real error. */
+    public function testEmail(Request $request)
+    {
+        $to = $request->validate(['to' => ['nullable', 'email']])['to'] ?? $request->user()->email;
+        $mailer = config('mail.default');
+        if ($mailer === 'log') {
+            return back()->with('error', "Email is switched off (MAIL_MAILER={$mailer} in .env): messages are only written to the log. Set MAIL_MAILER=smtp and the MAIL_* settings, then deploy again.");
+        }
+        try {
+            \Illuminate\Support\Facades\Mail::to($to)->send(new \App\Mail\ZvinoMail('Zvino test email', 'Email is working ✅', [
+                'This is a test from Admin → Settings → Notifications.',
+                'Mailer: '.$mailer.' · Server: '.config('mail.mailers.smtp.host').':'.config('mail.mailers.smtp.port').' · From: '.config('mail.from.address'),
+            ]));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with('error', 'Sending failed: '.\Illuminate\Support\Str::limit($e->getMessage(), 300));
+        }
+
+        return back()->with('success', "Test email sent to {$to}. Check the inbox (and spam folder).");
+    }
+
     public function platformMode(Request $request)
     {
         $data = $request->validate([

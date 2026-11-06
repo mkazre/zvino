@@ -123,6 +123,7 @@ function GroupForm({ group, title, fields, rateHistory, vendors }: { group: stri
                         )}
                     </FormSection>
                 ))}
+                {group === 'notifications' && <TestEmail />}
                 {group === 'currency' && rateHistory.length > 0 && (
                     <FormSection title="Rate history" description="Every order stores the rate in force when it was placed.">
                         <ul className="divide-y rounded-lg border text-sm">
@@ -314,5 +315,19 @@ function PagesEditor({ pages }: { pages: Props['pages'] }) {
                 )}
             </div>
         </Card>
+    );
+}
+
+/** Sends a real email now and shows the mail server's answer (success or the exact error). */
+function TestEmail() {
+    const [to, setTo] = useState('');
+    const [busy, setBusy] = useState(false);
+    return (
+        <FormSection title="Test email" description="Check that order, receipt and application emails can be delivered. Leave empty to send to yourself.">
+            <div className="flex flex-col gap-2 sm:flex-row">
+                <Input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="you@example.com" className="sm:max-w-xs" />
+                <Button variant="outline" disabled={busy} onClick={() => { setBusy(true); router.post('/admin/settings/test-email', to ? { to } : {}, { preserveScroll: true, onFinish: () => setBusy(false) }); }}>Send a test email</Button>
+            </div>
+        </FormSection>
     );
 }
