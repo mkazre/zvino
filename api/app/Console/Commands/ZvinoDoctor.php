@@ -36,7 +36,8 @@ class ZvinoDoctor extends Command
             [false, ! Page::where('body', 'like', '%content to be supplied%')->exists(), 'Legal pages written', 'Settings → Legal & content pages (terms, privacy…)'],
             [false, config('mail.default') !== 'log', 'Email configured', 'Set MAIL_* in .env for receipts and password resets'],
             [false, Cache::get('zvino.scheduler_heartbeat') && now()->diffInMinutes(Cache::get('zvino.scheduler_heartbeat')) < 3, 'Cron scheduler running', 'Add the cPanel cron: * * * * * php artisan schedule:run'],
-            [false, file_exists(public_path('storage')), 'Storage link', 'php artisan storage:link'],
+            [false, file_exists(public_path('storage')) || config('filesystems.disks.public.root') !== storage_path('app/public'), 'Storage link', 'php artisan storage:link'],
+            [false, extension_loaded('gd') && extension_loaded('dom') && extension_loaded('mbstring'), 'PDF receipts (gd, dom, mbstring)', 'cPanel → Select PHP Version → Extensions: enable gd, dom and mbstring'],
         ];
 
         $blocking = 0;
