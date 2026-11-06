@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { Cover, DishCard, ItemModal, type MenuItem } from '@/components/site';
+import { Cover, DishCard, ItemModal, closedLabel, type MenuItem } from '@/components/site';
+import { Modal } from '@/components/z';
 import SiteLayout, { type SiteProps } from '@/layouts/site-layout';
 import { cart } from '@/lib/cart';
 import { timeAgo, zig } from '@/lib/money';
@@ -19,6 +20,7 @@ interface Props {
         availability: { is_open: boolean; reason: string | null; is_busy: boolean; prep_minutes: number; next_open_at: string | null };
         hours: { weekday: number; opens_at: string; closes_at: string }[];
         zone_fee: { base: number; free_km: number; per_km: number } | null;
+        distance_km?: number | null;
     };
     menu: { id: number; name: string; items: MenuItem[] }[];
     popular: MenuItem[];
@@ -32,10 +34,13 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
     const { auth, flash } = usePage<SiteProps & { flash: { reorder?: { item_id: number; quantity: number; variant: string | null; modifiers: string[] }[] } }>().props;
     const [item, setItem] = useState<MenuItem | null>(null);
     const [q, setQ] = useState('');
+    const [info, setInfo] = useState(false);
     const [active, setActive] = useState<number | null>(menu[0]?.id ?? null);
     const refs = useRef<Record<number, HTMLElement | null>>({});
     const storeRef = { id: s.id, name: s.name, slug: s.slug, min_order: s.min_order };
     const all = useMemo(() => menu.flatMap((c) => c.items), [menu]);
+    const specials = useMemo(() => all.filter((i) => i.special_price && i.is_available).slice(0, 12), [all]);
+    const closedText = closedLabel(s.availability as never);
 
     // "Order again" from account: refill the basket.
     useEffect(() => {
@@ -75,7 +80,8 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
             <Head title={seo.title} />
             <div className="mx-auto max-w-7xl px-0 md:px-6 md:pt-6">
                 <Cover src={s.cover} seed={s.id} className="aspect-[16/7] md:aspect-[16/5] md:rounded-3xl">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className={cn('absolute inset-0 bg-gradient-to-t from-black/50 to-transparent', closedText && 'bg-black/40')} />
+                    {closedText && <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#222222] bg-white px-5 py-2 text-[15px] whitespace-nowrap text-[#222222] shadow-lg"><b>{closedText.split(':')[0]}</b>{closedText.includes(':') ? `:${closedText.split(':').slice(1).join(':')}` : ''}</span>}
                     <div className="absolute top-4 right-4 flex gap-2">
                         <button onClick={share} className="flex size-10 items-center justify-center rounded-full bg-white/95 text-[#222222] shadow" aria-label="Share"><Share2 className="size-4" /></button>
                         {auth?.user && <button onClick={() => router.post(`/store/${s.id}/favorite`, {}, { preserveScroll: true })} className="flex size-10 items-center justify-center rounded-full bg-white/95 text-[#222222] shadow" aria-label="Favourite"><Heart className={cn('size-4', isFavorite && 'fill-[var(--color-zred)] text-zred')} /></button>}
@@ -92,7 +98,8 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                         <h1 className="text-[32px] leading-tight font-extrabold tracking-[-0.04em] md:text-[40px]">{s.name}</h1>
                         <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px]">
                             {s.rating_count > 0 && <span className="text-foreground flex items-center gap-1 font-bold"><Star className="size-4 fill-current" />{s.rating.toFixed(1)} <span className="text-muted-foreground font-normal">({s.rating_count}+)</span></span>}
-                            <span>{s.cuisine}</span><span>·</span><span>{'$'.repeat(s.price_level)}</span><span>·</span><span>{s.city}</span>
+                            <span>{s.cuisine}</span><span>·</span><span>{'$'.repeat(s.price_level)}</span><span>·</span><span>{s.distance_km != null ? `${s.distance_km} km away` : s.city}</span>
+                            <button onClick={() => setInfo(true)} className="text-brand-700 dark:text-brand font-semibold hover:underline">More info</button>
                         </div>
                         {s.description && <p className="text-muted-foreground mt-3 max-w-2xl leading-relaxed">{s.description}</p>}
 
@@ -113,6 +120,8 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                         {s.availability.is_busy && !closed && <div className="mt-5 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">This kitchen is busy, so orders are taking a little longer than usual.</div>}
                         {s.power_out && <div className="mt-5 flex items-center gap-2 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900"><Zap className="size-4" /> Load-shedding: some items are temporarily unavailable.</div>}
 
+                        <div className="relative mt-6 sm:hidden"><Search className="text-muted-foreground absolute top-1/2 left-4 size-4 -translate-y-1/2" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${s.name}`} className="bg-muted h-12 w-full rounded-full pr-4 pl-11 text-[15px] outline-none dark:bg-white/10" /></div>
+
                         {/* Category nav */}
                         <nav className="sticky top-16 z-20 -mx-4 mt-8 border-b bg-white/95 px-4 backdrop-blur md:top-[72px] md:mx-0 md:px-0 dark:bg-[#0c0e0d]/95">
                             <div className="flex items-center gap-4">
@@ -127,13 +136,31 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
 
                         {popular.length > 0 && !q && (
                             <section className="mt-8">
-                                <h2 className="mb-4 text-[22px] font-extrabold tracking-tight">Most popular</h2>
+                                <h2 className="mb-4 text-[22px] font-extrabold tracking-tight">Highlights</h2>
                                 <div className="scroll-quiet -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
                                     {popular.map((i) => (
                                         <button key={i.id} onClick={() => setItem(i)} className="group w-48 shrink-0 text-left">
                                             {i.image ? <img src={i.image} alt="" className="aspect-square w-full rounded-2xl object-cover" /> : <div className="bg-muted aspect-square w-full rounded-2xl dark:bg-white/5" />}
                                             <div className="mt-2 line-clamp-1 text-sm font-bold">{i.name}</div>
                                             <div className="tabular text-sm">{zig(i.special_price?.zig ?? i.price.zig)}{i.special_price && <span className="text-muted-foreground ml-1.5 text-xs line-through">{zig(i.price.zig)}</span>}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {specials.length > 0 && !q && (
+                            <section className="mt-10">
+                                <h2 className="mb-4 text-[22px] font-extrabold tracking-tight">Specials 🔥</h2>
+                                <div className="scroll-quiet -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+                                    {specials.map((i) => (
+                                        <button key={i.id} onClick={() => setItem(i)} className="group w-48 shrink-0 text-left">
+                                            <span className="relative block">
+                                                {i.image ? <img src={i.image} alt="" className="aspect-square w-full rounded-2xl object-cover" /> : <span className="bg-muted block aspect-square w-full rounded-2xl dark:bg-white/5" />}
+                                                <span className="absolute top-2 left-2 rounded-full bg-[var(--color-zred)] px-2.5 py-1 text-[11px] font-bold text-white">Special</span>
+                                            </span>
+                                            <span className="mt-2 line-clamp-1 block text-sm font-bold">{i.name}</span>
+                                            <span className="tabular text-zred block text-sm font-semibold">{zig(i.special_price!.zig)} <span className="text-muted-foreground ml-1 text-xs font-normal line-through">{zig(i.price.zig)}</span></span>
                                         </button>
                                     ))}
                                 </div>
@@ -184,6 +211,22 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
                 </div>
             </div>
             {item && <ItemModal item={item} store={storeRef} onClose={() => setItem(null)} />}
+            <Modal open={info} onClose={() => setInfo(false)} title={s.name} description={[s.cuisine, s.address && `${s.address}, ${s.city}`].filter(Boolean).join(' · ')} footer={<Button onClick={() => setInfo(false)}>Close</Button>}>
+                <div className="grid max-h-[60vh] gap-4 overflow-y-auto text-sm">
+                    {s.description && <p className="text-muted-foreground leading-relaxed">{s.description}</p>}
+                    <div>
+                        <h3 className="mb-2 font-bold">Opening hours</h3>
+                        <ul className="grid gap-1.5">
+                            {DAYS.map((d, i) => {
+                                const slots = s.hours.filter((h) => h.weekday === i);
+                                return <li key={d} className={cn('flex justify-between', i === today && 'font-bold')}><span>{d}</span><span className="tabular">{slots.length ? slots.map((h) => `${h.opens_at.slice(0, 5)}–${h.closes_at.slice(0, 5)}`).join(', ') : 'Closed'}</span></li>;
+                            })}
+                        </ul>
+                    </div>
+                    {s.zone_fee && <p className="text-muted-foreground">Delivery: {zig(s.zone_fee.base)} for the first {s.zone_fee.free_km} km, then {zig(s.zone_fee.per_km)} per km.</p>}
+                    {s.min_order.zig > 0 && <p className="text-muted-foreground">Minimum order {zig(s.min_order.zig)}.</p>}
+                </div>
+            </Modal>
         </SiteLayout>
     );
 }

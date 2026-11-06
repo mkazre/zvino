@@ -1,70 +1,181 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, SectionList, Share, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, ScrollView, SectionList, Share, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CartBar, Cover, DishRow, type MenuItem, type Store } from '@/features/cards';
+import { CartBar, Cover, DishRow, closedLabel, type MenuItem, type Store } from '@/features/cards';
+import { useLocation } from '@/lib/location';
+import { useImg } from '@/lib/prefs';
 import { api } from '@/lib/api';
 import { useCart } from '@/lib/cart';
 import { zig } from '@/lib/money';
-import { Button, Loading, Row, Text, useTheme } from '@/ui';
+import { Button, Chip, Loading, Row, Text, useTheme } from '@/ui';
 import { useSession } from '@/lib/session';
 
-type Menu = Store & { accepts_catering?: boolean; description: string | null; categories: { id: number; name: string; items: { data?: MenuItem[] } | MenuItem[] }[] };
+type Menu = Store & { accepts_catering?: boolean; description: string | null; address?: string | null; categories: { id: number; name: string; items: { data?: MenuItem[] } | MenuItem[] }[] };
+type Extras = { availability?: Store['availability']; hours?: { weekday: number; opens_at: string; closes_at: string }[]; distance_km?: number | null; rating_count?: number; offers_pickup?: boolean };
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/** Store page (MrD-style): cover with open/closed, highlights & specials cards, then the menu with category tabs. */
 export default function StoreScreen() {
     const t = useTheme();
+    const img = useImg();
     const { id } = useLocalSearchParams<{ id: string }>();
+    const { query } = useLocation();
     const [store, setStore] = useState<Menu | null>(null);
+    const [extras, setExtras] = useState<Extras>({});
     const [deals, setDeals] = useState<{ id: number; headline: string; live: boolean }[]>([]);
     const [item, setItem] = useState<MenuItem | null>(null);
+    const [q, setQ] = useState('');
+    const [headerH, setHeaderH] = useState(9999);
+    const [showTabs, setShowTabs] = useState(false);
+    const [activeTab, setActiveTab] = useState(0);
+    const list = useRef<SectionList<MenuItem>>(null);
+    const tabs = useRef<{ scrollTo: (o: { x: number; animated?: boolean }) => void } | null>(null);
 
     useEffect(() => {
-        api.get<{ data: Menu; deals?: { id: number; headline: string; live: boolean }[] }>(`/vendors/${id}/menu`).then((r) => { setStore(r.data); setDeals(r.deals ?? []); }).catch(() => Alert.alert('Store unavailable', 'This store isn’t taking orders right now.', [{ text: 'OK', onPress: () => router.back() }]));
-    }, [id]);
+        api.get<{ data: Menu; deals?: { id: number; headline: string; live: boolean }[] } & Extras>(`/vendors/${id}/menu${query ? `?${query}` : ''}`)
+            .then((r) => { setStore(r.data); setDeals(r.deals ?? []); setExtras({ availability: r.availability, hours: r.hours, distance_km: r.distance_km, rating_count: r.rating_count, offers_pickup: r.offers_pickup }); })
+            .catch(() => Alert.alert('Store unavailable', 'This store isn’t taking orders right now.', [{ text: 'OK', onPress: () => router.back() }]));
+    }, [id, query]);
 
-    const sections = useMemo(
-        () => (store?.categories ?? []).map((c) => ({ title: c.name, data: Array.isArray(c.items) ? c.items : (c.items?.data ?? []) })).filter((s) => s.data.length),
-        [store],
-    );
+    const all = useMemo(() => (store?.categories ?? []).flatMap((c) => (Array.isArray(c.items) ? c.items : (c.items?.data ?? []))), [store]);
+    const sections = useMemo(() => {
+        const needle = q.trim().toLowerCase();
+        return (store?.categories ?? [])
+            .map((c) => ({ title: c.name, data: (Array.isArray(c.items) ? c.items : (c.items?.data ?? [])).filter((i) => !needle || `${i.name} ${i.description ?? ''}`.toLowerCase().includes(needle)) }))
+            .filter((s) => s.data.length);
+    }, [store, q]);
+    const highlights = useMemo(() => all.filter((i) => i.is_popular && i.is_available).slice(0, 10), [all]);
+    const specials = useMemo(() => all.filter((i) => i.special_price && i.is_available).slice(0, 10), [all]);
 
     if (!store) return <Loading />;
+    const closed = closedLabel(extras.availability);
+    const logo = img(store.logo, 200);
+
+    const jump = (i: number) => {
+        setActiveTab(i);
+        list.current?.scrollToLocation({ sectionIndex: i, itemIndex: 0, viewOffset: 56, animated: true });
+    };
+    const moreInfo = () => {
+        const hours = DAYS.map((d, i) => {
+            const slots = (extras.hours ?? []).filter((h) => h.weekday === i);
+            return `${d}  ${slots.length ? slots.map((h) => `${h.opens_at.slice(0, 5)}–${h.closes_at.slice(0, 5)}`).join(', ') : 'Closed'}`;
+        }).join('\n');
+        Alert.alert(store.name, [store.description, store.address ? `📍 ${store.address}, ${store.city}` : null, `Opening hours\n${hours}`, store.min_order.zig > 0 ? `Minimum order ${zig(store.min_order.zig)}` : null].filter(Boolean).join('\n\n'));
+    };
+
+    const Rail = ({ title, items, badge }: { title: string; items: MenuItem[]; badge?: string }) => (
+        <View style={{ marginTop: 18 }}>
+            <Text variant="title" style={{ fontSize: 22, paddingHorizontal: 20, marginBottom: 12 }}>{title}</Text>
+            <FlatList horizontal data={items} keyExtractor={(i) => `${title}-${i.id}`} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                renderItem={({ item: i }) => (
+                    <Pressable onPress={() => setItem(i)} style={{ width: 150 }}>
+                        <View>
+                            <Cover uri={i.image} seed={i.id} height={150} radius={18} />
+                            {badge ? <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: t.red, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 }}><Text variant="caption" style={{ color: '#fff', fontWeight: '800' }}>{badge}</Text></View> : null}
+                        </View>
+                        <Text variant="label" numberOfLines={1} style={{ marginTop: 8 }}>{i.name}</Text>
+                        <Row gap={6}>
+                            <Text color={i.special_price ? 'red' : 'muted'} style={{ fontWeight: '600' }}>{i.variants.length ? 'from ' : ''}{zig(i.special_price?.zig ?? i.price.zig)}</Text>
+                            {i.special_price ? <Text variant="caption" style={{ textDecorationLine: 'line-through' }}>{zig(i.price.zig)}</Text> : null}
+                        </Row>
+                    </Pressable>
+                )} />
+        </View>
+    );
 
     return (
         <View style={{ flex: 1, backgroundColor: t.bg }}>
             <SectionList
+                ref={list}
                 sections={sections}
                 keyExtractor={(i) => String(i.id)}
-                stickySectionHeadersEnabled
+                stickySectionHeadersEnabled={false}
                 contentContainerStyle={{ paddingBottom: 110 }}
+                scrollEventThrottle={32}
+                onScroll={(e) => setShowTabs(e.nativeEvent.contentOffset.y > headerH - 60)}
+                onViewableItemsChanged={({ viewableItems }) => {
+                    const first = viewableItems.find((v) => v.section);
+                    if (!first) return;
+                    const idx = sections.findIndex((s) => s.title === (first.section as { title: string }).title);
+                    if (idx >= 0 && idx !== activeTab) {
+                        setActiveTab(idx);
+                        tabs.current?.scrollTo({ x: Math.max(0, idx * 110 - 60), animated: true });
+                    }
+                }}
                 ListHeaderComponent={
-                    <View>
-                        <Cover uri={store.cover} seed={store.id} height={220} radius={0} />
-                        <SafeAreaView edges={['top']} style={{ position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Pressable onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="arrow-back" size={20} color="#222222" /></Pressable>
-                            <Pressable onPress={() => Share.share({ message: `Order from ${store.name} on Zvino: https://zvino.online/store/${store.slug}` })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="share-outline" size={20} color="#222222" /></Pressable>
-                        </SafeAreaView>
-                        <View style={{ padding: 20, gap: 6 }}>
-                            <Text variant="display">{store.name}</Text>
-                            <Text color="muted">{[store.cuisine, store.rating ? `★ ${store.rating.toFixed(1)}` : null, store.city].filter(Boolean).join(' · ')}</Text>
-                            {store.description && <Text color="muted">{store.description}</Text>}
-                            <Row gap={8} style={{ marginTop: 10, flexWrap: 'wrap' }}>
-                                <Pill icon="time-outline" text={`${store.eta_minutes[0]}–${store.eta_minutes[1]} min`} />
+                    <View onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}>
+                        <View>
+                            <Cover uri={store.cover} seed={store.id} height={240} radius={0} />
+                            {closed && <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' }}>
+                                <View style={{ backgroundColor: '#fff', borderRadius: 99, borderWidth: 2, borderColor: '#222222', paddingHorizontal: 16, paddingVertical: 7 }}>
+                                    <Text style={{ color: '#222222', fontSize: 15 }}><Text style={{ color: '#222222', fontWeight: '800', fontSize: 15 }}>{closed.split(':')[0]}</Text>{closed.includes(':') ? `:${closed.split(':').slice(1).join(':')}` : ''}</Text>
+                                </View>
+                            </View>}
+                            <SafeAreaView edges={['top']} style={{ position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <Pressable onPress={() => router.back()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }} accessibilityLabel="Back"><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
+                                <Pressable onPress={() => Share.share({ message: `Order from ${store.name} on Zvino: https://zvino.online/store/${store.slug}` })} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }} accessibilityLabel="Share"><Ionicons name="share-outline" size={20} color="#fff" /></Pressable>
+                            </SafeAreaView>
+                        </View>
+                        <View style={{ padding: 20, gap: 10 }}>
+                            <Row align="flex-start" gap={14}>
+                                <Text variant="display" style={{ flex: 1, fontSize: 32, lineHeight: 36 }}>{store.name}</Text>
+                                {logo ? <Image source={{ uri: logo }} style={{ width: 76, height: 76, borderRadius: 16, borderWidth: 1, borderColor: t.border, backgroundColor: '#fff' }} /> : null}
+                            </Row>
+                            <Row justify="space-between" style={{ borderBottomWidth: 1, borderColor: t.border, paddingBottom: 12 }}>
+                                <Text color="muted" numberOfLines={1} style={{ flex: 1 }}>{[store.cuisine, store.kind && store.kind !== 'restaurant' ? store.kind : null].filter(Boolean).join(', ')}</Text>
+                                <Pressable onPress={moreInfo}><Text variant="label" color="brand" style={{ fontSize: 16 }}>more info</Text></Pressable>
+                            </Row>
+                            <Text>
+                                {[extras.distance_km != null ? `${extras.distance_km} km away` : store.city, `${store.eta_minutes[0]}–${store.eta_minutes[1]} min`].join('  •  ')}
+                                {store.rating > 0 ? <Text color="brand" style={{ fontWeight: '700' }}>{`  •  ${store.rating.toFixed(1)} ★${extras.rating_count ? ` (${extras.rating_count >= 100 ? `${Math.floor(extras.rating_count / 100)}00+` : extras.rating_count})` : ''}`}</Text> : null}
+                            </Text>
+                            <Row gap={8} style={{ flexWrap: 'wrap' }}>
                                 <Pill icon="bicycle-outline" text={store.delivery_fee.zig === 0 ? 'Free delivery' : `From ${zig(store.delivery_fee.zig)}`} />
                                 {store.min_order.zig > 0 && <Pill icon="information-circle-outline" text={`${zig(store.min_order.zig)} min`} />}
+                                {extras.offers_pickup && <Pill icon="walk-outline" text="Collect" />}
                             </Row>
-                            {store.accepts_catering && <Pressable onPress={() => router.push({ pathname: '/catering', params: { store: String(store.id), storeName: store.name } })} style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: t.subtle }}><Text variant="label">🍲  Cater an event: funerals, weddings, gatherings ›</Text></Pressable>}
+                            <Row gap={10} style={{ height: 50, borderRadius: 16, backgroundColor: t.subtle, paddingHorizontal: 16, marginTop: 4 }}>
+                                <Ionicons name="search" size={20} color={t.muted} />
+                                <TextInput value={q} onChangeText={setQ} placeholder={`Search ${store.name}`} placeholderTextColor={t.faint} style={{ flex: 1, fontSize: 16, color: t.ink }} />
+                                {!!q && <Pressable onPress={() => setQ('')}><Ionicons name="close-circle" size={18} color={t.muted} /></Pressable>}
+                            </Row>
+                            {store.accepts_catering && <Pressable onPress={() => router.push({ pathname: '/catering', params: { store: String(store.id), storeName: store.name } })} style={{ padding: 12, borderRadius: 12, backgroundColor: t.subtle }}><Text variant="label">🍲  Cater an event: funerals, weddings, gatherings ›</Text></Pressable>}
                             {deals.map((d) => (
-                                <View key={d.id} style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: d.live ? t.brandSoft : t.subtle }}>
+                                <View key={d.id} style={{ padding: 12, borderRadius: 12, backgroundColor: d.live ? t.brandSoft : t.subtle }}>
                                     <Text variant="label" color={d.live ? 'brand' : 'muted'}>🏷️  {d.headline}{d.live ? '' : ' · later today'}</Text>
                                 </View>
                             ))}
                         </View>
+                        {!q && highlights.length > 0 && <Rail title="Highlights" items={highlights} />}
+                        {!q && specials.length > 0 && <Rail title="Specials 🔥" items={specials} badge="Special" />}
+                        {sections.length > 1 && (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingTop: 22 }}>
+                                {sections.map((s, i) => <Chip key={s.title} label={s.title} active={false} onPress={() => jump(i)} />)}
+                            </ScrollView>
+                        )}
                     </View>
                 }
-                renderSectionHeader={({ section }) => <View style={{ backgroundColor: t.bg, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 6 }}><Text variant="title" style={{ fontSize: 20 }}>{section.title}</Text></View>}
+                renderSectionHeader={({ section }) => <View style={{ backgroundColor: t.bg, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 6 }}><Text variant="title" style={{ fontSize: 22 }}>{section.title}</Text></View>}
                 renderItem={({ item: i }) => <View style={{ paddingHorizontal: 20, borderBottomWidth: 0.5, borderColor: t.border }}><DishRow i={i} onPress={() => setItem(i)} /></View>}
+                ListEmptyComponent={q ? <Text color="muted" style={{ textAlign: 'center', padding: 32 }}>No dishes match “{q}”.</Text> : undefined}
             />
+            {showTabs && sections.length > 1 && (
+                <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: t.bg, borderBottomWidth: 1, borderColor: t.border }}>
+                    <Row gap={6} style={{ paddingLeft: 8 }}>
+                        <Pressable onPress={() => router.back()} style={{ padding: 8 }} accessibilityLabel="Back"><Ionicons name="arrow-back" size={22} color={t.ink} /></Pressable>
+                        <ScrollView ref={tabs as never} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
+                            {sections.map((s, i) => (
+                                <Pressable key={s.title} onPress={() => jump(i)} style={{ paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: 3, borderColor: i === activeTab ? t.ink : 'transparent' }}>
+                                    <Text variant="label" color={i === activeTab ? 'ink' : 'muted'} style={{ fontSize: 16 }}>{s.title}</Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </Row>
+                </SafeAreaView>
+            )}
             <CartBar />
             {item && <ItemSheet item={item} store={store} onClose={() => setItem(null)} />}
         </View>

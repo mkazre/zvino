@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Location from 'expo-location';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,15 +8,22 @@ import { api, ApiError } from '@/lib/api';
 import { Button, Card, Chip, Input, Row, Text, useTheme } from '@/ui';
 import * as ImagePicker from 'expo-image-picker';
 import { VoiceNoteRecorder } from '@/features/voice-note';
+import { type SavedAddress, useLocation } from '@/lib/location';
 
 interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean; voice_note_path: string | null; gate_photo_path: string | null }
 
 /** Saved addresses + add new with landmark and GPS pin (Zimbabwean addresses are tricky). */
 export default function Addresses() {
     const t = useTheme();
+    const params = useLocalSearchParams<{ add?: string; lat?: string; lng?: string; line1?: string; suburb?: string; city?: string }>();
+    const { chooseAddress, reloadAddresses } = useLocation();
     const [list, setList] = useState<Address[]>([]);
-    const [adding, setAdding] = useState(false);
-    const [form, setForm] = useState({ label: 'Home', line1: '', landmark: '', suburb: '', city: 'Harare', instructions: '', lat: null as number | null, lng: null as number | null });
+    // Opened from "Add this address" / the address picker: start with the form open and the GPS point.
+    const [adding, setAdding] = useState(params.add === '1');
+    const [form, setForm] = useState({
+        label: 'Home', line1: params.line1 ?? '', landmark: '', suburb: params.suburb ?? '', city: params.city || 'Harare', instructions: '',
+        lat: params.lat ? Number(params.lat) : (null as number | null), lng: params.lng ? Number(params.lng) : (null as number | null),
+    });
     const [saving, setSaving] = useState(false);
 
     const load = useCallback(() => {
@@ -46,7 +53,9 @@ export default function Addresses() {
     const save = async () => {
         setSaving(true);
         try {
-            await api.post('/addresses', { ...form, is_default: list.length === 0 });
+            const created = await api.post<SavedAddress>('/addresses', { ...form, is_default: list.length === 0 });
+            if (created?.id) chooseAddress(created); // deliver here from now on
+            reloadAddresses();
             setAdding(false);
             setForm({ ...form, line1: '', landmark: '', suburb: '', instructions: '', lat: null, lng: null });
             load();

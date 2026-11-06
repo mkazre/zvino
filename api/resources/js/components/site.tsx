@@ -24,7 +24,20 @@ export interface StoreCardData {
     has_offers: boolean;
     city: string;
     availability?: { is_open: boolean; reason: string | null; is_busy: boolean; power_out: boolean; next_open_at: string | null };
+    rating_count?: number;
+    distance_km?: number | null;
+    kind?: string;
 }
+
+/** "Closed: opens 08:00" / "Paused" for store cards. */
+export function closedLabel(a: StoreCardData['availability']): string | null {
+    if (!a || a.is_open) return null;
+    const at = a.next_open_at ? new Date(a.next_open_at) : null;
+    const when = at ? (at.toDateString() === new Date().toDateString() ? at.toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' }) : at.toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' })) : null;
+    return `${a.reason === 'paused' ? 'Paused' : 'Closed'}${when ? `: opens ${when}` : ''}`;
+}
+
+const ratingCount = (n?: number) => (!n ? '' : n >= 1000 ? ` (${Math.floor(n / 1000)}000+)` : n >= 100 ? ` (${Math.floor(n / 100)}00+)` : n >= 50 ? ' (50+)' : ` (${n})`);
 
 export type MenuItem = Item & {
     sold_by?: 'unit' | 'kg';
@@ -53,26 +66,30 @@ export function Cover({ src, seed = 0, className, children }: { src: string | nu
 }
 
 export function StoreCard({ s, compact = false }: { s: StoreCardData; compact?: boolean }) {
-    const closed = s.availability && !s.availability.is_open;
+    const closed = closedLabel(s.availability);
     return (
         <Link href={`/store/${s.slug}`} className="group block">
             <Cover src={s.cover} seed={s.id} className={cn('rounded-2xl', compact ? 'aspect-[16/10]' : 'aspect-[16/9]')}>
-                {closed && <div className="absolute inset-0 flex items-center justify-center bg-black/55 text-sm font-semibold text-white">{s.availability?.reason === 'paused' ? 'Paused' : 'Closed'}{s.availability?.next_open_at && ` · opens ${new Date(s.availability.next_open_at).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' })}`}</div>}
+                {closed && <div className="absolute inset-0 bg-black/35" />}
                 <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                     {s.has_offers && <span className="flex items-center gap-1 rounded-full bg-[var(--color-zred)] px-2.5 py-1 text-[11px] font-bold text-white"><Tag className="size-3" />Offers</span>}
                     {s.delivery_fee.zig === 0 && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[#222222]">Free delivery</span>}
                     {s.availability?.power_out && <span className="rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-bold text-black">⚡ Limited menu</span>}
                 </div>
-                {s.logo && <img src={s.logo} alt="" className="absolute bottom-3 left-3 size-11 rounded-xl border-2 border-white object-cover shadow" />}
+                {closed ? (
+                    <span className="absolute bottom-3 left-3 rounded-full border-2 border-[#222222] bg-white px-3.5 py-1.5 text-[13px] text-[#222222] shadow"><b>{closed.split(':')[0]}</b>{closed.includes(':') ? `:${closed.split(':').slice(1).join(':')}` : ''}</span>
+                ) : (
+                    s.logo && <img src={s.logo} alt="" className="absolute bottom-3 left-3 size-11 rounded-xl border-2 border-white object-cover shadow" />
+                )}
             </Cover>
-            <div className="mt-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <h3 className="truncate text-[16px] font-bold tracking-tight">{s.name}</h3>
-                    <p className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-[13px]">
-                        <Bike className="size-3.5" />{s.delivery_fee.zig === 0 ? 'Free' : zig(s.delivery_fee.zig)}<span>·</span><Clock className="size-3.5" />{s.eta_minutes[0]}–{s.eta_minutes[1]} min
-                    </p>
-                </div>
-                {s.rating > 0 && <span className="bg-muted flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-bold dark:bg-white/10"><Star className="size-3.5 fill-current" />{s.rating.toFixed(1)}</span>}
+            <div className="mt-3 min-w-0">
+                <h3 className="truncate text-[16px] font-bold tracking-tight">{s.name}</h3>
+                <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[13px]">
+                    {s.rating > 0 && <><span className="text-foreground inline-flex items-center gap-0.5 font-semibold">{s.rating.toFixed(1)}<Star className="size-3 fill-current" /></span><span>{ratingCount(s.rating_count)}</span><span>·</span></>}
+                    <Clock className="size-3.5" />{s.eta_minutes[0]}–{s.eta_minutes[1]} min
+                    <span>·</span><Bike className="size-3.5" />{s.delivery_fee.zig === 0 ? 'Free' : zig(s.delivery_fee.zig)}
+                    {s.distance_km != null && <><span>·</span>{s.distance_km < 1 ? "under 1 km" : `${s.distance_km} km`}</>}
+                </p>
             </div>
         </Link>
     );

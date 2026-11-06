@@ -42,7 +42,12 @@ class CustomerFlowTest extends TestCase
         $this->getJson('/api/config')->assertOk()->assertJsonPath('platform_mode', 'marketplace');
 
         $blocks = collect($this->getJson('/api/home-layout?city=Harare')->assertOk()->json('blocks'));
-        $this->assertEqualsCanonicalizing(['hero', 'categories', 'specials', 'vendors', 'banner', 'rewards'], $blocks->pluck('type')->all());
+        // The app gets the original blocks plus the location-aware store feeds; website-only sections are skipped.
+        $types = $blocks->pluck('type');
+        foreach (['hero', 'categories', 'specials', 'vendors', 'banner', 'rewards', 'order_again', 'deals_near_you', 'all_stores', 'filter_chips'] as $t) {
+            $this->assertTrue($types->contains($t), "missing $t");
+        }
+        $this->assertFalse($types->contains('how_it_works'));
         $this->assertNotEmpty($blocks->firstWhere('type', 'vendors')['data']);
     }
 

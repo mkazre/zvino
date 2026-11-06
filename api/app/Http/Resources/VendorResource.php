@@ -30,6 +30,8 @@ class VendorResource extends JsonResource
             'min_order' => Money::both($this->min_order_zig),
             'is_featured' => $this->is_featured,
             'has_offers' => (bool) ($this->has_offers ?? false),
+            'distance_km' => $this->distance_km ?? null,
+            'rating_count' => (int) ($this->rating_count ?? 0),
             'categories' => $this->whenLoaded('categories', fn () => $this->categories->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,

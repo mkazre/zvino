@@ -7,21 +7,60 @@ use Illuminate\Database\Eloquent\Model;
 class HomeBlock extends Model
 {
     /** Drawn by the customer app as well as the website. */
-    public const APP_TYPES = ['hero', 'categories', 'specials', 'vendors', 'banner', 'rewards', 'richtext', 'spacer'];
+    public const APP_TYPES = [
+        'hero', 'categories', 'specials', 'vendors', 'banner', 'rewards', 'richtext', 'spacer',
+        // Store feeds (location-aware), shared with the website.
+        'order_again', 'recommended', 'deals_near_you', 'new_stores', 'top_rated', 'free_delivery', 'store_collection',
+        'shops_near_you', 'brand_logos', 'all_stores', 'category_icons', 'filter_chips', 'notice_banner', 'promo_cards',
+    ];
 
-    /** Website sections (Admin → Home builder). */
+    /** Website-only sections (Admin → Home builder). */
     public const WEB_TYPES = [
-        'image_banner', 'carousel', 'promo_grid', 'cuisine_tiles', 'store_collection', 'dish_collection', 'new_stores', 'top_rated', 'free_delivery',
+        'image_banner', 'carousel', 'promo_grid', 'cuisine_tiles', 'dish_collection',
         'countdown', 'promo_code', 'app_download', 'how_it_works', 'features', 'testimonials', 'stats', 'faq', 'video', 'cta_band', 'partner_cta',
     ];
 
     public const TYPES = [...self::APP_TYPES, ...self::WEB_TYPES];
 
     /** Block types that only make sense when there are multiple vendors to discover. */
-    public const MARKETPLACE_ONLY = ['vendors', 'store_collection', 'new_stores', 'top_rated', 'free_delivery', 'cuisine_tiles'];
+    public const MARKETPLACE_ONLY = ['vendors', 'store_collection', 'new_stores', 'top_rated', 'free_delivery', 'cuisine_tiles', 'order_again', 'recommended', 'deals_near_you', 'shops_near_you', 'brand_logos', 'all_stores'];
 
     protected $guarded = [];
     protected $casts = ['payload' => 'array', 'is_visible' => 'boolean', 'broadcast' => 'boolean', 'published_at' => 'datetime'];
+
+    /**
+     * MrD-style home: notice strip, filter chips, order again, recommended, local deals, new, shops,
+     * brands and "all stores near you", slotted around the existing blocks in a sensible order.
+     */
+    public static function addStoreFeedBlocks(): void
+    {
+        $new = [
+            'notice_banner' => ['Delivery available from {opens}', 'In the meantime, click & collect may be available.', null, null, ['only_when_closed' => true, 'tone' => 'olive']],
+            'filter_chips' => [null, null, null, null, ['pad' => 'sm', 'chips' => [['label' => 'Top rated', 'link' => '/stores?sort=rating'], ['label' => 'Fast', 'link' => '/stores?sort=fastest'], ['label' => 'Free delivery', 'link' => '/stores?free_delivery=1'], ['label' => 'Offers', 'link' => '/stores?offers=1'], ['label' => 'Halaal', 'link' => '/stores?q=halaal'], ['label' => 'Vegetarian', 'link' => '/stores?q=vegetarian']]]],
+            'order_again' => ['Order again', null, null, null, ['limit' => 10, 'layout' => 'rail']],
+            'recommended' => ['Recommended for you', null, null, null, ['limit' => 10, 'layout' => 'rail']],
+            'deals_near_you' => ['Local deals near you', null, 'See all', '/stores?offers=1', ['limit' => 10, 'layout' => 'rail']],
+            'new_stores' => ['New near you', null, null, null, ['limit' => 10, 'days' => 60, 'layout' => 'rail']],
+            'shops_near_you' => ['Shops near you', null, 'See all', '/stores?segment=shops', ['limit' => 12, 'shape' => 'square']],
+            'brand_logos' => ['Popular brands', null, null, null, ['limit' => 12, 'shape' => 'square', 'vendor_ids' => [], 'ad_ids' => []]],
+            'all_stores' => ['All {count} restaurants near you', null, null, null, ['limit' => 30, 'columns' => '2']],
+        ];
+        foreach ($new as $type => [$title, $subtitle, $cta, $link, $payload]) {
+            if (! static::where('type', $type)->exists()) {
+                static::create(['type' => $type, 'title' => $title, 'subtitle' => $subtitle, 'cta_label' => $cta, 'link_to' => $link, 'payload' => $payload, 'is_visible' => true, 'published_at' => now(), 'sort_order' => 9999]);
+            }
+        }
+
+        // Re-number: these types first in this order, everything else (and anything unknown) after, as before.
+        $order = ['hero', 'notice_banner', 'banner', 'categories', 'category_icons', 'filter_chips', 'order_again', 'recommended', 'deals_near_you', 'specials', 'new_stores', 'shops_near_you', 'brand_logos', 'vendors', 'rewards', 'all_stores'];
+        $blocks = static::orderBy('sort_order')->orderBy('id')->get();
+        $sorted = $blocks->sortBy(fn ($b) => [($i = array_search($b->type, $order, true)) === false ? 100 : $i, $b->sort_order, $b->id])->values();
+        foreach ($sorted as $i => $b) {
+            if ($b->sort_order !== $i) {
+                $b->update(['sort_order' => $i]);
+            }
+        }
+    }
 
 
     /** The website sections that used to be hard-coded below the store lists. */

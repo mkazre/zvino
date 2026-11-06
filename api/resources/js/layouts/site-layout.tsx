@@ -6,12 +6,13 @@ import { useLocale, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronDown, Globe, MapPin, Minus, Plus, Search, ShoppingBag, Trash2, X } from 'lucide-react';
+import { Globe, Minus, Plus, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
 import { CurrencySwitch } from '@/components/currency-switch';
 import { StoreBadges } from '@/components/store-badges';
+import { AddressPicker, LocationProvider, type ActiveLocation, type SavedAddress } from '@/components/address-picker';
 
 export interface SiteProps extends SharedData {
     site: {
@@ -25,6 +26,8 @@ export interface SiteProps extends SharedData {
         apps: { ios: string; android: string };
         web_ordering: boolean;
         platform_mode: 'single' | 'marketplace';
+        location: ActiveLocation | null;
+        addresses: SavedAddress[];
     };
 }
 
@@ -48,6 +51,7 @@ export default function SiteLayout({ children, transparent = false, hideCart = f
     }, []);
 
     return (
+        <LocationProvider>
         <div className="flex min-h-screen flex-col bg-white text-[#222222] dark:bg-[#0c0e0d] dark:text-[#eef0ef]">
             <Header transparent={transparent} onCart={() => setCartOpen(true)} hideCart={hideCart} />
             <main className="flex-1">{children}</main>
@@ -56,6 +60,7 @@ export default function SiteLayout({ children, transparent = false, hideCart = f
             <MobileCartBar hidden={hideCart} onOpen={() => setCartOpen(true)} />
             <Toaster position="top-center" toastOptions={{ className: 'font-sans !rounded-xl' }} />
         </div>
+        </LocationProvider>
     );
 }
 
@@ -81,20 +86,12 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
             <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-3 md:h-[72px] md:gap-6 md:px-6">
                 <Link href="/" className="shrink-0"><Logo inverse={!scrolled} /></Link>
 
+                {site.platform_mode === 'marketplace' && <AddressPicker tone={scrolled ? 'light' : 'glass'} className="hidden md:flex" />}
                 {site.platform_mode === 'marketplace' && (
-                    <Popover
-                        align="start"
-                        className="w-56 p-1.5"
-                        trigger={
-                            <button className={cn('hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition md:flex', scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>
-                                <MapPin className="size-4" /> {site.city ?? 'All cities'} <ChevronDown className="size-3.5 opacity-60" />
-                            </button>
-                        }
-                    >
-                        {site.cities.map((c) => (
-                            <button key={c} onClick={() => router.post('/city', { city: c }, { preserveScroll: true })} className={cn('hover:bg-muted w-full rounded-lg px-3 py-2 text-left text-sm', site.city === c && 'font-semibold')}>{c}</button>
-                        ))}
-                    </Popover>
+                    <span className={cn('hidden items-center gap-1 text-sm font-semibold lg:flex', !scrolled && 'text-white')}>
+                        <Link href="/stores?segment=restaurants" className={cn('rounded-full px-3 py-2', scrolled ? 'hover:bg-muted' : 'hover:bg-white/15')}>Restaurants</Link>
+                        <Link href="/stores?segment=shops" className={cn('rounded-full px-3 py-2', scrolled ? 'hover:bg-muted' : 'hover:bg-white/15')}>Shops</Link>
+                    </span>
                 )}
 
                 {site.platform_mode === 'marketplace' && (
@@ -127,6 +124,12 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
                     )}
                 </nav>
             </div>
+            {site.platform_mode === 'marketplace' && (
+                <div className="mx-auto flex h-12 max-w-7xl items-center gap-1 px-2 md:hidden">
+                    <AddressPicker tone={scrolled ? 'light' : 'glass'} className="max-w-none flex-1" />
+                    <Link href="/stores?segment=shops" className={cn('shrink-0 rounded-full px-3 py-2 text-sm font-semibold', scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>Shops</Link>
+                </div>
+            )}
         </header>
     );
 }

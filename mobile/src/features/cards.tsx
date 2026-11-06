@@ -22,7 +22,21 @@ export interface Store {
     is_featured: boolean;
     has_offers: boolean;
     city: string;
+    kind?: string;
+    rating_count?: number;
+    distance_km?: number | null;
+    availability?: { is_open: boolean; reason: string | null; next_open_at: string | null } | null;
 }
+
+/** "Closed: opens 08:00" (or null when open). */
+export function closedLabel(a: Store['availability']): string | null {
+    if (!a || a.is_open) return null;
+    const at = a.next_open_at ? new Date(a.next_open_at) : null;
+    const when = at ? (at.toDateString() === new Date().toDateString() ? at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : at.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })) : null;
+    return `${a.reason === 'paused' ? 'Paused' : 'Closed'}${when ? `: opens ${when}` : ''}`;
+}
+
+const countLabel = (n?: number) => (!n ? '' : n >= 1000 ? ` (${Math.floor(n / 1000)}000+)` : n >= 100 ? ` (${Math.floor(n / 100)}00+)` : n >= 50 ? ' (50+)' : ` (${n})`);
 
 export interface MenuItem {
     id: number;
@@ -58,22 +72,42 @@ export function Cover({ uri: path, seed = 0, height = 150, radius = 18 }: { uri:
 
 export function StoreCard({ s, width }: { s: Store; width?: number }) {
     const t = useTheme();
+    const closed = closedLabel(s.availability);
+    const meta = [s.rating > 0 ? `${s.rating.toFixed(1)} ★${countLabel(s.rating_count)}` : null, `${s.eta_minutes[0]}–${s.eta_minutes[1]} min`, s.distance_km != null ? (s.distance_km < 1 ? "under 1 km" : `${s.distance_km} km`) : null, s.delivery_fee.zig === 0 ? 'Free delivery' : null].filter(Boolean).join(' · ');
     return (
-        <Pressable onPress={() => router.push(`/store/${s.id}`)} style={({ pressed }) => ({ width, opacity: pressed ? 0.85 : 1 })}>
+        <Pressable onPress={() => router.push(`/store/${s.id}`)} style={({ pressed }) => ({ width, opacity: pressed ? 0.85 : 1, backgroundColor: t.surface, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: t.border })}>
             <View>
-                <Cover uri={s.cover} seed={s.id} height={width ? width * 0.58 : 170} />
+                <Cover uri={s.cover} seed={s.id} height={width ? width * 0.5 : 180} radius={0} />
+                {closed && <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }} />}
                 <Row gap={6} style={{ position: 'absolute', top: 10, left: 10 }}>
-                    {s.has_offers && <View style={{ backgroundColor: t.red, borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}><Text variant="caption" color="onBrand" style={{ fontWeight: '800', color: '#fff' }}>Offers</Text></View>}
+                    {s.has_offers && <View style={{ backgroundColor: t.red, borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}><Text variant="caption" style={{ fontWeight: '800', color: '#fff' }}>Offers</Text></View>}
                     {s.delivery_fee.zig === 0 && <View style={{ backgroundColor: '#fff', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}><Text variant="caption" style={{ fontWeight: '800', color: '#222222' }}>Free delivery</Text></View>}
                 </Row>
+                {closed && (
+                    <View style={{ position: 'absolute', left: 10, bottom: 10, backgroundColor: '#fff', borderRadius: 99, borderWidth: 2, borderColor: '#222222', paddingHorizontal: 12, paddingVertical: 5 }}>
+                        <Text style={{ color: '#222222', fontSize: 13 }}><Text style={{ color: '#222222', fontSize: 13, fontWeight: '800' }}>{closed.split(':')[0]}</Text>{closed.includes(':') ? `:${closed.split(':').slice(1).join(':')}` : ''}</Text>
+                    </View>
+                )}
             </View>
-            <Row justify="space-between" align="flex-start" style={{ marginTop: 10 }}>
-                <View style={{ flex: 1 }}>
-                    <Text variant="heading" numberOfLines={1}>{s.name}</Text>
-                    <Text variant="caption">{s.delivery_fee.zig === 0 ? 'Free delivery' : `${zig(s.delivery_fee.zig)} delivery`} · {s.eta_minutes[0]}–{s.eta_minutes[1]} min</Text>
-                </View>
-                {s.rating > 0 && <View style={{ backgroundColor: t.subtle, borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4 }}><Text variant="caption" style={{ fontWeight: '800', color: t.ink }}>★ {s.rating.toFixed(1)}</Text></View>}
-            </Row>
+            <View style={{ padding: 12 }}>
+                <Text variant="heading" numberOfLines={1}>{s.name}</Text>
+                <Text variant="caption" numberOfLines={1}>{meta}</Text>
+            </View>
+        </Pressable>
+    );
+}
+
+/** Logo tile for "Shops near you" / "Popular brands". */
+export function LogoTile({ s, ad = false, circle = false }: { s: Store; ad?: boolean; circle?: boolean }) {
+    const t = useTheme();
+    const img = useImg();
+    const uri = img(s.logo, 240);
+    return (
+        <Pressable onPress={() => router.push(`/store/${s.id}`)} style={{ width: 92, alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 92, height: 92, borderRadius: circle ? 46 : 20, backgroundColor: '#fff', borderWidth: 1, borderColor: t.border, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', opacity: s.availability && !s.availability.is_open ? 0.6 : 1 }}>
+                {uri ? <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : <Text variant="label" style={{ color: '#222222', textAlign: 'center', paddingHorizontal: 6 }} numberOfLines={3}>{s.name}</Text>}
+            </View>
+            <Text variant="caption" numberOfLines={2} style={{ textAlign: 'center' }}>{ad ? 'Ad · ' : ''}{s.name}</Text>
         </Pressable>
     );
 }

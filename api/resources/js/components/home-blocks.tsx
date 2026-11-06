@@ -121,7 +121,7 @@ const gridCols = (n: unknown, max = 4) => {
 };
 
 function Rail({ children }: { children: ReactNode }) {
-    return <div className="scroll-quiet -mx-4 flex snap-x gap-5 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0 [&>*]:w-[78%] [&>*]:shrink-0 [&>*]:snap-start sm:[&>*]:w-[45%] lg:[&>*]:w-[calc(25%-15px)]">{children}</div>;
+    return <div className="scroll-quiet -mx-4 flex snap-x scroll-px-4 gap-5 overflow-x-auto px-4 pb-2 md:mx-0 md:scroll-px-0 md:px-0 [&>*]:w-[78%] [&>*]:shrink-0 [&>*]:snap-start sm:[&>*]:w-[45%] lg:[&>*]:w-[calc(25%-15px)]">{children}</div>;
 }
 
 function Stores({ b, stores }: { b: HomeBlockData; stores: StoreCardData[] }) {
@@ -167,7 +167,7 @@ function Hero({ b }: { b: HomeBlockData }) {
     const center = p.align === 'center';
 
     return (
-        <section className={cn('relative -mt-16 overflow-hidden pt-16 md:-mt-[72px] md:pt-[72px]', light ? 'text-white' : 'text-[#222222]', minH, p.hide_on === 'mobile' && 'hidden md:block', p.hide_on === 'desktop' && 'md:hidden')} style={{ ...bgStyle, ...(p.text_tone === 'custom' && p.text_color ? { color: str(p.text_color) } : {}) }}>
+        <section className={cn('relative -mt-[112px] overflow-hidden pt-[112px] md:-mt-[72px] md:pt-[72px]', light ? 'text-white' : 'text-[#222222]', minH, p.hide_on === 'mobile' && 'hidden md:block', p.hide_on === 'desktop' && 'md:hidden')} style={{ ...bgStyle, ...(p.text_tone === 'custom' && p.text_color ? { color: str(p.text_color) } : {}) }}>
             {type === 'default' && !p.bg_image && <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(23,199,74,0.32),transparent_60%),radial-gradient(ellipse_at_bottom_left,rgba(253,229,0,0.16),transparent_55%)]" />}
             {overlay && <div className="pointer-events-none absolute inset-0" style={{ background: overlay }} />}
             <div className={cn('relative mx-auto grid max-w-7xl gap-10 px-4 py-16 md:px-6 md:py-24', cards.length && !center ? 'md:grid-cols-[1.1fr_1fr]' : '', center && 'text-center')}>
@@ -585,11 +585,136 @@ function RichText({ b }: { b: HomeBlockData }) {
     );
 }
 
+/** Logo tiles: shops near you / popular brands. */
+function LogoRail({ b, stores }: { b: HomeBlockData; stores: StoreCardData[] }) {
+    const p = b.payload ?? {};
+    if (!stores.length) return null;
+    const ads = list<number>(p.ad_ids).map(Number);
+    const circle = p.shape === 'circle';
+    return (
+        <Shell p={p}>
+            <Heading b={b} />
+            <div className="scroll-quiet -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:gap-4 md:px-0">
+                {stores.map((s) => (
+                    <Link key={s.id} href={`/store/${s.slug}`} className="group flex w-[104px] shrink-0 flex-col items-center gap-2 md:w-[120px]">
+                        <span className={cn('relative flex size-[104px] items-center justify-center overflow-hidden border bg-white shadow-sm transition group-hover:shadow-md md:size-[120px]', circle ? 'rounded-full' : 'rounded-[22px]')}>
+                            {s.logo ? <img src={s.logo} alt="" loading="lazy" className="size-full object-cover" /> : <span className="px-2 text-center text-sm font-extrabold text-[#222222]">{s.name}</span>}
+                            {s.availability && !s.availability.is_open && <span className="absolute inset-0 bg-white/45" />}
+                        </span>
+                        <span className="text-muted-foreground line-clamp-2 text-center text-[13px] leading-tight">{ads.includes(s.id) && <span className="font-semibold">Ad · </span>}{s.name}</span>
+                    </Link>
+                ))}
+            </div>
+        </Shell>
+    );
+}
+
+/** "All 116 restaurants near you": the full nearby list in big cards. */
+function AllStores({ b }: { b: HomeBlockData }) {
+    const p = b.payload ?? {};
+    const d = (b.data ?? { stores: [], count: 0 }) as { stores: StoreCardData[]; count: number };
+    if (!d.stores.length) return null;
+    const title = (b.title ?? 'All {count} stores near you').replace('{count}', String(d.count));
+    const cols = { '1': '', '2': 'md:grid-cols-2', '3': 'md:grid-cols-2 lg:grid-cols-3' }[str(p.columns, '2')] ?? 'md:grid-cols-2';
+    return (
+        <Shell p={p}>
+            <Heading b={{ ...b, title }} />
+            <div className={cn('grid gap-x-5 gap-y-8', cols)}>{d.stores.map((s) => <StoreCard key={s.id} s={s} />)}</div>
+            {d.count > d.stores.length && <div className="mt-8 text-center"><Button asChild variant="outline" className="h-12 rounded-full px-6"><Link href="/stores">See all {d.count}</Link></Button></div>}
+        </Shell>
+    );
+}
+
+function CategoryIcons({ b }: { b: HomeBlockData }) {
+    const p = b.payload ?? {};
+    const tiles = list<{ label?: string; image?: string; emoji?: string; link?: string }>(p.tiles);
+    const size = { sm: 'size-14', md: 'size-20', lg: 'size-24' }[str(p.size, 'md')] ?? 'size-20';
+    return (
+        <Shell p={p}>
+            {b.title && <Heading b={b} />}
+            <div className="scroll-quiet -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:gap-6 md:px-0">
+                {tiles.map((t, k) => (
+                    <Link key={k} href={linkFor(t.link)} className="group flex shrink-0 flex-col items-center gap-2">
+                        <span className={cn('flex items-center justify-center transition group-hover:scale-105', size)}>
+                            {t.image ? <img src={t.image} alt="" loading="lazy" className="size-full object-contain" /> : <span className="text-[42px] leading-none">{t.emoji || '🍽️'}</span>}
+                        </span>
+                        <span className="text-[14px] font-semibold whitespace-nowrap">{t.label}</span>
+                    </Link>
+                ))}
+            </div>
+        </Shell>
+    );
+}
+
+function FilterChips({ b }: { b: HomeBlockData }) {
+    const p = b.payload ?? {};
+    const chips = list<{ label?: string; link?: string }>(p.chips);
+    return (
+        <Shell p={{ ...p, pad: p.pad ?? 'sm' }}>
+            <div className="scroll-quiet -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+                {chips.map((c, k) => <Link key={k} href={linkFor(c.link)} className="hover:bg-muted flex h-11 shrink-0 items-center rounded-full border-2 px-5 text-[15px] font-semibold transition">{c.label}</Link>)}
+            </div>
+        </Shell>
+    );
+}
+
+function NoticeBanner({ b }: { b: HomeBlockData }) {
+    const p = b.payload ?? {};
+    const d = (b.data ?? {}) as { open?: number; total?: number; next_open_at?: string | null };
+    if (p.only_when_closed && (!d.total || (d.open ?? 0) > 0)) return null;
+    const opens = d.next_open_at ? new Date(d.next_open_at).toLocaleTimeString('en-ZW', { hour: 'numeric', minute: '2-digit' }) : 'soon';
+    const tone = { olive: 'bg-[#3d3517] text-white', dark: 'bg-[#1c1c1c] text-white', gold: 'bg-sun-50 text-[#222222]', brand: 'bg-brand text-black' }[str(p.tone, 'olive')] ?? 'bg-[#3d3517] text-white';
+    return (
+        <section className={cn('mt-6', tone, p.hide_on === 'mobile' && 'hidden md:block', p.hide_on === 'desktop' && 'md:hidden')}>
+            <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 md:px-6">
+                {str(p.image) && <img src={str(p.image)} alt="" className="size-16 shrink-0 object-contain md:size-20" />}
+                <div>
+                    {b.title && <div className="text-[17px] leading-tight font-extrabold md:text-xl">{b.title.replace('{opens}', opens)}</div>}
+                    {b.subtitle && <div className="mt-0.5 opacity-85">{b.subtitle.replace('{opens}', opens)}</div>}
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function PromoCards({ b }: { b: HomeBlockData }) {
+    const p = b.payload ?? {};
+    const cards = list<{ title?: string; text?: string; cta_label?: string; link?: string; image?: string; color?: string; tone?: string }>(p.cards);
+    if (!cards.length) return null;
+    return (
+        <Shell p={p}>
+            {b.title && <Heading b={b} />}
+            <div className="scroll-quiet -mx-4 flex snap-x scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:scroll-px-0 md:px-0">
+                {cards.map((c, k) => (
+                    <Link key={k} href={linkFor(c.link)} className={cn('relative flex aspect-[16/9] w-[86%] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-[26px] p-6 sm:w-[60%] lg:w-[calc(50%-8px)]', c.tone === 'dark' ? 'text-[#222222]' : 'text-white')} style={{ backgroundColor: c.color || '#111111' }}>
+                        {c.image && <img src={c.image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />}
+                        <div className="relative max-w-[60%]">
+                            {c.title && <h3 className="text-[22px] leading-tight font-extrabold tracking-tight md:text-[28px]">{c.title}</h3>}
+                            {c.text && <p className="mt-1.5 text-[15px] opacity-85">{c.text}</p>}
+                        </div>
+                        {c.cta_label && <span className="relative self-start rounded-full bg-white px-5 py-2.5 text-[15px] font-bold text-[#222222]">{c.cta_label}</span>}
+                    </Link>
+                ))}
+            </div>
+        </Shell>
+    );
+}
+
 /** Renders one home block on the website. */
 export function HomeBlockView({ b, onItem }: { b: HomeBlockData; onItem: (i: MenuItem) => void }) {
     const p = b.payload ?? {};
     const d = b.data;
     switch (b.type) {
+        case 'order_again':
+        case 'recommended':
+        case 'deals_near_you': return <Stores b={b} stores={(d as StoreCardData[]) ?? []} />;
+        case 'shops_near_you':
+        case 'brand_logos': return <LogoRail b={b} stores={(d as StoreCardData[]) ?? []} />;
+        case 'all_stores': return <AllStores b={b} />;
+        case 'category_icons': return <CategoryIcons b={b} />;
+        case 'filter_chips': return <FilterChips b={b} />;
+        case 'notice_banner': return <NoticeBanner b={b} />;
+        case 'promo_cards': return <PromoCards b={b} />;
         case 'hero': return <Hero b={b} />;
         case 'banner': return <Banner b={b} />;
         case 'categories': return <Categories b={b} />;

@@ -6,6 +6,7 @@ import { CartProvider } from '@/lib/cart';
 import { VARIANT } from '@/lib/config';
 import { I18nProvider } from '@/lib/i18n';
 import { PrefsProvider } from '@/lib/prefs';
+import { LocationProvider } from '@/lib/location';
 import { SessionProvider, useSession } from '@/lib/session';
 import { Loading, useTheme } from '@/ui';
 import { SENTRY_ENABLED, Sentry } from '@/lib/sentry';
@@ -73,6 +74,7 @@ function RootLayout() {
                 <SessionProvider>
                     <I18nProvider>
                         <PrefsProvider>
+                        <LocationProvider>
                             <CartProvider>
                                 <StatusBar style="auto" />
                                 <Startup>
@@ -80,6 +82,7 @@ function RootLayout() {
                                 </Startup>
                                 <OfflineBanner />
                             </CartProvider>
+                        </LocationProvider>
                         </PrefsProvider>
                     </I18nProvider>
                 </SessionProvider>

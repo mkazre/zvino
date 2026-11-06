@@ -51,7 +51,18 @@ class CatalogController extends Controller
             default => $q->orderByDesc('is_featured')->orderByDesc('rating'),
         };
 
-        // TODO: when lat/lng are given, sort by distance (haversine) and filter by delivery radius.
+        match ($request->query('segment')) {
+            'restaurants' => $q->where(fn ($k) => $k->where('kind', 'restaurant')->orWhereNull('kind')),
+            'shops' => $q->whereNotNull('kind')->where('kind', '!=', 'restaurant'),
+            default => null,
+        };
+
+        // With the customer's location: only stores that deliver there, nearest first.
+        $loc = \App\Support\CustomerLocation::fromRequest($request);
+        if ($loc && isset($loc['lat'])) {
+            return VendorResource::collection(\App\Support\Nearby::filter($q->get(), $loc, ! $request->query('filter')));
+        }
+
         return VendorResource::collection($q->paginate(20));
     }
 
@@ -62,14 +73,23 @@ class CatalogController extends Controller
         return new VendorResource($vendor);
     }
 
-    public function menu(Vendor $vendor)
+    public function menu(Request $request, Vendor $vendor)
     {
         abort_unless($vendor->status === 'active', 404);
-        $vendor->load(['categories.items' => fn ($q) => $q->orderBy('sort_order'), 'categories.items.modifierGroups.options', 'categories.items.vendor']);
+        $vendor->load(['categories.items' => fn ($q) => $q->orderBy('sort_order'), 'categories.items.modifierGroups.options', 'categories.items.vendor', 'hours']);
         $deals = \App\Models\PromoCode::autoFor($vendor)->filter(fn ($p) => $p->isUsableFor(PHP_FLOAT_MAX, $vendor->id) || ($p->start_time && $p->is_active))
             ->map(fn ($p) => ['id' => $p->id, 'headline' => $p->headline(), 'item_id' => $p->item_id, 'live' => $p->inWindow(), 'min_order_zig' => $p->min_order_zig])->values();
+        $loc = \App\Support\CustomerLocation::fromRequest($request);
 
-        return (new VendorResource($vendor))->additional(['deals' => $deals]);
+        return (new VendorResource($vendor))->additional([
+            'deals' => $deals,
+            // Store page extras: open/closed, hours, distance from the active address.
+            'availability' => app(\App\Services\StoreAvailability::class)->status($vendor),
+            'hours' => $vendor->hours->map->only('weekday', 'opens_at', 'closes_at')->values(),
+            'distance_km' => $loc && isset($loc['lat']) && $vendor->lat !== null ? round(\App\Support\Nearby::km($loc['lat'], $loc['lng'], (float) $vendor->lat, (float) $vendor->lng), 1) : null,
+            'rating_count' => (int) $vendor->rating_count,
+            'offers_pickup' => (bool) $vendor->offers_pickup,
+        ]);
     }
 
     public function item(Item $item)
