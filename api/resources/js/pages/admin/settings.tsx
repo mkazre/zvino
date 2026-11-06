@@ -323,10 +323,11 @@ function TestEmail() {
     const [to, setTo] = useState('');
     const [busy, setBusy] = useState(false);
     return (
-        <FormSection title="Test email" description="Check that order, receipt and application emails can be delivered. Leave empty to send to yourself.">
+        <FormSection title="Test email" description="Check that order, receipt and application emails can be delivered (leave empty to send to yourself). Changed .env? Click “Reload settings from .env” first.">
             <div className="flex flex-col gap-2 sm:flex-row">
                 <Input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="you@example.com" className="sm:max-w-xs" />
                 <Button variant="outline" disabled={busy} onClick={() => { setBusy(true); router.post('/admin/settings/test-email', to ? { to } : {}, { preserveScroll: true, onFinish: () => setBusy(false) }); }}>Send a test email</Button>
+                <Button variant="ghost" onClick={() => router.post('/admin/settings/reload-env', {}, { preserveScroll: true })}>Reload settings from .env</Button>
             </div>
         </FormSection>
     );

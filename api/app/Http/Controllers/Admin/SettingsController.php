@@ -92,13 +92,55 @@ class SettingsController extends AdminController
         return back()->with('success', $changes ? count($changes).' setting'.(count($changes) > 1 ? 's' : '').' saved.' : 'No changes.');
     }
 
+    /** Settings → "Reload settings from .env": the deploy caches .env, so edits there need a reload. */
+    public function reloadEnv(Request $request)
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403);
+        $this->reloadConfig();
+        AuditLog::record('settings.env_reloaded');
+
+        return back()->with('success', 'Settings reloaded from .env (mailer: '.($this->envValue('MAIL_MAILER') ?? 'not set').').');
+    }
+
+    private function reloadConfig(): void
+    {
+        $wasCached = app()->configurationIsCached();
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        if ($wasCached) {
+            \Illuminate\Support\Facades\Artisan::call('config:cache'); // keep the site fast
+        }
+    }
+
+    /** Reads a value straight from the .env file (the cached config may be out of date). */
+    private function envValue(string $key): ?string
+    {
+        $file = base_path('.env');
+        if (! is_file($file)) {
+            return null;
+        }
+        foreach (file($file, FILE_IGNORE_NEW_LINES) as $line) {
+            if (preg_match('/^\s*'.preg_quote($key, '/').'\s*=\s*"?([^"#\r\n]*)"?/', $line, $m)) {
+                return trim($m[1]);
+            }
+        }
+
+        return null;
+    }
+
     /** Settings → Notifications → "Send a test email": sends straight away and reports the real error. */
     public function testEmail(Request $request)
     {
         $to = $request->validate(['to' => ['nullable', 'email']])['to'] ?? $request->user()->email;
         $mailer = config('mail.default');
         if ($mailer === 'log') {
-            return back()->with('error', "Email is switched off (MAIL_MAILER={$mailer} in .env): messages are only written to the log. Set MAIL_MAILER=smtp and the MAIL_* settings, then deploy again.");
+            // .env already says smtp but the cached settings don't: reload them now.
+            if ($this->envValue('MAIL_MAILER') && $this->envValue('MAIL_MAILER') !== 'log') {
+                $this->reloadConfig();
+
+                return back()->with('success', 'Your .env email settings were cached from before. They’re reloaded now: click “Send a test email” again.');
+            }
+
+            return back()->with('error', 'Email is switched off (MAIL_MAILER=log in .env): messages are only written to the log. Set MAIL_MAILER=smtp and the MAIL_* settings in .env, then click “Reload settings from .env”.');
         }
         try {
             \Illuminate\Support\Facades\Mail::to($to)->send(new \App\Mail\ZvinoMail('Zvino test email', 'Email is working ✅', [

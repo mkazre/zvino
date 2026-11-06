@@ -112,6 +112,24 @@ Route::middleware(['auth', 'staff'])->group(function () {
         });
 
         // Bell: in-app notifications for the signed-in staff member.
+        // Live alerts for the admin panel and kitchen (new orders ring until acknowledged).
+        Route::get('alerts', function (Request $request) {
+            $q = $request->user()->appNotifications();
+            if (! $request->has('after')) {
+                return response()->json(['latest_id' => (int) $q->max('id'), 'items' => [], 'ringing' => $request->user()->appNotifications()->where('type', 'new_order')->whereNull('read_at')->where('created_at', '>=', now()->subHours(3))->latest()->limit(5)->get(['id', 'type', 'title', 'body', 'data', 'created_at'])]);
+            }
+            $items = $q->where('id', '>', $request->integer('after'))->orderBy('id')->limit(20)->get(['id', 'type', 'title', 'body', 'data', 'created_at']);
+            $ringing = $request->user()->appNotifications()->where('type', 'new_order')->whereNull('read_at')->where('created_at', '>=', now()->subHours(3))->latest()->limit(5)->get(['id', 'type', 'title', 'body', 'data', 'created_at']);
+
+            return response()->json(['latest_id' => (int) ($items->max('id') ?? $request->integer('after')), 'items' => $items, 'ringing' => $ringing]);
+        })->middleware('throttle:240,1')->name('alerts');
+        Route::post('alerts/{notification}/ack', function (Request $request, \App\Models\AppNotification $notification) {
+            abort_unless($notification->user_id === $request->user()->id, 404);
+            // Acknowledging a new order silences it for this person.
+            $notification->update(['read_at' => $notification->read_at ?? now()]);
+
+            return response()->json(['ok' => true]);
+        })->name('alerts.ack');
         Route::post('notifications/read', function (Request $request) {
             $request->user()->appNotifications()->whereNull('read_at')->update(['read_at' => now()]);
 
@@ -196,6 +214,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::middleware('can:settings.manage')->group(function () {
             Route::get('settings/{group?}', [SettingsController::class, 'index'])->name('settings');
             Route::post('settings/test-email', [SettingsController::class, 'testEmail'])->name('settings.test-email');
+            Route::post('settings/reload-env', [SettingsController::class, 'reloadEnv'])->name('settings.reload-env');
             Route::post('settings/{group}', [SettingsController::class, 'update'])->name('settings.update');
             Route::post('settings-platform-mode', [SettingsController::class, 'platformMode'])->name('settings.mode');
             Route::post('settings-exchange-rate', [SettingsController::class, 'exchangeRate'])->name('settings.rate');

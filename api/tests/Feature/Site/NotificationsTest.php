@@ -67,4 +67,37 @@ class NotificationsTest extends TestCase
         $this->assertSame(0.0, $v[0]['price_delta_zig']);
         $this->assertSame(20.0, $v[1]['price_delta_zig']);
     }
+
+    public function test_new_orders_ring_for_admin_and_the_stores_kitchen_until_handled(): void
+    {
+        $order = Order::where('status', 'placed')->firstOrFail();
+        $order->update(['status' => 'pending_payment']);
+        $admin = User::where('role', 'super_admin')->firstOrFail();
+        $kitchen = User::where('role', 'kitchen')->firstOrFail();
+        $kitchen->update(['vendor_id' => $order->vendor_id]);
+        $otherStoreKitchen = User::factory()->create(['role' => 'kitchen', 'vendor_id' => \App\Models\Vendor::where('id', '!=', $order->vendor_id)->value('id')]);
+
+        $start = $this->actingAs($admin)->getJson('/admin/alerts')->json('latest_id');
+        app(OrderService::class)->setStatus($order->fresh(), 'placed');
+
+        $res = $this->actingAs($admin)->getJson("/admin/alerts?after={$start}")->assertOk();
+        $this->assertSame('new_order', $res->json('ringing.0.type'));
+        $this->actingAs($kitchen)->getJson('/admin/alerts?after=0')->assertJsonPath('ringing.0.data.order_id', $order->id);
+        $this->actingAs($otherStoreKitchen)->getJson('/admin/alerts?after=0')->assertJsonCount(0, 'ringing');
+
+        // One person acknowledging silences it for them; the store accepting silences it for everyone.
+        $this->actingAs($admin)->postJson('/admin/alerts/'.$res->json('ringing.0.id').'/ack')->assertOk();
+        $this->actingAs($admin)->getJson('/admin/alerts?after=0')->assertJsonCount(0, 'ringing');
+        app(OrderService::class)->setStatus($order->fresh(), 'accepted');
+        $this->actingAs($kitchen)->getJson('/admin/alerts?after=0')->assertJsonCount(0, 'ringing');
+    }
+
+    public function test_receipt_pdf_falls_back_to_the_built_in_writer(): void
+    {
+        $order = Order::whereHas('items')->firstOrFail();
+        $pdf = \App\Support\ReceiptPdf::make($order);
+        $this->assertStringStartsWith('%PDF-1.4', $pdf);
+        $this->assertStringContainsString($order->reference, $pdf);
+        $this->assertStringEndsWith('%%EOF', $pdf);
+    }
 }

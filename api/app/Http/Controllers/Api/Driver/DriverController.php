@@ -61,6 +61,7 @@ class DriverController extends Controller
         abort_if($user->isStaff(), 422, 'Staff accounts cannot drive.');
         $user->update(['name' => $data['name'], 'role' => 'driver']);
         $driver = Driver::updateOrCreate(['user_id' => $user->id], collect($data)->except('name')->all() + ['status' => 'applied']);
+        app(\App\Services\StaffNotifier::class)->notify('driver_applied', 'New driver application', "{$user->name} · ".str_replace('_', ' ', $data['vehicle_type']), "/admin/drivers/{$driver->id}", null, ['drivers.manage']);
 
         return response()->json($this->present($driver->fresh()), 201);
     }

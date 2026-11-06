@@ -135,6 +135,7 @@ class EngagementController extends Controller
             'note' => $data['note'] ?? null,
             'evidence_path' => $request->hasFile('photo') ? '/storage/'.$request->file('photo')->store("refunds/{$order->id}", 'public') : null,
         ]);
+        app(\App\Services\StaffNotifier::class)->notify('refund_requested', "Refund requested · #{$order->reference}", str_replace('_', ' ', ucfirst($data['reason'])).' · ZiG '.number_format($amount, 2), '/admin/refunds', null, ['refunds.approve'], ['order_id' => $order->id]);
 
         // Small missing-item claims are approved instantly to wallet (configurable).
         if (Setting::get('orders.auto_refund_missing_items') && $data['reason'] === 'missing_items' && $amount <= Setting::get('orders.auto_refund_limit_zig')

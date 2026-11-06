@@ -184,7 +184,7 @@ function Receipt({ v }: { v: OrderView }) {
             </div>
             <Totals v={v} />
             <div className="grid gap-3 sm:grid-cols-2">
-                <Button asChild className="h-12 rounded-full text-[15px]"><a href={v.receipt.pdf_url}><Download /> Download PDF receipt</a></Button>
+                <Button asChild className="h-12 rounded-full text-[15px]"><a href={v.receipt.pdf_url} download={`Zvino-receipt-${v.reference}.pdf`}><Download /> Download PDF receipt</a></Button>
                 <Button variant="outline" className="h-12 rounded-full text-[15px]" onClick={() => setEmailOpen(true)}><Mail /> Email me the receipt</Button>
             </div>
             <EmailModal open={emailOpen} onClose={() => setEmailOpen(false)} id={v.id} email={v.details.account.email} />

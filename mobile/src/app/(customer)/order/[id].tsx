@@ -1,6 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -251,6 +253,22 @@ function Receipt({ v }: { v: OrderView }) {
     const [email, setEmail] = useState(v.details.account.email ?? '');
     const [asking, setAsking] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [downloading, setDownloading] = useState(false);
+    /** Save the PDF to the phone, then open the share sheet (Save to Files, WhatsApp, email…). */
+    const download = async () => {
+        setDownloading(true);
+        try {
+            const target = `${FileSystem.cacheDirectory}Zvino-receipt-${v.reference}.pdf`;
+            const r = await FileSystem.downloadAsync(v.receipt.pdf_url, target);
+            if (r.status !== 200 || !(r.headers['Content-Type'] ?? r.headers['content-type'] ?? '').includes('pdf')) throw new Error('not a pdf');
+            if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(r.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: `Receipt #${v.reference}` });
+            else await WebBrowser.openBrowserAsync(v.receipt.pdf_url);
+        } catch {
+            WebBrowser.openBrowserAsync(v.receipt.pdf_url).catch(() => Linking.openURL(v.receipt.pdf_url));
+        } finally {
+            setDownloading(false);
+        }
+    };
     const sendEmail = async () => {
         if (!email || !asking && !v.details.account.email) return setAsking(true);
         setBusy(true);
@@ -285,7 +303,7 @@ function Receipt({ v }: { v: OrderView }) {
                 ))}
             </Card>
             <Totals v={v} />
-            <Button title="Download PDF receipt" onPress={() => WebBrowser.openBrowserAsync(v.receipt.pdf_url).catch(() => Linking.openURL(v.receipt.pdf_url))} />
+            <Button title={downloading ? 'Downloading…' : 'Download PDF receipt'} loading={downloading} onPress={download} />
             {asking && <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={t.faint} keyboardType="email-address" autoCapitalize="none" style={{ height: 50, borderRadius: 12, borderWidth: 1, borderColor: t.border, color: t.ink, paddingHorizontal: 14 }} />}
             <Button title={asking ? 'Send receipt' : 'Email me the receipt'} tone="outline" loading={busy} onPress={sendEmail} />
         </>
