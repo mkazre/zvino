@@ -23,9 +23,9 @@ class ReceiptController extends Controller
     {
         $name = "Zvino-receipt-{$order->reference}.pdf";
         try {
-            $output = $this->render($order)->output();
+            $output = $this->bytes($order);
         } catch (\Throwable $e) {
-            // Never a blank error page: log the cause and show the same receipt as a printable page.
+            // Both PDF engines failed (very unlikely): show the same receipt as a printable page.
             report($e);
             $staff = $request->user()?->isStaff() || config('app.debug');
 
@@ -34,8 +34,23 @@ class ReceiptController extends Controller
 
         return response($output, 200, [
             'Content-Type' => 'application/pdf',
+            'Content-Length' => (string) strlen($output),
             'Content-Disposition' => ($request->boolean('inline') ? 'inline' : 'attachment').'; filename="'.$name.'"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    /** The receipt PDF: dompdf (nicer) when the server supports it, else Zvino's built-in writer. */
+    public function bytes(Order $order): string
+    {
+        try {
+            return $this->render($order)->output();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return \App\Support\ReceiptPdf::make($order);
+        }
     }
 
     public function email(Request $request, Order $order)
@@ -57,7 +72,7 @@ class ReceiptController extends Controller
         // The PDF is attached when it can be made; otherwise the email links to the receipt page.
         $link = \Illuminate\Support\Facades\URL::temporarySignedRoute('site.order.receipt', now()->addDays(30), ['order' => $order->id]);
         try {
-            $pdf = $this->render($order)->output();
+            $pdf = $this->bytes($order);
         } catch (\Throwable $e) {
             report($e);
             $pdf = null;

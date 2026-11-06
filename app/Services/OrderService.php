@@ -592,6 +592,22 @@ class OrderService
             }
         }
 
+        // Admin panel + kitchen: bell, pop-up and sound.
+        $staff = app(StaffNotifier::class);
+        $order->loadMissing('vendor', 'items');
+        if ($status !== 'placed') {
+            // The order has been handled: stop its new-order alarm for everyone.
+            \App\Models\AppNotification::where('type', 'new_order')->whereNull('read_at')->where('data->order_id', $order->id)->update(['read_at' => now()]);
+        }
+        if ($status === 'placed') {
+            $items = $order->items->sum('quantity');
+            $staff->notify('new_order', "New order #{$order->reference}", "{$order->vendor->name} · {$items} item".($items === 1 ? '' : 's').' · ZiG '.number_format((float) $order->total_zig, 2).' · '.ucfirst($order->fulfilment),
+                "/admin/orders/{$order->id}", $order->vendor_id, ['orders.view', 'kitchen.use'], ['order_id' => $order->id, 'alarm' => true]);
+        } elseif (in_array($status, ['cancelled', 'rejected'], true)) {
+            $staff->notify('order_problem', "Order #{$order->reference} ".($status === 'rejected' ? 'declined' : 'cancelled'), $order->vendor->name.($order->cancel_reason ? ' · '.$order->cancel_reason : ''),
+                "/admin/orders/{$order->id}", $order->vendor_id, ['orders.view', 'kitchen.use'], ['order_id' => $order->id]);
+        }
+
         return $order;
     }
 

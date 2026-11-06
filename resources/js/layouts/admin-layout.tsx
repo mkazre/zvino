@@ -9,6 +9,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
 import { CurrencySwitch } from '@/components/currency-switch';
+import { StaffAlerts, chime, setSoundOn, soundOn } from '@/components/staff-alerts';
 
 interface NavItem {
     title: string;
@@ -151,6 +152,7 @@ export default function AdminLayout({ title, children, fullBleed = false }: { ti
                 </div>
             </div>
             <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+            <StaffAlerts />
             <Toaster position="bottom-right" toastOptions={{ className: 'font-sans !rounded-xl !border !shadow-(--shadow-pop)' }} />
         </ConfirmProvider>
     );
@@ -282,6 +284,8 @@ function NotificationBell() {
     const { notifications } = usePage<SharedData>().props;
     const unread = notifications?.unread ?? 0;
     const list = notifications?.latest ?? [];
+    const [sound, setSound] = useState(soundOn);
+    const [desk, setDesk] = useState<string>(() => ('Notification' in window ? Notification.permission : 'unsupported'));
     return (
         <Popover
             align="end"
@@ -315,6 +319,12 @@ function NotificationBell() {
                     ))}
                 </ul>
             )}
+            <div className="flex flex-wrap items-center gap-2 border-t px-4 py-2.5 text-xs">
+                <button onClick={() => { setSoundOn(!sound); setSound(!sound); if (!sound) chime(); }} className="hover:bg-muted rounded-md border px-2 py-1 font-medium">{sound ? '🔊 Sound on' : '🔇 Sound off'}</button>
+                {desk === 'default' && <button onClick={async () => setDesk(await Notification.requestPermission())} className="hover:bg-muted rounded-md border px-2 py-1 font-medium">Turn on desktop alerts</button>}
+                {desk === 'granted' && <span className="text-muted-foreground">Desktop alerts on</span>}
+                {desk === 'denied' && <span className="text-muted-foreground">Desktop alerts blocked in this browser</span>}
+            </div>
             <div className="border-t px-4 py-2.5 text-xs">
                 <Link href="/admin/applications" className="font-medium hover:underline">All applications</Link>
                 <span className="text-muted-foreground"> · </span>

@@ -151,7 +151,10 @@ class AccountController extends Controller
             'order_id' => ['nullable', 'exists:orders,id'],
         ]);
 
-        return response()->json($request->user()->hasMany(\App\Models\SupportTicket::class)->create($data), 201);
+        $ticket = $request->user()->hasMany(\App\Models\SupportTicket::class)->create($data);
+        app(\App\Services\StaffNotifier::class)->notify('support_ticket', 'New support message', ($request->user()->name ?: $request->user()->phone).': '.$data['subject'], '/admin/support', null, ['support.manage']);
+
+        return response()->json($ticket, 201);
     }
 
     private function validateAddress(Request $request, bool $partial = false): array
