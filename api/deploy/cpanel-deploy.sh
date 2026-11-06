@@ -48,6 +48,15 @@ if [ ! -f .env ]; then
   echo ">>> (and ZVINO_ADMIN_EMAIL / ZVINO_ADMIN_PASSWORD), save, then click Deploy HEAD Commit again."
   exit 1
 fi
+# Check .env before touching anything: a typo there (e.g. a value with spaces but no quotes) breaks the whole site.
+if ! ENV_ERR="$("$PHP" -r 'require "vendor/autoload.php"; try { Dotenv\Dotenv::createImmutable(getcwd())->load(); } catch (Throwable $e) { echo $e->getMessage(); exit(1); }' 2>&1)"; then
+  echo
+  echo ">>> Your .env file has a mistake, so nothing was changed:"
+  echo ">>> $ENV_ERR"
+  echo ">>> Fix it in cPanel File Manager (~/zvino-app/.env). Values with spaces need quotes, e.g. APP_NAME=\"Zvino Food Delivery\""
+  echo ">>> Then click Deploy HEAD Commit again."
+  exit 1
+fi
 grep -q '^APP_KEY=base64' .env || "$PHP" artisan key:generate --force
 
 envval() { grep -E "^$1=" .env | tail -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
@@ -58,6 +67,10 @@ grep -q '^PUBLIC_DISK_ROOT=' .env || printf '\nPUBLIC_DISK_ROOT=%s\n' "$WEB/stor
 "$PHP" artisan down --retry=15 || true
 trap '"$PHP" artisan up >/dev/null 2>&1 || true' EXIT   # never leave the site in maintenance mode
 "$PHP" artisan config:clear
+# The list of installed packages is cached in bootstrap/cache (kept between deploys): rebuild it so
+# newly added packages (e.g. the PDF library) are switched on.
+rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+"$PHP" artisan package:discover --ansi
 "$PHP" artisan migrate --force
 
 # One-time demo data
