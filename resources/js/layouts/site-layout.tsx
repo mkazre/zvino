@@ -126,8 +126,13 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
             </div>
             {site.platform_mode === 'marketplace' && (
                 <div className="mx-auto flex h-12 max-w-7xl items-center gap-1 px-2 md:hidden">
-                    <AddressPicker tone={scrolled ? 'light' : 'glass'} className="max-w-none flex-1" />
-                    <Link href="/stores?segment=shops" className={cn('shrink-0 rounded-full px-3 py-2 text-sm font-semibold', scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>Shops</Link>
+                    <div className="min-w-0 flex-1"><AddressPicker tone={scrolled ? 'light' : 'glass'} className="max-w-full" /></div>
+                    {(['restaurants', 'shops'] as const).map((seg) => {
+                        const on = typeof window !== 'undefined' && window.location.pathname === '/stores' && new URLSearchParams(window.location.search).get('segment') === seg;
+                        return (
+                            <Link key={seg} href={`/stores?segment=${seg}`} className={cn('shrink-0 rounded-full px-2.5 py-1.5 text-[13px] font-semibold capitalize', on ? (scrolled ? 'bg-[#1c1c1c] text-white dark:bg-white dark:text-black' : 'bg-white text-[#1c1c1c]') : scrolled ? 'hover:bg-muted' : 'text-white hover:bg-white/15')}>{seg}</Link>
+                        );
+                    })}
                 </div>
             )}
         </header>
