@@ -21,7 +21,7 @@ class Order extends Model
         'driver_pay_zig' => 'float', 'vendor_payout_zig' => 'float', 'distance_km' => 'float',
         'scheduled_for' => 'datetime', 'accepted_at' => 'datetime', 'ready_at' => 'datetime',
         'picked_up_at' => 'datetime', 'delivered_at' => 'datetime', 'cancelled_at' => 'datetime',
-        'estimated_delivery_at' => 'datetime',
+        'estimated_delivery_at' => 'datetime', 'promised_delivery_at' => 'datetime',
         'wallet_applied_zig' => 'float', 'cash_part_zig' => 'float', 'donation_zig' => 'float', 'no_cutlery' => 'boolean',
     ];
 

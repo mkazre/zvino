@@ -118,7 +118,7 @@ class DriverController extends Controller
 
         $driver->update($data + ['location_updated_at' => now()]);
 
-        $active = $driver->activeOrders()->get(['id', 'status', 'address_id']);
+        $active = $driver->activeOrders()->get();
         foreach ($active as $order) {
             DriverLocation::create(['driver_id' => $driver->id, 'order_id' => $order->id, 'lat' => $data['lat'], 'lng' => $data['lng'], 'recorded_at' => now()]);
 
@@ -126,6 +126,8 @@ class DriverController extends Controller
             if ($order->status === 'picked_up' && $order->address?->lat
                 && Geo::km($data['lat'], $data['lng'], $order->address->lat, $order->address->lng) <= 0.4) {
                 $this->orders->setStatus($order, 'arriving');
+            } elseif (\App\Support\DeliveryEta::refresh($order)) {
+                \App\Events\OrderUpdated::dispatch($order); // live ETA from where the driver is now
             }
         }
         if ($active->isNotEmpty()) {

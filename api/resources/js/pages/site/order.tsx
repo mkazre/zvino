@@ -89,6 +89,11 @@ function TimeCard({ v, onHelp }: { v: OrderView; onHelp: () => void }) {
                 <div className="text-muted-foreground text-sm font-medium">{v.time.label}</div>
                 <div className="tabular text-[34px] leading-tight font-extrabold tracking-tight">{v.status === 'scheduled' && v.time.at ? new Date(v.time.at).toLocaleString('en-ZW', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : hhmm(v.time.at)}</div>
                 {eta !== null && <div className="text-muted-foreground text-sm">about {eta} min</div>}
+                {!v.is_done && v.time.trend && (
+                    <div className={cn('mt-1.5 inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold', v.time.trend.type === 'early' ? 'bg-brand/15 text-brand-700 dark:text-brand' : 'bg-gold/20 text-[#7a6a00] dark:text-gold')}>
+                        {v.time.trend.type === 'early' ? '⚡ ' : ''}{v.time.trend.text}
+                    </div>
+                )}
             </div>
             <button onClick={onHelp} className="hover:bg-muted flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-sm font-semibold"><CircleHelp className="size-7" />Help</button>
         </div>

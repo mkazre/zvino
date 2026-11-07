@@ -82,7 +82,12 @@ class OrderView
             $order->status === 'delivered' => ['label' => $pickup ? 'Collected at' : 'Delivered at', 'at' => $at['delivered'] ?? $order->delivered_at?->toIso8601String()],
             $stopped => ['label' => $order->status === 'cancelled' ? 'Cancelled at' : 'Declined at', 'at' => $at[$order->status] ?? $order->updated_at->toIso8601String()],
             $order->status === 'scheduled' => ['label' => $pickup ? 'Collection time' : 'Delivery time', 'at' => $order->scheduled_for?->toIso8601String()],
-            default => ['label' => $pickup ? 'Ready by (estimated)' : 'Delivery time (estimated)', 'at' => $order->estimated_delivery_at?->toIso8601String()],
+            default => [
+                'label' => $pickup ? 'Ready by (estimated)' : (in_array($order->status, ['picked_up', 'arriving'], true) ? 'Arriving (estimated)' : 'Delivery time (estimated)'),
+                'at' => $order->estimated_delivery_at?->toIso8601String(),
+                // The live estimate against the time first promised: early food, quick roads, delays.
+                'trend' => self::trend($order),
+            ],
         };
 
         $money = fn ($z) => Money::both((float) $z, $order->zig_per_usd);
@@ -194,5 +199,24 @@ class OrderView
     public static function paymentLabel(?string $m): string
     {
         return ['ecocash' => 'EcoCash', 'onemoney' => 'OneMoney', 'innbucks' => 'InnBucks', 'card' => 'Card', 'wallet' => 'Zvino wallet', 'cash' => 'Cash on delivery', 'company' => 'Company account'][$m] ?? ucfirst(str_replace('_', ' ', (string) $m));
+    }
+
+    /** 'early' / 'late' when the live ETA has moved noticeably from the promised time. */
+    private static function trend(Order $order): ?array
+    {
+        $eta = $order->estimated_delivery_at;
+        $promised = $order->promised_delivery_at;
+        if (! $eta || ! $promised) {
+            return null;
+        }
+        $diff = (int) round($promised->diffInSeconds($eta, false) / 60); // + later, - earlier
+        if ($diff <= -3) {
+            return ['type' => 'early', 'minutes' => -$diff, 'text' => -$diff.' min earlier than expected'];
+        }
+        if ($diff >= 5) {
+            return ['type' => 'late', 'minutes' => $diff, 'text' => 'Running '.$diff.' min behind'];
+        }
+
+        return null;
     }
 }

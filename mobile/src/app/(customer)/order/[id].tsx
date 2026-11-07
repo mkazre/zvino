@@ -20,7 +20,7 @@ import { LiveTrack } from '@/features/live-track';
 /** Mirrors App\Support\OrderView (the same data drives the website order page). */
 interface OrderView {
     id: number; reference: string; status: string; fulfilment: 'delivery' | 'pickup'; is_done: boolean; placed_at: string;
-    time: { label: string; at: string | null };
+    time: { label: string; at: string | null; trend?: { type: 'early' | 'late'; minutes: number; text: string } | null };
     banner: { key: string; image: string; title: string; subtitle: string | null };
     review_banner: string | null;
     timeline: { key: string; label: string; at: string | null; state: 'done' | 'current' | 'upcoming' | 'stopped'; detail: string | null }[];
@@ -105,6 +105,11 @@ export default function OrderScreen() {
                             <Text variant="caption">{v.time.label}</Text>
                             <Text variant="display" style={{ fontSize: 34 }}>{v.status === 'scheduled' && v.time.at ? new Date(v.time.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : hhmm(v.time.at)}</Text>
                             {eta !== null && <Text variant="caption">about {eta} min</Text>}
+                            {!v.is_done && v.time.trend ? (
+                                <View style={{ alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: v.time.trend.type === 'early' ? t.brandSoft : t.goldSoft }}>
+                                    <Text variant="caption" style={{ fontWeight: '800', color: v.time.trend.type === 'early' ? t.brandText : t.goldText }}>{v.time.trend.type === 'early' ? '⚡ ' : ''}{v.time.trend.text}</Text>
+                                </View>
+                            ) : null}
                         </View>
                         <Pressable onPress={help} style={{ alignItems: 'center', padding: 6 }} accessibilityLabel="Help"><Ionicons name="help-circle-outline" size={32} color={t.ink} /><Text variant="caption" style={{ fontWeight: '700' }}>Help</Text></Pressable>
                     </Row>

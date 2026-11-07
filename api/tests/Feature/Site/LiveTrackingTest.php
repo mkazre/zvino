@@ -38,7 +38,7 @@ class LiveTrackingTest extends TestCase
         $vendor = \App\Models\Vendor::findOrFail($vendorId);
         $address = Address::create(['user_id' => $base->user_id, 'label' => 'Test', 'line1' => "$kmNorth km north", 'city' => 'Harare', 'lat' => $vendor->lat + $kmNorth / 111, 'lng' => $vendor->lng]);
         $o = $base->replicate(['reference']);
-        $o->fill($extra + ['reference' => 'T'.random_int(10000, 99999), 'vendor_id' => $vendorId, 'address_id' => $address->id, 'status' => 'accepted', 'driver_id' => null, 'created_at' => now()])->save();
+        $o->fill($extra + ['reference' => 'T'.random_int(10000, 99999), 'vendor_id' => $vendorId, 'address_id' => $address->id, 'status' => 'accepted', 'driver_id' => null, 'created_at' => now(), 'accepted_at' => null, 'ready_at' => null, 'picked_up_at' => null, 'delivered_at' => null, 'estimated_delivery_at' => null, 'promised_delivery_at' => null])->save();
 
         return $o->fresh();
     }
@@ -111,5 +111,57 @@ class LiveTrackingTest extends TestCase
         $this->actingAs($user)->get('/')->assertOk()->assertInertia(fn ($p) => $p->where('activeOrder.id', $order->id));
         $order->update(['status' => 'delivered']);
         $this->actingAs($user)->get('/')->assertInertia(fn ($p) => $p->where('activeOrder', null));
+    }
+
+    public function test_delivery_time_updates_when_food_is_ready_early_and_when_collected(): void
+    {
+        Setting::put('delivery.learn_speed', false);
+        Setting::put('delivery.avg_speed_kmh', 25);
+        Setting::put('delivery.handover_minutes', 3);
+        \Illuminate\Support\Carbon::setTestNow('2026-11-12 12:00:00');
+        $order = $this->order(\App\Models\Vendor::firstOrFail()->id, 2, ['status' => 'placed']);
+        $orders = app(\App\Services\OrderService::class);
+        $ride = \App\Support\DeliveryEta::rideMinutes(\App\Support\DeliveryEta::storeToCustomerKm($order)); // ~2.6 road km → 7 min
+
+        // Accepted with 20 min prep: 20 + 3 handover + ride. That's also the promised time.
+        $orders->accept($order, 20);
+        $order->refresh();
+        $promised = now()->addMinutes(20 + 3 + $ride);
+        $this->assertSame($promised->format('H:i'), $order->estimated_delivery_at->format('H:i'));
+        $this->assertSame($promised->format('H:i'), $order->promised_delivery_at->format('H:i'));
+
+        // Kitchen finishes after only 8 minutes: the ETA comes forward by 12 minutes.
+        \Illuminate\Support\Carbon::setTestNow('2026-11-12 12:08:00');
+        $orders->setStatus($order->fresh(), 'ready');
+        $order->refresh();
+        $this->assertSame(now()->addMinutes(3 + $ride)->format('H:i'), $order->estimated_delivery_at->format('H:i'));
+        $this->assertSame('early', OrderView::forCustomer($order)['time']['trend']['type']);
+
+        // Driver collects at 12:11: now + ride from the store to the customer.
+        \Illuminate\Support\Carbon::setTestNow('2026-11-12 12:11:00');
+        $driver = Driver::where('status', 'approved')->firstOrFail();
+        $order->update(['driver_id' => $driver->id]);
+        $orders->setStatus($order->fresh(), 'picked_up');
+        $this->assertSame(now()->addMinutes($ride)->format('H:i'), $order->fresh()->estimated_delivery_at->format('H:i'));
+        $this->assertSame('Arriving (estimated)', OrderView::forCustomer($order->fresh())['time']['label']);
+
+        // The promise doesn't move, so arriving on time never counts as late.
+        $this->assertSame($promised->format('H:i'), $order->fresh()->promised_delivery_at->format('H:i'));
+        \Illuminate\Support\Carbon::setTestNow();
+    }
+
+    public function test_live_eta_follows_the_drivers_position(): void
+    {
+        Setting::put('delivery.learn_speed', false);
+        $order = $this->order(\App\Models\Vendor::firstOrFail()->id, 6, ['status' => 'picked_up', 'estimated_delivery_at' => now()->addMinutes(30), 'promised_delivery_at' => now()->addMinutes(30)]);
+        $driver = Driver::where('status', 'approved')->with('user')->firstOrFail();
+        Order::where('driver_id', $driver->id)->where('id', '!=', $order->id)->update(['driver_id' => null]);
+        $order->update(['driver_id' => $driver->id]);
+
+        // Driver is 1 km from the customer: the ETA drops to a few minutes.
+        Sanctum::actingAs($driver->user);
+        $this->postJson('/api/driver/location', ['lat' => $order->address->lat - 1 / 111, 'lng' => $order->address->lng])->assertOk();
+        $mins = now()->diffInMinutes($order->fresh()->estimated_delivery_at);
+        $this->assertLessThanOrEqual(5, $mins);
     }
 }
