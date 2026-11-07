@@ -171,6 +171,7 @@ return array(
     'App\\Support\\Applications' => $baseDir . '/app/Support/Applications.php',
     'App\\Support\\Brand' => $baseDir . '/app/Support/Brand.php',
     'App\\Support\\CustomerLocation' => $baseDir . '/app/Support/CustomerLocation.php',
+    'App\\Support\\DeliveryEta' => $baseDir . '/app/Support/DeliveryEta.php',
     'App\\Support\\Geo' => $baseDir . '/app/Support/Geo.php',
     'App\\Support\\HomeFeed' => $baseDir . '/app/Support/HomeFeed.php',
     'App\\Support\\I18n' => $baseDir . '/app/Support/I18n.php',

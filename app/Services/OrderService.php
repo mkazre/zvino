@@ -441,12 +441,9 @@ class OrderService
     public function accept(Order $order, int $prepMinutes): Order
     {
         $this->guard($order, 'accepted');
-        $ride = $order->distance_km ? \App\Support\Geo::rideMinutes($order->distance_km) : 15;
-        $order->update([
-            'prep_minutes' => $prepMinutes,
-            'accepted_at' => now(),
-            'estimated_delivery_at' => now()->addMinutes($prepMinutes + ($order->fulfilment === 'delivery' ? $ride : 0)),
-        ]);
+        $order->update(['prep_minutes' => $prepMinutes, 'accepted_at' => now()]);
+        // First real estimate: prep time + road distance to the customer. Also the time we promise.
+        \App\Support\DeliveryEta::refresh($order, promise: true);
 
         return $this->setStatus($order, 'accepted', ['prep' => $prepMinutes]);
     }
@@ -550,6 +547,11 @@ class OrderService
         }
         $order->update($updates);
 
+        // Things moved on (food ready early, driver collected…): recalculate the delivery time.
+        if (in_array($status, ['ready', 'picked_up', 'arriving'], true)) {
+            \App\Support\DeliveryEta::refresh($order);
+        }
+
         if ($status === 'delivered') {
             if ($order->payment_status === 'pending_cash') {
                 $order->update(['payment_status' => 'paid']);
@@ -614,10 +616,12 @@ class OrderService
     /** Hot-meal guarantee (#12): late delivery → automatic wallet credit, once per order. */
     private function hotMealGuarantee(Order $order): void
     {
-        if (! Setting::get('orders.hot_meal_guarantee') || ! $order->user || ! $order->estimated_delivery_at || $order->fulfilment !== 'delivery') {
+        // Judged against the time we promised, not the live estimate (which moves as things happen).
+        $promised = $order->promised_delivery_at ?? $order->estimated_delivery_at;
+        if (! Setting::get('orders.hot_meal_guarantee') || ! $order->user || ! $promised || $order->fulfilment !== 'delivery') {
             return;
         }
-        $late = (int) $order->estimated_delivery_at->diffInMinutes($order->delivered_at ?? now(), false);
+        $late = (int) $promised->diffInMinutes($order->delivered_at ?? now(), false);
         if ($late <= Setting::get('orders.late_grace_minutes')) {
             return;
         }

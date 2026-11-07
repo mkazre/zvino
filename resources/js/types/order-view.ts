@@ -8,7 +8,7 @@ export interface OrderView {
     fulfilment: 'delivery' | 'pickup';
     is_done: boolean;
     placed_at: string;
-    time: { label: string; at: string | null };
+    time: { label: string; at: string | null; trend?: { type: 'early' | 'late'; minutes: number; text: string } | null };
     banner: { key: string; image: string; title: string; subtitle: string | null };
     review_banner: string | null;
     timeline: { key: string; label: string; at: string | null; state: 'done' | 'current' | 'upcoming' | 'stopped'; detail: string | null }[];

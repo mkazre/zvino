@@ -126,6 +126,7 @@ class DispatchService
 
             $offer->update(['status' => 'accepted', 'responded_at' => now()]);
             $order->update(['driver_id' => $offer->driver_id, 'driver_pay_zig' => $offer->pay_zig]);
+            \App\Support\DeliveryEta::refresh($order->fresh()); // the driver may be further from the store than the food is from ready
             $this->recalcAcceptance($offer->driver);
 
             OrderUpdated::dispatch($order->fresh());

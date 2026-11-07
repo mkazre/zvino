@@ -191,7 +191,9 @@ class MerchantController extends Controller
         $order->update([
             'prep_minutes' => ($order->prep_minutes ?? 0) + $data['minutes'],
             'estimated_delivery_at' => ($order->estimated_delivery_at ?? now())->addMinutes($data['minutes']),
+            'promised_delivery_at' => ($order->promised_delivery_at ?? $order->estimated_delivery_at ?? now())->addMinutes($data['minutes']),
         ]);
+        \App\Support\DeliveryEta::refresh($order);
         \App\Events\OrderUpdated::dispatch($order);
 
         return new OrderResource($order);
