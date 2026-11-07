@@ -82,7 +82,7 @@ class DispatchService
             ->with('user')
             ->get()
             ->filter(fn (Driver $d) => $d->activeOrders()->count() === 0
-                || (Setting::get('delivery.allow_batching') && $d->activeOrders()->where('vendor_id', $vendor->id)->count() === 1)
+                || (Setting::get('delivery.allow_batching') && $this->canBatch($d, $order))
                 || ($batchZone && $this->onSameRun($d, $batchZone)))
             ->filter(fn (Driver $d) => $order->cashDue() <= 0 || $d->cashHeld() + $order->cashDue() <= $cashLimit)
             ->map(fn (Driver $d) => [$d, Geo::km($d->lat, $d->lng, $vendor->lat, $vendor->lng)])
@@ -90,6 +90,20 @@ class DispatchService
             ->sortBy(fn ($pair) => $pair[1] - ($pair[0]->rating - 4) * 0.5 - $tiers->priorityKm($pair[0]->tier ?? 'bronze')) // nearer first, boost for top-rated and higher tiers
             ->map(fn ($pair) => $pair[0])
             ->first();
+    }
+
+    /**
+     * Same-store batching: the driver's current orders are all from this store and not yet collected,
+     * there's room for one more, and the extra drop-off adds only a small detour to the planned route.
+     */
+    public function canBatch(Driver $d, Order $order): bool
+    {
+        $active = $d->activeOrders()->with('address')->get();
+
+        return $active->isNotEmpty()
+            && $active->count() < \App\Support\RoutePlanner::maxBatch()
+            && $active->every(fn (Order $o) => $o->vendor_id === $order->vendor_id && ! in_array($o->status, ['picked_up', 'arriving'], true))
+            && \App\Support\RoutePlanner::detourKm([(float) $order->vendor->lat, (float) $order->vendor->lng], $active, $order->loadMissing('address')) <= \App\Support\RoutePlanner::maxDetourKm();
     }
 
     /** Driver is already carrying only orders for this batch zone, and has room for more. */

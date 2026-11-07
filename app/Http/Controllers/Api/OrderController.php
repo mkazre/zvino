@@ -15,6 +15,12 @@ class OrderController extends Controller
 {
     public function __construct(private OrderService $orders) {}
 
+    /** The order on its way right now (the app's floating "track order" bubble). */
+    public function active(Request $request)
+    {
+        return response()->json(['order' => \App\Support\ActiveOrder::for($request->user(), true)]);
+    }
+
     public function index(Request $request)
     {
         $orders = $request->user()->orders()->with('vendor', 'items')

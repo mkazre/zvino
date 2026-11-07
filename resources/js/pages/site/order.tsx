@@ -6,9 +6,10 @@ import { label, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type OrderView } from '@/types/order-view';
 import { EnableAlertsCard } from '@/components/order-alerts';
+import { LiveTrack } from '@/components/live-track';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Check, CircleHelp, Download, HelpCircle, Mail, MessageCircle, Phone, RotateCcw, Star, Store, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, Bike, Check, CircleHelp, Download, HelpCircle, Mail, MessageCircle, Phone, RotateCcw, Star, Store, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 type Tab = 'tracking' | 'receipt' | 'details';
 const hhmm = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString('en-ZW', { hour: '2-digit', minute: '2-digit' }) : '–');
@@ -21,6 +22,7 @@ export default function OrderPage({ view: initial, mapsKey }: { view: OrderView;
         return q === 'receipt' || q === 'details' ? q : 'tracking';
     });
     const [help, setHelp] = useState(false);
+    const [live, setLive] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('live') === '1');
     const t = useT();
     useEffect(() => setV(initial), [initial]);
 
@@ -34,6 +36,13 @@ export default function OrderPage({ view: initial, mapsKey }: { view: OrderView;
         window.addEventListener('zvino:order-update', onAlert);
         return () => { clearInterval(timer); window.removeEventListener('zvino:order-update', onAlert); };
     }, [v.is_done, v.id]);
+
+    const closeLive = useCallback(() => {
+        setLive(false);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('live');
+        window.history.replaceState(window.history.state, '', url);
+    }, []);
 
     const go = (next: Tab) => {
         setTab(next);
@@ -62,11 +71,12 @@ export default function OrderPage({ view: initial, mapsKey }: { view: OrderView;
 
             <div className="mx-auto grid max-w-3xl gap-6 px-4 py-6 md:px-6 md:py-8">
                 <TimeCard v={v} onHelp={() => setHelp(true)} />
-                {tab === 'tracking' && <Tracking v={v} mapsKey={mapsKey} />}
+                {tab === 'tracking' && <Tracking v={v} mapsKey={mapsKey} onLive={() => setLive(true)} />}
                 {tab === 'receipt' && <Receipt v={v} />}
                 {tab === 'details' && <Details v={v} />}
             </div>
             <HelpModal open={help} onClose={() => setHelp(false)} v={v} />
+            {live && (v.live || v.status === 'delivered') && <LiveTrack v={v} mapsKey={mapsKey} onUpdate={setV} onClose={closeLive} />}
         </SiteLayout>
     );
 }
@@ -99,7 +109,7 @@ function StageBanner({ image, title, subtitle, children }: { image: string; titl
     );
 }
 
-function Tracking({ v, mapsKey }: { v: OrderView; mapsKey: string | null }) {
+function Tracking({ v, mapsKey, onLive }: { v: OrderView; mapsKey: string | null; onLive: () => void }) {
     const markers = [
         ...(v.store.lat ? [{ id: 's', lat: v.store.lat, lng: v.store.lng!, kind: 'store' as const, label: v.store.name }] : []),
         ...(v.details.address_lat ? [{ id: 'h', lat: v.details.address_lat, lng: v.details.address_lng!, kind: 'dropoff' as const, label: 'You' }] : []),
@@ -109,6 +119,13 @@ function Tracking({ v, mapsKey }: { v: OrderView; mapsKey: string | null }) {
     return (
         <>
             <StageBanner image={v.banner.image} title={v.banner.title} subtitle={v.banner.subtitle} />
+            {v.live && (
+                <button onClick={onLive} className="group bg-brand flex items-center gap-4 rounded-3xl p-4 text-left text-black shadow-[0_12px_32px_-12px_rgba(23,199,74,0.7)] transition hover:brightness-105">
+                    <span className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-black text-white"><span className="absolute inset-0 animate-ping rounded-full bg-black/30 [animation-duration:2s]" /><Bike className="relative size-6" /></span>
+                    <span className="min-w-0 flex-1"><span className="block text-lg font-extrabold">Track your driver live</span><span className="block text-sm text-black/70">See the store, your driver and you on the map</span></span>
+                    <span className="rounded-full bg-black px-4 py-2 text-sm font-bold text-white transition group-hover:translate-x-0.5">Open map</span>
+                </button>
+            )}
             {!v.is_done && <EnableAlertsCard />}
 
             <ol className="grid gap-1 px-1">

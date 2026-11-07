@@ -76,6 +76,7 @@ class HandleInertiaRequests extends Middleware
                     ? $request->user()->addresses()->orderByDesc('is_default')->get(['id', 'label', 'line1', 'suburb', 'city', 'lat', 'lng'])
                     : [],
             ],
+            'activeOrder' => fn () => \App\Support\ActiveOrder::for($request->user()),
             'platformMode' => fn () => Setting::platformMode(),
             'i18n' => function () use ($request) {
                 $locale = self::locale($request);

@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('orders', [OrderController::class, 'index']);
     Route::post('orders', [OrderController::class, 'store']);
+    Route::get('orders/active', [OrderController::class, 'active']);
     Route::get('orders/{order}', [OrderController::class, 'show']);
     Route::get('orders/{order}/track', [OrderController::class, 'track']);
     Route::post('orders/{order}/reorder', [OrderController::class, 'reorder']);
@@ -133,6 +134,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('documents', [DriverController::class, 'uploadDocument']);
         Route::get('me', [DriverController::class, 'me']);
         Route::post('online', [DriverController::class, 'online']);
+        Route::get('route', [DriverController::class, 'route']);
         Route::post('location', [DriverController::class, 'location'])->middleware('throttle:120,1');
         Route::get('offers', [DriverController::class, 'offers']);
         Route::post('offers/{offer}/accept', [DriverController::class, 'accept']);

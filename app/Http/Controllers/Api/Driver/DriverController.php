@@ -17,6 +17,7 @@ use App\Services\Payments\PaynowGateway;
 use App\Services\PushService;
 use App\Support\Geo;
 use App\Support\Money;
+use App\Support\RoutePlanner;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -158,6 +159,8 @@ class DriverController extends Controller
             'dropoff_area' => $o->order->address?->suburb ?? $o->order->address?->city,
             'items_count' => $o->order->items()->sum('quantity'),
             'safety' => $this->safety($o->order),
+            // Added to a run the driver already has from this store.
+            'batch' => ($n = $driver->activeOrders()->count()) > 0 ? ['with' => $n, 'extra_km' => round(RoutePlanner::detourKm([(float) $o->order->vendor->lat, (float) $o->order->vendor->lng], $driver->activeOrders()->with('address')->get(), $o->order), 1)] : null,
         ]));
     }
 
@@ -183,7 +186,17 @@ class DriverController extends Controller
     {
         $driver = $this->approved($request);
 
-        return response()->json($driver->activeOrders()->with('vendor', 'address', 'user', 'items')->get()->map(fn ($o) => $this->job($o)));
+        $orders = $driver->activeOrders()->with('vendor', 'address', 'user', 'items')->get();
+        // Number each job by its place in the planned route (shortest drop-off order).
+        $numbers = collect(RoutePlanner::forDriver($driver, $orders)['stops'])->where('type', 'dropoff')->values()->mapWithKeys(fn ($s, $n) => [$s['order_id'] => $n + 1]);
+
+        return response()->json($orders->sortBy(fn ($o) => $numbers[$o->id] ?? 99)->values()->map(fn ($o) => $this->job($o) + ['stop' => $numbers[$o->id] ?? null, 'stops_total' => $orders->count()]));
+    }
+
+    /** The planned run: store pickups, then drop-offs in the most efficient order, with a Maps link. */
+    public function route(Request $request)
+    {
+        return response()->json(RoutePlanner::forDriver($this->approved($request)));
     }
 
     public function pickup(Request $request, Order $order)
