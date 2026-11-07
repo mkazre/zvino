@@ -105,7 +105,9 @@ class OrderView
             'review_banner' => $order->status === 'delivered' && ! $order->review ? ($web ? '' : rtrim(config('app.url'), '/')).'/images/tracking/rate-your-order.jpg' : null,
             'timeline' => $timeline,
             'store' => ['id' => $order->vendor->id, 'name' => $order->vendor->name, 'slug' => $order->vendor->slug, 'logo' => $order->vendor->logo_path && ! $web && ! str_starts_with($order->vendor->logo_path, 'http') ? rtrim(config('app.url'), '/').$order->vendor->logo_path : $order->vendor->logo_path, 'address' => $order->vendor->address, 'phone' => $order->vendor->phone, 'lat' => $order->vendor->lat, 'lng' => $order->vendor->lng],
-            'driver' => $driver && ! $done ? ['name' => $driver->name, 'phone' => $driver->phone, 'vehicle' => $order->driver->vehicle_type, 'plate' => $order->driver->vehicle_plate, 'rating' => $order->driver->rating, 'lat' => $order->driver->lat, 'lng' => $order->driver->lng] : null,
+            'driver' => $driver && ! $done ? ['name' => $driver->name, 'phone' => $driver->phone, 'vehicle' => $order->driver->vehicle_type, 'plate' => $order->driver->vehicle_plate, 'rating' => $order->driver->rating, 'lat' => $order->driver->lat, 'lng' => $order->driver->lng, 'heading' => $order->driver->heading !== null ? (float) $order->driver->heading : null, 'located_at' => $order->driver->location_updated_at?->toIso8601String(), 'stops_before' => \App\Support\RoutePlanner::stopsBefore($order)] : null,
+            // Live map: once the driver has collected a delivery order.
+            'live' => $order->fulfilment === 'delivery' && in_array($order->status, ['picked_up', 'arriving'], true),
             'delivery_pin' => ! $done && $order->dropoff === 'hand_to_me' ? $order->delivery_pin : null,
             'can_cancel' => in_array($order->status, ['pending_payment', 'scheduled', 'placed'], true),
             'review' => $order->review?->only('vendor_rating', 'driver_rating', 'comment'),

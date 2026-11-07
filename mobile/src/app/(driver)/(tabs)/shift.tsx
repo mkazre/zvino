@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Switch, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { currentPosition, useLocationSharing, type DriverMe, type HeatCell, type Job, type Offer } from '@/features/driver';
+import { currentPosition, useLocationSharing, type DriverMe, type DriverRoute, type HeatCell, type Job, type Offer } from '@/features/driver';
 import { SafetyBanner } from '@/features/safety';
 import { api, ApiError } from '@/lib/api';
 import { zig } from '@/lib/money';
@@ -19,6 +19,7 @@ export default function Shift() {
     const [me, setMe] = useState<DriverMe | null>(null);
     const [offers, setOffers] = useState<Offer[]>([]);
     const [jobs, setJobs] = useState<Job[]>([]);
+    const [route, setRoute] = useState<DriverRoute | null>(null);
     const [toggling, setToggling] = useState(false);
     const [, tick] = useState(0);
 
@@ -27,7 +28,9 @@ export default function Shift() {
             const d = await api.get<DriverMe>('/driver/me');
             setMe(d);
             if (d.status === 'approved') {
-                setJobs(await api.get<Job[]>('/driver/jobs'));
+                const js = await api.get<Job[]>('/driver/jobs');
+                setJobs(js);
+                setRoute(js.length > 1 ? await api.get<DriverRoute>('/driver/route').catch(() => null) : null);
                 if (d.is_online) setOffers(await api.get<Offer[]>('/driver/offers'));
             }
         } catch (e) {
@@ -132,7 +135,7 @@ export default function Shift() {
                     const left = Math.max(0, o.seconds_left);
                     return (
                         <Card key={o.id} style={{ borderWidth: 2, borderColor: t.brand, gap: 10 }}>
-                            <Row justify="space-between"><Badge tone="brand">New delivery</Badge><Text variant="label" color={left < 10 ? 'red' : 'muted'}>{left}s</Text></Row>
+                            <Row justify="space-between"><Row gap={6}><Badge tone="brand">New delivery</Badge>{o.batch ? <Badge tone="gold">{`Adds to your run · +${o.batch.extra_km} km`}</Badge> : null}</Row><Text variant="label" color={left < 10 ? 'red' : 'muted'}>{left}s</Text></Row>
                             <Text variant="display">{zig(o.pay.zig)}</Text>
                             {o.tip.zig > 0 && <Text variant="caption" color="brand">Includes {zig(o.tip.zig)} tip</Text>}
                             <Row gap={10}><Ionicons name="storefront-outline" size={18} color={t.ink} /><Text variant="label" style={{ flex: 1 }}>{o.store.name}</Text><Text variant="caption">{o.pickup_km ?? '?'} km away</Text></Row>
@@ -149,10 +152,12 @@ export default function Shift() {
 
                 {me.is_online && offers.length === 0 && jobs.length === 0 && <Heatmap />}
 
+                {route && route.stops.length > 1 && <RouteCard route={route} jobs={jobs} />}
+
                 {jobs.length > 0 && <Text variant="heading" style={{ marginTop: 6 }}>Active deliveries</Text>}
                 {jobs.map((j) => (
                     <Card key={j.id} onPress={() => router.push(`/job/${j.id}`)}>
-                        <Row justify="space-between"><Text variant="heading">{j.store.name}</Text><Badge tone="brand">{j.status === 'picked_up' || j.status === 'arriving' ? 'Delivering' : 'Pick up'}</Badge></Row>
+                        <Row justify="space-between"><Text variant="heading" style={{ flex: 1 }} numberOfLines={1}>{j.stop && (j.stops_total ?? 0) > 1 ? `${j.stop}. ` : ''}{j.store.name}</Text><Badge tone="brand">{j.status === 'picked_up' || j.status === 'arriving' ? 'Delivering' : 'Pick up'}</Badge></Row>
                         <Text variant="caption">{j.reference} · {j.dropoff?.suburb ?? j.dropoff?.city} · {zig(j.pay.zig)}</Text>
                     </Card>
                 ))}
@@ -164,6 +169,53 @@ export default function Shift() {
                 </Row>
             </ScrollView>
         </SafeAreaView>
+    );
+}
+
+/** Multi-order run: numbered stops (collect first, then the shortest drop-off order) and one-tap navigation. */
+function RouteCard({ route, jobs }: { route: DriverRoute; jobs: Job[] }) {
+    const t = useTheme();
+    const open = (s: DriverRoute['stops'][number]) => {
+        const id = s.order_id ?? s.order_ids?.[0];
+        if (id && jobs.some((j) => j.id === id)) router.push(`/job/${id}`);
+    };
+    const pickups = route.stops.filter((s) => s.type === 'pickup').length;
+    const drops = route.stops.filter((s) => s.type === 'dropoff').length;
+    return (
+        <Card style={{ gap: 12, borderWidth: 1.5, borderColor: t.brand }}>
+            <Row justify="space-between">
+                <View style={{ flex: 1 }}>
+                    <Text variant="heading">Your route</Text>
+                    <Text variant="caption">{route.orders} orders · {pickups ? `${pickups} pickup${pickups > 1 ? 's' : ''} · ` : ''}{drops} drop-off{drops !== 1 ? 's' : ''} · ~{route.total_km} km</Text>
+                </View>
+                <Badge tone="brand">Best order</Badge>
+            </Row>
+            <View>
+                {route.stops.map((s, i) => {
+                    const last = i === route.stops.length - 1;
+                    return (
+                        <Pressable key={`${s.type}-${s.number}`} onPress={() => open(s)} accessibilityLabel={`Stop ${s.number}: ${s.type === 'pickup' ? 'collect from' : 'deliver to'} ${s.name}`}>
+                            <Row align="flex-start" gap={12}>
+                                <View style={{ alignItems: 'center', width: 30 }}>
+                                    <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: s.type === 'pickup' ? t.inverse : t.brand, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text variant="label" style={{ color: s.type === 'pickup' ? t.onInverse : '#111' }}>{s.number}</Text>
+                                    </View>
+                                    {!last && <View style={{ width: 2, flex: 1, minHeight: 18, backgroundColor: t.border, marginVertical: 2 }} />}
+                                </View>
+                                <View style={{ flex: 1, paddingBottom: last ? 0 : 12 }}>
+                                    <Row justify="space-between" gap={8}>
+                                        <Text variant="label" style={{ flex: 1 }} numberOfLines={1}>{s.type === 'pickup' ? `Collect · ${s.name}` : s.name}</Text>
+                                        {s.km != null && <Text variant="caption">{s.km} km</Text>}
+                                    </Row>
+                                    <Text variant="caption" numberOfLines={1}>{s.type === 'pickup' ? `${s.references?.length ?? 1} order${(s.references?.length ?? 1) > 1 ? 's' : ''}: #${(s.references ?? []).join(', #')}` : `#${s.reference}${s.address ? ` · ${s.address}` : ''}`}</Text>
+                                </View>
+                            </Row>
+                        </Pressable>
+                    );
+                })}
+            </View>
+            {route.nav_url && <Button title="Start route in Maps" tone="primary" onPress={() => Linking.openURL(route.nav_url!)} />}
+        </Card>
     );
 }
 

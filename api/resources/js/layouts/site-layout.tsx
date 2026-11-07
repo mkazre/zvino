@@ -13,6 +13,7 @@ import { AppVersion, BrandLogo } from '@/components/brand-logo';
 import { CurrencySwitch } from '@/components/currency-switch';
 import { StoreBadges } from '@/components/store-badges';
 import { OrderAlerts } from '@/components/order-alerts';
+import { ActiveOrderButton } from '@/components/active-order-button';
 import { AddressPicker, LocationProvider, type ActiveLocation, type SavedAddress } from '@/components/address-picker';
 
 export interface SiteProps extends SharedData {
@@ -61,6 +62,7 @@ export default function SiteLayout({ children, transparent = false, hideCart = f
             <MobileCartBar hidden={hideCart} onOpen={() => setCartOpen(true)} />
             <Toaster position="top-center" toastOptions={{ className: 'font-sans !rounded-xl' }} />
             <OrderAlerts />
+            <ActiveOrderButton />
         </div>
         </LocationProvider>
     );

@@ -13,7 +13,8 @@ export interface OrderView {
     review_banner: string | null;
     timeline: { key: string; label: string; at: string | null; state: 'done' | 'current' | 'upcoming' | 'stopped'; detail: string | null }[];
     store: { id: number; name: string; slug: string; logo: string | null; address: string | null; phone: string | null; lat: number | null; lng: number | null };
-    driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null } | null;
+    driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null; heading?: number | null; located_at?: string | null; stops_before?: number } | null;
+    live?: boolean;
     delivery_pin: string | null;
     can_cancel: boolean;
     review: { vendor_rating: number } | null;

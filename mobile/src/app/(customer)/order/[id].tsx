@@ -15,6 +15,7 @@ import { useT } from '@/lib/i18n';
 import { usePrefs } from '@/lib/prefs';
 import { useChannel } from '@/lib/realtime';
 import { useOnReconnect } from '@/lib/network';
+import { LiveTrack } from '@/features/live-track';
 
 /** Mirrors App\Support\OrderView (the same data drives the website order page). */
 interface OrderView {
@@ -24,7 +25,8 @@ interface OrderView {
     review_banner: string | null;
     timeline: { key: string; label: string; at: string | null; state: 'done' | 'current' | 'upcoming' | 'stopped'; detail: string | null }[];
     store: { id: number; name: string; logo: string | null; address: string | null; phone: string | null; lat: number | null; lng: number | null };
-    driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null } | null;
+    driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null; located_at?: string | null; stops_before?: number } | null;
+    live?: boolean;
     delivery_pin: string | null; can_cancel: boolean; review: { vendor_rating: number } | null;
     receipt: { lines: { name: string; quantity: number; options: string[]; notes: string | null; unit: Money; total: Money }[]; totals: { label: string; amount: Money; help?: string }[]; total: Money; vat: Money; wallet_applied: Money | null; pdf_url: string };
     details: {
@@ -45,10 +47,11 @@ export default function OrderScreen() {
     const { dataLight } = usePrefs();
     const tr = useT();
     const t = useTheme();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, live: liveParam } = useLocalSearchParams<{ id: string; live?: string }>();
     const [v, setV] = useState<OrderView | null>(null);
     const [split, setSplit] = useState<Split>([]);
     const [tab, setTab] = useState<Tab>('tracking');
+    const [live, setLive] = useState(liveParam === '1');
 
     const load = useCallback(async () => {
         const r = await api.get<{ view: OrderView; split?: Split }>(`/orders/${id}`).catch(() => null);
@@ -107,10 +110,11 @@ export default function OrderScreen() {
                     </Row>
                 </Card>
 
-                {tab === 'tracking' && <Tracking v={v} split={split} dataLight={dataLight} reload={load} cancel={cancel} />}
+                {tab === 'tracking' && <Tracking v={v} split={split} dataLight={dataLight} reload={load} cancel={cancel} onLive={() => setLive(true)} />}
                 {tab === 'receipt' && <Receipt v={v} />}
                 {tab === 'details' && <Details v={v} />}
             </ScrollView>
+            <LiveTrack visible={live && (!!v.live || v.status === 'delivered')} view={v} onUpdate={setV} onClose={() => setLive(false)} />
         </View>
     );
 }
@@ -128,7 +132,7 @@ function Banner({ image, title, subtitle }: { image: string; title: string; subt
     );
 }
 
-function Tracking({ v, split, dataLight, reload, cancel }: { v: OrderView; split: Split; dataLight: boolean; reload: () => void; cancel: () => void }) {
+function Tracking({ v, split, dataLight, reload, cancel, onLive }: { v: OrderView; split: Split; dataLight: boolean; reload: () => void; cancel: () => void; onLive: () => void }) {
     const t = useTheme();
     const tr = useT();
     const dest = v.details.address_lat ? { latitude: v.details.address_lat, longitude: v.details.address_lng! } : null;
@@ -136,6 +140,16 @@ function Tracking({ v, split, dataLight, reload, cancel }: { v: OrderView; split
     return (
         <>
             <Banner image={v.banner.image} title={v.banner.title} subtitle={v.banner.subtitle} />
+            {v.live && (
+                <Pressable onPress={onLive} accessibilityRole="button" accessibilityLabel="Track your driver live" style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 22, backgroundColor: t.brand, opacity: pressed ? 0.9 : 1 })}>
+                    <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="bicycle" size={24} color="#fff" /></View>
+                    <View style={{ flex: 1 }}>
+                        <Text variant="heading" style={{ color: '#111' }}>Track your driver live</Text>
+                        <Text style={{ color: 'rgba(0,0,0,0.7)', fontSize: 13 }}>See the store, your driver and you on the map</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={22} color="#111" />
+                </Pressable>
+            )}
 
             <View style={{ gap: 4 }}>
                 {v.timeline.map((s) => {

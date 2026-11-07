@@ -29,6 +29,8 @@ export interface HeatCell { lat: number; lng: number; intensity: number; orders_
 
 export interface Offer {
     id: number;
+    /** Joins a run the driver already has from this store. */
+    batch?: { with: number; extra_km: number } | null;
     seconds_left: number;
     pay: Money;
     tip: Money;
@@ -42,8 +44,29 @@ export interface Offer {
     safety: Safety | null;
 }
 
+/** The driver's planned run (GET /driver/route): pickups, then drop-offs in the shortest order. */
+export interface RouteStop {
+    number: number;
+    type: 'pickup' | 'dropoff';
+    name: string;
+    address: string | null;
+    phone: string | null;
+    lat: number | null;
+    lng: number | null;
+    km: number | null;
+    order_id?: number;
+    order_ids?: number[];
+    reference?: string;
+    references?: string[];
+    collected?: boolean;
+}
+export interface DriverRoute { stops: RouteStop[]; total_km: number; nav_url: string | null; orders: number }
+
 export interface Job {
     id: number;
+    /** Place in the planned drop-off order (1 = first). */
+    stop?: number | null;
+    stops_total?: number;
     reference: string;
     status: string;
     store: { name: string; phone: string | null; address: string | null; lat: number; lng: number };

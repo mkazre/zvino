@@ -40,7 +40,17 @@ export default function JobScreen() {
     const pickup = async () => {
         setBusy(true);
         try {
-            setJob(await api.post<Job>(`/driver/jobs/${job.id}/pickup`));
+            const done = await api.post<Job>(`/driver/jobs/${job.id}/pickup`);
+            setJob((prev) => ({ ...prev, ...done }));
+            // Batched run: offer to collect the other orders from this store in one go.
+            const others = (await api.get<Job[]>('/driver/jobs').catch(() => [] as Job[]))
+                .filter((x) => x.id !== job.id && x.store.name === job.store.name && !['picked_up', 'arriving'].includes(x.status));
+            if (others.length) {
+                Alert.alert(`Collect ${others.length} more?`, `You also have ${others.map((x) => `#${x.reference}`).join(', ')} from ${job.store.name}. Did you collect ${others.length > 1 ? 'them' : 'it'} too?`, [
+                    { text: 'Not yet', style: 'cancel' },
+                    { text: 'Yes, collected', onPress: () => Promise.all(others.map((x) => api.post(`/driver/jobs/${x.id}/pickup`).catch(() => null))).then(() => load()) },
+                ]);
+            }
         } catch (e) {
             Alert.alert('Pick up', e instanceof ApiError ? e.friendly : '');
         } finally {
@@ -76,6 +86,7 @@ export default function JobScreen() {
             <Row style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
                 <Pressable onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={t.ink} /></Pressable>
                 <Text variant="heading" style={{ flex: 1 }}>{job.reference}</Text>
+                {job.stop && (job.stops_total ?? 0) > 1 ? <Badge tone="dark">{`Stop ${job.stop} of ${job.stops_total}`}</Badge> : null}
                 <Badge tone="brand">{zig(job.pay.zig)}</Badge>
             </Row>
             <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
