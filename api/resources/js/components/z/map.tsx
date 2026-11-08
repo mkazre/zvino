@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { usePage } from '@inertiajs/react';
 import { APIProvider, AdvancedMarker, Map as GMap, useMap } from '@vis.gl/react-google-maps';
 import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
@@ -63,11 +64,13 @@ export interface MapLine {
 }
 
 export function LiveMap({ apiKey, markers, polygons = [], lines = [], fitKey, className, onMapClick, draft, children }: { apiKey?: string | null; markers: MapMarker[]; polygons?: MapPolygon[]; lines?: MapLine[]; /** Change it to re-fit the map around every marker. */ fitKey?: string | number; className?: string; onMapClick?: (lat: number, lng: number) => void; draft?: [number, number][]; children?: ReactNode }) {
+    // Map ID from Settings → Integrations (Google Cloud → Map management); needed for the custom pins.
+    const mapId = usePage<{ mapsMapId?: string | null }>().props.mapsMapId || 'DEMO_MAP_ID';
     return (
         <div className={cn('bg-muted relative overflow-hidden rounded-xl border', className)}>
             {apiKey ? (
                 <APIProvider apiKey={apiKey}>
-                    <GMap mapId="zvino-ops" defaultCenter={HARARE} defaultZoom={12} gestureHandling="greedy" disableDefaultUI clickableIcons={false} onClick={(e) => e.detail.latLng && onMapClick?.(e.detail.latLng.lat, e.detail.latLng.lng)} className="h-full w-full">
+                    <GMap mapId={mapId} defaultCenter={HARARE} defaultZoom={12} gestureHandling="greedy" disableDefaultUI clickableIcons={false} onClick={(e) => e.detail.latLng && onMapClick?.(e.detail.latLng.lat, e.detail.latLng.lng)} className="h-full w-full">
                         {markers.map((m) => (
                             <AdvancedMarker key={m.id} position={{ lat: m.lat, lng: m.lng }} onClick={m.onClick}>
                                 <Pin m={m} />
