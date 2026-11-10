@@ -61,9 +61,14 @@ export interface MenuItem {
 
 const GRADIENT = ['#17C74A', '#222222', '#8A6508', '#7A0A1C'];
 
-export function Cover({ uri: path, seed = 0, height = 150, radius = 18 }: { uri: string | null; seed?: number; height?: number; radius?: number }) {
+export function Cover({ uri: path, seed = 0, height = 150, radius = 18, fit = 'cover' }: { uri: string | null; seed?: number; height?: number; radius?: number; fit?: 'cover' | 'contain' }) {
     const uri = useImg()(path, 640);
-    return uri ? (
+    // 'contain' = product packshot: the whole photo on white, never cropped.
+    return uri && fit === 'contain' ? (
+        <View style={{ height, borderRadius: radius, width: '100%', backgroundColor: '#FFFFFF', padding: 16 }}>
+            <Image source={{ uri }} style={{ flex: 1 }} contentFit="contain" transition={200} />
+        </View>
+    ) : uri ? (
         <Image source={{ uri }} style={{ height, borderRadius: radius, width: '100%' }} contentFit="cover" transition={200} />
     ) : (
         <View style={{ height, borderRadius: radius, backgroundColor: GRADIENT[seed % GRADIENT.length], alignItems: 'flex-end', justifyContent: 'flex-end', overflow: 'hidden' }}>

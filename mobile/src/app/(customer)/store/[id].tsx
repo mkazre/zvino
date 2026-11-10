@@ -238,7 +238,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
         <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
             <View style={{ flex: 1, backgroundColor: t.bg }}>
                 <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-                    <Cover uri={item.image} seed={item.id} height={240} radius={0} />
+                    <Cover uri={item.image} seed={item.id} height={store.kind && store.kind !== 'restaurant' ? 300 : 240} radius={0} fit={store.kind && store.kind !== 'restaurant' ? 'contain' : 'cover'} />
                     <Pressable onPress={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="close" size={20} color="#222222" /></Pressable>
                     <View style={{ padding: 20, gap: 8 }}>
                         <Text variant="title">{item.name}</Text>
@@ -261,7 +261,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
                             </View>
                         ))}
                         <Text variant="heading" style={{ marginTop: 16 }}>Special instructions</Text>
-                        <TextInput value={notes} onChangeText={setNotes} placeholder="e.g. no onions" placeholderTextColor={t.faint} multiline style={{ minHeight: 70, borderRadius: 12, backgroundColor: t.subtle, padding: 12, color: t.ink, fontSize: 15 }} />
+                        <TextInput value={notes} onChangeText={setNotes} placeholder={store.kind && store.kind !== 'restaurant' ? 'e.g. ripe ones, or a specific brand' : 'e.g. no onions'} placeholderTextColor={t.faint} multiline style={{ minHeight: 70, borderRadius: 12, backgroundColor: t.subtle, padding: 12, color: t.ink, fontSize: 15 }} />
                     </View>
                 </ScrollView>
                 <SafeAreaView edges={['bottom']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: t.bg, borderTopWidth: 0.5, borderColor: t.border, padding: 16, flexDirection: 'row', gap: 12 }}>

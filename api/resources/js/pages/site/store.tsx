@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 interface Props {
     seo: { title: string };
     store: {
-        id: number; name: string; slug: string; cuisine: string | null; description: string | null; logo: string | null; cover: string | null; city: string; address: string | null;
+        id: number; name: string; slug: string; cuisine: string | null; kind?: string | null; description: string | null; logo: string | null; cover: string | null; city: string; address: string | null;
         rating: number; rating_count: number; eta_minutes: [number, number]; delivery_fee: Money; min_order: Money; price_level: number; power_out: boolean;
         offers_delivery: boolean; offers_pickup: boolean; accepts_scheduled: boolean;
         availability: { is_open: boolean; reason: string | null; is_busy: boolean; prep_minutes: number; next_open_at: string | null };
@@ -37,7 +37,7 @@ export default function StorePage({ seo, store: s, menu, popular, reviews, isFav
     const [info, setInfo] = useState(false);
     const [active, setActive] = useState<number | null>(menu[0]?.id ?? null);
     const refs = useRef<Record<number, HTMLElement | null>>({});
-    const storeRef = { id: s.id, name: s.name, slug: s.slug, min_order: s.min_order };
+    const storeRef = { id: s.id, name: s.name, slug: s.slug, min_order: s.min_order, kind: s.kind };
     const all = useMemo(() => menu.flatMap((c) => c.items), [menu]);
     const specials = useMemo(() => all.filter((i) => i.special_price && i.is_available).slice(0, 12), [all]);
     const closedText = closedLabel(s.availability as never);
