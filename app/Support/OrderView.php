@@ -50,6 +50,15 @@ class OrderView
             default => $order->status,
         };
         [$image, $title, $sub] = self::BANNERS[$key] ?? self::BANNERS['placed'];
+        $shop = (bool) $order->vendor->is_shopper_store && ! $pickup;
+        if ($shop && in_array($key, ['accepted', 'preparing', 'ready'], true)) {
+            // Zvino-run store: a Zvino shopper picks the groceries.
+            [$title, $sub] = match ($key) {
+                'accepted' => [$order->driver ? 'Shopper on the way to the store' : 'Finding your shopper', $order->driver ? '{driver} is heading to {store} to shop your order.' : 'We’re assigning a Zvino shopper at {store}.'],
+                'preparing' => ['Shopping your items', '{driver} is picking your items at {store}.'],
+                default => ['Paying at the till', '{driver} has your items and is checking out.'],
+            };
+        }
         if ($key === 'scheduled' && $order->scheduled_for) {
             $sub = 'We’ll send your order to '.$order->vendor->name.' in time for '.$order->scheduled_for->timezone('Africa/Harare')->format('D j M, H:i').'.';
         }
@@ -58,6 +67,9 @@ class OrderView
         $steps = $pickup
             ? [['placed', 'Order received'], ['accepted', 'Order confirmed'], ['preparing', 'Being prepared'], ['ready', 'Ready to collect'], ['delivered', 'Collected']]
             : [['placed', 'Order received'], ['accepted', 'Order confirmed'], ['preparing', 'Being prepared'], ['ready', 'Ready for your driver'], ['picked_up', 'Collected by driver'], ['arriving', 'Almost there'], ['delivered', 'Delivered']];
+        if ($shop) {
+            $steps = [['placed', 'Order received'], ['accepted', 'Shopper assigned'], ['preparing', 'Shopping your items'], ['picked_up', 'On the way'], ['arriving', 'Almost there'], ['delivered', 'Delivered']];
+        }
         $flow = ['pending_payment', 'scheduled', 'placed', 'accepted', 'preparing', 'ready', 'picked_up', 'arriving', 'delivered'];
         $pos = array_search($order->status, $flow, true);
         $stopped = in_array($order->status, ['cancelled', 'rejected'], true);
@@ -111,6 +123,8 @@ class OrderView
             'timeline' => $timeline,
             'store' => ['id' => $order->vendor->id, 'name' => $order->vendor->name, 'slug' => $order->vendor->slug, 'logo' => $order->vendor->logo_path && ! $web && ! str_starts_with($order->vendor->logo_path, 'http') ? rtrim(config('app.url'), '/').$order->vendor->logo_path : $order->vendor->logo_path, 'address' => $order->vendor->address, 'phone' => $order->vendor->phone, 'lat' => $order->vendor->lat, 'lng' => $order->vendor->lng],
             'driver' => $driver && ! $done ? ['name' => $driver->name, 'phone' => $driver->phone, 'vehicle' => $order->driver->vehicle_type, 'plate' => $order->driver->vehicle_plate, 'rating' => $order->driver->rating, 'lat' => $order->driver->lat, 'lng' => $order->driver->lng, 'heading' => $order->driver->heading !== null ? (float) $order->driver->heading : null, 'located_at' => $order->driver->location_updated_at?->toIso8601String(), 'stops_before' => \App\Support\RoutePlanner::stopsBefore($order)] : null,
+            // Zvino-run store: shopping progress and anything that changed.
+            'shopping' => $shop ? self::shopping($order) : null,
             // Live map: once the driver has collected a delivery order.
             'live' => $order->fulfilment === 'delivery' && in_array($order->status, ['picked_up', 'arriving'], true),
             'delivery_pin' => ! $done && $order->dropoff === 'hand_to_me' ? $order->delivery_pin : null,
@@ -218,5 +232,28 @@ class OrderView
         }
 
         return null;
+    }
+
+    private static function shopping(Order $order): array
+    {
+        $lines = $order->items;
+        $money = fn ($z) => Money::both((float) $z, $order->zig_per_usd);
+
+        return [
+            'pref' => $order->substitution_pref ?? 'best',
+            'started' => (bool) $order->shopping_started_at,
+            'finished' => (bool) $order->shopping_finished_at,
+            'done' => $lines->whereNotNull('shop_status')->count(),
+            'total' => $lines->count(),
+            'changes' => $lines->whereIn('shop_status', ['missing', 'partial', 'replaced'])->values()->map(fn ($l) => [
+                'name' => $l->name,
+                'status' => $l->shop_status,
+                'quantity' => $l->quantity,
+                'found_qty' => $l->found_qty,
+                'replacement' => $l->replacement ? ['name' => $l->replacement['name'], 'quantity' => $l->replacement['quantity']] : null,
+                'refund' => $l->refund_zig ? $money($l->refund_zig) : null,
+            ]),
+            'refund' => $lines->sum('refund_zig') > 0 ? $money($lines->sum('refund_zig')) : null,
+        ];
     }
 }

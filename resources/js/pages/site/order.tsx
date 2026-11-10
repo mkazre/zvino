@@ -131,6 +131,7 @@ function Tracking({ v, mapsKey, onLive }: { v: OrderView; mapsKey: string | null
                     <span className="rounded-full bg-black px-4 py-2 text-sm font-bold text-white transition group-hover:translate-x-0.5">Open map</span>
                 </button>
             )}
+            {v.shopping && (v.shopping.started || v.shopping.changes.length > 0) && <ShoppingProgress s={v.shopping} />}
             {!v.is_done && <EnableAlertsCard />}
 
             <ol className="grid gap-1 px-1">
@@ -330,5 +331,32 @@ function CancelModal({ open, onClose, id }: { open: boolean; onClose: () => void
             footer={<><Button variant="outline" onClick={onClose}>Keep order</Button><Button variant="destructive" onClick={() => router.post(`/orders/${id}/cancel`, { reason }, { onSuccess: onClose })}>Cancel order</Button></>}>
             <div className="grid gap-2">{['Changed my mind', 'Ordered by mistake', 'Taking too long', 'Wrong address'].map((r) => <button key={r} onClick={() => setReason(r)} className={cn('rounded-xl border px-4 py-3 text-left text-sm', reason === r && 'border-[#222222] font-semibold')}>{r}</button>)}</div>
         </Modal>
+    );
+}
+
+/** Zvino-run store: how far the shopper is, and anything swapped or not available. */
+function ShoppingProgress({ s }: { s: NonNullable<OrderView['shopping']> }) {
+    const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
+    return (
+        <div className="rounded-3xl border p-5">
+            <div className="flex items-center justify-between gap-3">
+                <div className="font-bold">🛒 {s.finished ? 'Shopping done' : 'Your shopper is picking your items'}</div>
+                <div className="tabular text-muted-foreground text-sm">{s.done} of {s.total}</div>
+            </div>
+            <div className="bg-muted mt-3 h-2 overflow-hidden rounded-full"><div className="bg-brand h-full rounded-full transition-all" style={{ width: `${pct}%` }} /></div>
+            {s.changes.length > 0 && (
+                <ul className="mt-4 grid gap-2 text-sm">
+                    {s.changes.map((c, i) => (
+                        <li key={i} className="flex items-start justify-between gap-3">
+                            <span>
+                                {c.status === 'replaced' && c.replacement ? <><s className="text-muted-foreground">{c.name}</s> → <b>{c.replacement.quantity}× {c.replacement.name}</b></> : c.status === 'partial' ? <>{c.name}: <b>{c.found_qty} of {c.quantity}</b> available</> : <><s className="text-muted-foreground">{c.name}</s> <span className="text-[var(--color-zred)]">not available</span></>}
+                            </span>
+                            {c.refund && <span className="tabular shrink-0 font-medium">+{zig(c.refund.zig)}</span>}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {s.refund && <p className="text-muted-foreground mt-3 text-sm">{zig(s.refund.zig)} for missing or cheaper items {s.finished ? 'is in' : 'will go back to'} your Zvino wallet. You’re never charged more for a replacement.</p>}
+        </div>
     );
 }

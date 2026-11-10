@@ -88,7 +88,7 @@ class SupplierSync
                 'kind' => 'grocery', 'cuisine' => 'Groceries', 'status' => 'pending', // draft until published
                 'description' => "Groceries and household essentials, hand-picked and delivered by Zvino.",
                 'city' => $loc->city ?: 'Harare', 'address' => $loc->address, 'lat' => $loc->lat, 'lng' => $loc->lng,
-                'commission_pct' => 0, 'prep_minutes' => $source->shopping_minutes ?: 25, 'auto_accept' => true,
+                'commission_pct' => 0, 'prep_minutes' => $source->shopping_minutes ?: 25, 'auto_accept' => true, 'is_shopper_store' => true,
             ]);
             if ($loc->opens_at && $loc->closes_at) {
                 foreach (range(0, 6) as $day) {

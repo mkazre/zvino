@@ -51,6 +51,7 @@ class OrderController extends Controller
             'prescription' => ['nullable', 'string'],
             'round_up' => ['nullable', 'boolean'],
             'no_cutlery' => ['nullable', 'boolean'],
+            'substitution_pref' => ['nullable', 'in:best,contact,refund'],
         ]);
 
         [$order, $payment] = $this->orders->placeFromCart($request->user(), $data);

@@ -18,6 +18,7 @@ class VendorResource extends JsonResource
             'description' => $this->description,
             'logo' => $this->logo_path,
             'kind' => $this->kind ?? 'restaurant',
+            'is_shopper_store' => (bool) $this->is_shopper_store, // a Zvino shopper buys the items
             'accepts_catering' => (bool) $this->accepts_catering,
             'cover' => $this->cover_path,
             'city' => $this->city,

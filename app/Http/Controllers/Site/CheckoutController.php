@@ -40,7 +40,7 @@ class CheckoutController extends Controller
             'company' => $company,
             'tipPresets' => Setting::get('orders.allow_tips') ? Setting::get('orders.tip_presets_pct') : [],
             'scheduleDays' => Setting::get('orders.allow_scheduled') ? Setting::get('orders.schedule_days_ahead') : 0,
-            'store' => $cart->vendor ? ['availability' => $availability->status($cart->vendor), 'offers_delivery' => $cart->vendor->offers_delivery, 'offers_pickup' => $cart->vendor->offers_pickup && Setting::get('orders.allow_pickup'), 'accepts_scheduled' => $cart->vendor->accepts_scheduled, 'address' => $cart->vendor->address] : null,
+            'store' => $cart->vendor ? ['availability' => $availability->status($cart->vendor), 'offers_delivery' => $cart->vendor->offers_delivery, 'offers_pickup' => $cart->vendor->offers_pickup && Setting::get('orders.allow_pickup'), 'accepts_scheduled' => $cart->vendor->accepts_scheduled, 'address' => $cart->vendor->address, 'is_shopper_store' => (bool) $cart->vendor->is_shopper_store] : null,
             'cities' => Setting::get('general.cities'),
             'codLimit' => Setting::get('delivery.cash_on_delivery_limit_zig'),
             'phone' => $user->phone,
@@ -130,6 +130,7 @@ class CheckoutController extends Controller
             'prescription' => ['nullable', 'string'],
             'round_up' => ['nullable', 'boolean'],
             'no_cutlery' => ['nullable', 'boolean'],
+            'substitution_pref' => ['nullable', 'in:best,contact,refund'],
         ]);
         $data['source'] = 'web';
         if (! empty($data['phone'])) {

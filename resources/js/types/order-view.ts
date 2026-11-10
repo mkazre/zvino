@@ -15,6 +15,11 @@ export interface OrderView {
     store: { id: number; name: string; slug: string; logo: string | null; address: string | null; phone: string | null; lat: number | null; lng: number | null };
     driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null; heading?: number | null; located_at?: string | null; stops_before?: number } | null;
     live?: boolean;
+    shopping?: {
+        pref: 'best' | 'contact' | 'refund'; started: boolean; finished: boolean; done: number; total: number;
+        changes: { name: string; status: 'missing' | 'partial' | 'replaced'; quantity: number; found_qty: number | null; replacement: { name: string; quantity: number } | null; refund: { zig: number; usd: number } | null }[];
+        refund: { zig: number; usd: number } | null;
+    } | null;
     delivery_pin: string | null;
     can_cancel: boolean;
     review: { vendor_rating: number } | null;

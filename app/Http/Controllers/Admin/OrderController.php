@@ -59,6 +59,14 @@ class OrderController extends AdminController
         return \Illuminate\Support\Facades\Storage::disk('local')->response($order->prescription_path);
     }
 
+    public function tillSlip(Request $request, Order $order)
+    {
+        $this->authorizeVendor($request, $order->vendor_id);
+        abort_unless($order->till_slip_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($order->till_slip_path), 404);
+
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($order->till_slip_path);
+    }
+
     public function show(Request $request, Order $order)
     {
         $this->authorizeVendor($request, $order->vendor_id);
@@ -89,6 +97,14 @@ class OrderController extends AdminController
                 'cancel_reason' => $order->cancel_reason ?? $order->reject_reason,
                 'cancelled_by' => $order->cancelled_by,
                 'dropoff' => $order->dropoff,
+                // Zvino-run store: what the shopper found, the till and the difference.
+                'shopping' => $order->vendor->is_shopper_store ? [
+                    'pref' => $order->substitution_pref ?? 'best',
+                    'started_at' => $order->shopping_started_at, 'finished_at' => $order->shopping_finished_at,
+                    'till_total_usd' => $order->till_total_usd, 'expected_usd' => \App\Services\ShopperService::expectedTillUsd($order),
+                    'paid_with' => $order->till_paid_with, 'has_slip' => (bool) $order->till_slip_path, 'refund_zig' => $order->shopping_refund_zig,
+                    'lines' => $order->items->map(fn ($l) => ['name' => $l->name, 'quantity' => $l->quantity, 'status' => $l->shop_status, 'found_qty' => $l->found_qty, 'replacement' => $l->replacement, 'refund_zig' => $l->refund_zig]),
+                ] : null,
             ]),
             'next' => collect(OrderService::TRANSITIONS[$order->status] ?? [])->reject(fn ($s) => in_array($s, ['rejected'], true))->values(),
             'nearbyDrivers' => $order->fulfilment === 'delivery' && ! $order->driver_id

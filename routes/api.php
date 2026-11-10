@@ -140,6 +140,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('offers/{offer}/accept', [DriverController::class, 'accept']);
         Route::post('offers/{offer}/decline', [DriverController::class, 'decline']);
         Route::get('jobs', [DriverController::class, 'jobs']);
+        // Shopping an order in a Zvino-run store (TM Pick n Pay branches).
+        Route::get('jobs/{order}/shop', [\App\Http\Controllers\Api\Driver\ShopController::class, 'show']);
+        Route::post('jobs/{order}/shop/start', [\App\Http\Controllers\Api\Driver\ShopController::class, 'start']);
+        Route::get('jobs/{order}/shop/search', [\App\Http\Controllers\Api\Driver\ShopController::class, 'search'])->middleware('throttle:60,1');
+        Route::post('jobs/{order}/shop/items/{line}', [\App\Http\Controllers\Api\Driver\ShopController::class, 'mark']);
+        Route::post('jobs/{order}/shop/finish', [\App\Http\Controllers\Api\Driver\ShopController::class, 'finish'])->middleware('throttle:10,1');
         Route::post('jobs/{order}/pickup', [DriverController::class, 'pickup']);
         Route::post('jobs/{order}/deliver', [DriverController::class, 'deliver']);
         Route::get('earnings', [DriverController::class, 'earnings']);

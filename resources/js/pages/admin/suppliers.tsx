@@ -72,7 +72,7 @@ function SyncCard({ source, stats, hasCategories }: { source: Source; stats: Pro
     const pct = running && s?.total ? Math.round(((s.done ?? 0) / s.total) * 100) : null;
 
     return (
-        <Card padded className="grid gap-4">
+        <Card padded className="grid h-fit content-start gap-4 self-start">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <div className="flex items-center gap-2 text-lg font-bold">
@@ -117,7 +117,7 @@ function Overview({ source, stats, categories }: Props) {
     return (
         <div className="grid gap-5 xl:grid-cols-[1fr_420px]">
             <SyncCard source={source} stats={stats} hasCategories={categories.some((c) => c.selected || c.aisles.some((a) => a.selected))} />
-            <Card padded className="grid gap-4">
+            <Card padded className="grid h-fit content-start gap-4">
                 <div className="font-bold">Settings</div>
                 <Field label="Default markup" hint={`Used unless a category or product has its own. e.g. $${example} on the shelf → $${sell.toFixed(2)} on Zvino.`} error={errors.markup_value}>
                     <div className="flex gap-2">
