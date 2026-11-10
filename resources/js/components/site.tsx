@@ -122,7 +122,9 @@ export function DishCard({ i, onClick, showStore = false }: { i: MenuItem; onCli
 }
 
 /** Item details with sizes, add-on groups (min/max), notes and quantity. Adds to the browser basket. */
-export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { id: number; name: string; slug: string; min_order: Money }; onClose: () => void }) {
+export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { id: number; name: string; slug: string; min_order: Money; kind?: string | null }; onClose: () => void }) {
+    // Shops show product packshots: the whole photo, never cropped. Restaurants keep full-bleed food photos.
+    const product = !!store.kind && store.kind !== 'restaurant';
     const [variant, setVariant] = useState<string | null>(item.variants[0]?.name ?? null);
     const [mods, setMods] = useState<string[]>([]);
     const [qty, setQty] = useState(1);
@@ -171,7 +173,11 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
                 </div>
             }>
             <div className="-mx-6 -mt-2 grid max-h-[60vh] gap-5 overflow-y-auto px-6">
-                {item.image && <img src={item.image} alt="" className="aspect-[16/9] w-full rounded-xl object-cover" />}
+                {item.image && (product ? (
+                    <div className="flex h-[min(42vh,340px)] items-center justify-center rounded-xl bg-white p-4 ring-1 ring-black/5">
+                        <img src={item.image} alt={item.name} className="max-h-full max-w-full object-contain" />
+                    </div>
+                ) : <img src={item.image} alt="" className="aspect-[16/9] w-full rounded-xl object-cover" />)}
                 {item.description && <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>}
                 {item.size && <p className="text-muted-foreground text-xs font-medium">Size: {item.size}</p>}
                 <p className="tabular text-sm"><b>{zig(base)}</b> {alt(base) && <span className="text-muted-foreground">· {alt(base)}</span>}{item.calories && <span className="text-muted-foreground"> · {item.calories} kcal</span>}</p>
@@ -192,7 +198,7 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
                 ))}
                 <fieldset>
                     <legend className="mb-2 font-bold">Special instructions</legend>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={200} placeholder="e.g. no onions, extra spicy" className="bg-muted min-h-[72px] w-full rounded-xl p-3 text-sm outline-none dark:bg-white/5" />
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={200} placeholder={product ? 'e.g. ripe ones, or a specific brand' : 'e.g. no onions, extra spicy'} className="bg-muted min-h-[72px] w-full rounded-xl p-3 text-sm outline-none dark:bg-white/5" />
                 </fieldset>
             </div>
         </Modal>
