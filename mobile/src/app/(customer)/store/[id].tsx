@@ -247,6 +247,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
                             <WatchButton itemId={item.id} />
                         </Row>
                         {item.description && <Text color="muted">{item.description}</Text>}
+                        {item.size ? <Text variant="caption">Size: {item.size}</Text> : null}
                         {item.variants.length > 0 && (
                             <View style={{ marginTop: 16 }}>
                                 <Row justify="space-between"><Text variant="heading">Size</Text><Text variant="caption">Required</Text></Row>

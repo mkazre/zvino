@@ -16,6 +16,8 @@ class ItemResource extends JsonResource
             'category_id' => $this->category_id,
             'name' => $this->name,
             'description' => $this->description,
+            // Pack size from imported products, e.g. "2 kg · 500 ml · 28 × 6 cm".
+            'size' => self::size($this->resource->getAttribute('attributes')),
             'image' => $this->image_path,
             'price' => Money::both($this->price_zig),
             'special_price' => $this->special_price_zig ? Money::both($this->special_price_zig) : null,
@@ -44,5 +46,20 @@ class ItemResource extends JsonResource
             ]),
             'vendor' => $this->whenLoaded('vendor', fn () => $this->vendor->only('id', 'name', 'slug')),
         ];
+    }
+
+    public static function size(?array $a): ?string
+    {
+        if (! $a) {
+            return null;
+        }
+        $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.');
+        $parts = array_filter([
+            isset($a['weight_kg']) ? ($a['weight_kg'] < 1 ? $fmt($a['weight_kg'] * 1000).' g' : $fmt($a['weight_kg']).' kg') : null,
+            isset($a['volume_ml']) ? ($a['volume_ml'] >= 1000 ? $fmt($a['volume_ml'] / 1000).' L' : $fmt($a['volume_ml']).' ml') : null,
+            isset($a['width_cm'], $a['height_cm']) ? $fmt($a['width_cm']).' × '.$fmt($a['height_cm']).' cm' : null,
+        ]);
+
+        return $parts ? implode(' · ', $parts) : null;
     }
 }

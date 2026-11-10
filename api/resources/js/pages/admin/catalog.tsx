@@ -4,8 +4,8 @@ import AdminLayout from '@/layouts/admin-layout';
 import { label, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Item, type SharedData } from '@/types';
-import { router, useForm, usePage } from '@inertiajs/react';
-import { ChefHat, Layers, Pencil, Plus, Trash2, UtensilsCrossed, Zap, ZapOff } from 'lucide-react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { ChefHat, Layers, Pencil, Plus, Trash2, Upload, UtensilsCrossed, Zap, ZapOff } from 'lucide-react';
 import { useState } from 'react';
 
 type MenuItem = Item & { requires_prescription?: boolean; sold_by?: 'unit' | 'kg'; step_kg?: number; needs_power: boolean; is_popular: boolean; dietary: string[]; calories: number | null; unavailable_until: string | null; modifier_groups?: { id: number; name: string; min: number; max: number }[] };
@@ -46,6 +46,7 @@ export default function Catalog(p: Props) {
                                 <Select className="h-9 w-56" value={p.vendor.id} onChange={(e) => router.get('/admin/catalog', { vendor_id: e.target.value })}>{p.vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</Select>
                             )}
                             <Segmented value={view} onChange={setView} options={[{ value: 'items', label: 'Items' }, { value: 'addons', label: 'Add-on groups', count: p.groups.length }]} />
+                            {view === 'items' && <Button variant="outline" asChild><Link href={`/admin/catalog/import?vendor_id=${p.vendor.id}`}><Upload /> Import</Link></Button>}
                             <Button onClick={() => (view === 'items' ? setEditing('new') : setGroupEditing('new'))}><Plus /> {view === 'items' ? 'Add item' : 'Add group'}</Button>
                         </>
                     }

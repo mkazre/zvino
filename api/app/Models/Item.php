@@ -11,7 +11,7 @@ class Item extends Model
     protected $guarded = [];
     protected $casts = [
         'is_available' => 'boolean', 'is_special' => 'boolean', 'is_popular' => 'boolean', 'needs_power' => 'boolean',
-        'variants' => 'array', 'modifiers' => 'array', 'dietary' => 'array',
+        'variants' => 'array', 'modifiers' => 'array', 'dietary' => 'array', 'attributes' => 'array', 'cost_usd' => 'float',
         'price_zig' => 'float', 'special_price_zig' => 'float', 'step_kg' => 'float', 'unavailable_until' => 'datetime',
     ];
 

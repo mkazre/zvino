@@ -218,6 +218,7 @@ return [
         'fields' => [
             'google_maps_key' => ['type' => 'string', 'label' => 'Google Maps API key (server)', 'default' => '', 'secret' => true],
             'google_maps_browser_key' => ['type' => 'string', 'label' => 'Google Maps API key (web/app)', 'default' => ''],
+            'import_image_hosts' => ['type' => 'string', 'label' => 'Product import: allowed photo websites', 'default' => 'cdn-s7m8bx8sebjz.vultrcdn.com, tmpnponline.co.zw', 'help' => 'Comma-separated. Imported product photos are only copied from these sites.'],
             'google_maps_map_id' => ['type' => 'string', 'label' => 'Google Maps Map ID', 'default' => '46d01f3a77fd271af24a1b47', 'help' => 'From Google Cloud → Map management (JavaScript, vector). Needed for the map pins.'],
             'analytics_id' => ['type' => 'string', 'label' => 'Google Analytics ID', 'default' => ''],
             'meta_pixel_id' => ['type' => 'string', 'label' => 'Meta Pixel ID', 'default' => ''],

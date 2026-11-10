@@ -87,6 +87,7 @@ export interface Item {
     category_id: number | null;
     name: string;
     description: string | null;
+    size?: string | null;
     image: string | null;
     price: Money;
     special_price: Money | null;

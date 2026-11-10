@@ -173,6 +173,7 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
             <div className="-mx-6 -mt-2 grid max-h-[60vh] gap-5 overflow-y-auto px-6">
                 {item.image && <img src={item.image} alt="" className="aspect-[16/9] w-full rounded-xl object-cover" />}
                 {item.description && <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>}
+                {item.size && <p className="text-muted-foreground text-xs font-medium">Size: {item.size}</p>}
                 <p className="tabular text-sm"><b>{zig(base)}</b> {alt(base) && <span className="text-muted-foreground">· {alt(base)}</span>}{item.calories && <span className="text-muted-foreground"> · {item.calories} kcal</span>}</p>
                 {item.variants.length > 0 && (
                     <fieldset>
