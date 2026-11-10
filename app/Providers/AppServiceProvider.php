@@ -31,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
         // Short, stable names in polymorphic columns (ledger, payouts, payments).
         Relation::enforceMorphMap([
             'vendor' => Vendor::class,
+            'supplier_source' => \App\Models\SupplierSource::class,
             'driver' => Driver::class,
             'gift_card' => \App\Models\GiftCard::class,
             'subscription' => \App\Models\Subscription::class,

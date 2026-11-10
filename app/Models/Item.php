@@ -16,6 +16,7 @@ class Item extends Model
     ];
 
     public function vendor(): BelongsTo { return $this->belongsTo(Vendor::class); }
+    public function supplierProduct(): BelongsTo { return $this->belongsTo(SupplierProduct::class); }
     public function category(): BelongsTo { return $this->belongsTo(Category::class); }
     public function modifierGroups(): BelongsToMany { return $this->belongsToMany(ModifierGroup::class)->withPivot('sort_order')->orderByPivot('sort_order'); }
 
