@@ -218,7 +218,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
     };
 
     const add = (replace = false) => {
-        const ok = cart.add({ id: store.id, name: store.name, min_order_zig: store.min_order.zig }, { item_id: item.id, name: perKg ? `${item.name} (per ${step} kg)` : item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
+        const ok = cart.add({ id: store.id, name: store.name, min_order_zig: store.min_order.zig, is_shopper_store: !!store.is_shopper_store }, { item_id: item.id, name: perKg ? `${item.name} (per ${step} kg)` : item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
         if (!ok) {
             Alert.alert('Start a new basket?', `Your basket has items from ${cart.store?.name}. Clear it and add from ${store.name}?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'New basket', onPress: () => add(true) }]);
             return;

@@ -27,6 +27,11 @@ interface OrderView {
     store: { id: number; name: string; logo: string | null; address: string | null; phone: string | null; lat: number | null; lng: number | null };
     driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null; located_at?: string | null; stops_before?: number } | null;
     live?: boolean;
+    shopping?: {
+        pref: string; started: boolean; finished: boolean; done: number; total: number;
+        changes: { name: string; status: 'missing' | 'partial' | 'replaced'; quantity: number; found_qty: number | null; replacement: { name: string; quantity: number } | null; refund: Money | null }[];
+        refund: Money | null;
+    } | null;
     delivery_pin: string | null; can_cancel: boolean; review: { vendor_rating: number } | null;
     receipt: { lines: { name: string; quantity: number; options: string[]; notes: string | null; unit: Money; total: Money }[]; totals: { label: string; amount: Money; help?: string }[]; total: Money; vat: Money; wallet_applied: Money | null; pdf_url: string };
     details: {
@@ -145,6 +150,7 @@ function Tracking({ v, split, dataLight, reload, cancel, onLive }: { v: OrderVie
     return (
         <>
             <Banner image={v.banner.image} title={v.banner.title} subtitle={v.banner.subtitle} />
+            {v.shopping && (v.shopping.started || v.shopping.changes.length > 0) ? <ShoppingProgress s={v.shopping} /> : null}
             {v.live && (
                 <Pressable onPress={onLive} accessibilityRole="button" accessibilityLabel="Track your driver live" style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 22, backgroundColor: t.brand, opacity: pressed ? 0.9 : 1 })}>
                     <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="bicycle" size={24} color="#fff" /></View>
@@ -369,5 +375,26 @@ function Details({ v }: { v: OrderView }) {
                 <Totals v={v} />
             </View>
         </>
+    );
+}
+
+/** Zvino-run store: how far the shopper is, and anything swapped or not available. */
+function ShoppingProgress({ s }: { s: NonNullable<OrderView['shopping']> }) {
+    const t = useTheme();
+    const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
+    return (
+        <Card style={{ gap: 10 }}>
+            <Row justify="space-between"><Text variant="label">🛒 {s.finished ? 'Shopping done' : 'Your shopper is picking your items'}</Text><Text variant="caption">{s.done} of {s.total}</Text></Row>
+            <View style={{ height: 8, borderRadius: 4, backgroundColor: t.subtle, overflow: 'hidden' }}><View style={{ width: `${pct}%`, height: 8, backgroundColor: t.brand }} /></View>
+            {s.changes.map((c, i) => (
+                <Row key={i} justify="space-between" align="flex-start" gap={10}>
+                    <Text style={{ flex: 1 }}>
+                        {c.status === 'replaced' && c.replacement ? `${c.name} → ${c.replacement.quantity}× ${c.replacement.name}` : c.status === 'partial' ? `${c.name}: ${c.found_qty} of ${c.quantity} available` : `${c.name}: not available`}
+                    </Text>
+                    {c.refund ? <Text variant="label" color="brand">+{zig(c.refund.zig)}</Text> : null}
+                </Row>
+            ))}
+            {s.refund ? <Text variant="caption">{zig(s.refund.zig)} for missing or cheaper items {s.finished ? 'is in' : 'will go back to'} your Zvino wallet. You’re never charged more for a replacement.</Text> : null}
+        </Card>
     );
 }

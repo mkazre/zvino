@@ -33,7 +33,7 @@ interface Props {
     methods: string[];
     tipPresets: number[];
     scheduleDays: number;
-    store: { availability: { is_open: boolean; next_open_at: string | null }; offers_delivery: boolean; offers_pickup: boolean; accepts_scheduled: boolean; address: string | null } | null;
+    store: { availability: { is_open: boolean; next_open_at: string | null }; offers_delivery: boolean; offers_pickup: boolean; accepts_scheduled: boolean; address: string | null; is_shopper_store?: boolean } | null;
     cities: string[];
     codLimit: number;
     phone: string;
@@ -80,6 +80,7 @@ export default function Checkout(p: Props) {
         split_with: [] as { name: string; phone: string; amount: string }[],
         round_up: false as boolean,
         no_cutlery: true as boolean,
+        substitution_pref: 'best' as 'best' | 'contact' | 'refund',
     });
     const subtotal = server.totals.subtotal.zig;
     const tip = tipPct === 'custom' ? Number(customTip) || 0 : Math.round(subtotal * (tipPct / 100));
@@ -288,9 +289,26 @@ export default function Checkout(p: Props) {
                         </Block>
                     )}
 
+                    {p.store?.is_shopper_store && (
+                        <Block title={t('If an item is out of stock')}>
+                            <div className="grid gap-2">
+                                {([
+                                    ['best', 'Let my shopper choose a similar item', 'Same or better. You’re never charged more; cheaper swaps are refunded.'],
+                                    ['contact', 'Call me first', 'Your shopper will phone you before swapping anything.'],
+                                    ['refund', 'Don’t replace, just refund', 'Missing items go back to your Zvino wallet.'],
+                                ] as const).map(([v, title, sub]) => (
+                                    <label key={v} className={cn('flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition', form.data.substitution_pref === v ? 'border-foreground ring-foreground ring-1' : 'hover:border-foreground/40')}>
+                                        <input type="radio" name="substitution_pref" className="mt-1 accent-[var(--color-brand)]" checked={form.data.substitution_pref === v} onChange={() => form.setData('substitution_pref', v)} />
+                                        <span><span className="block font-semibold">{t(title)}</span><span className="text-muted-foreground block text-sm">{t(sub)}</span></span>
+                                    </label>
+                                ))}
+                            </div>
+                        </Block>
+                    )}
+
                     <Block title={t('Extras')}>
                         <div className="grid gap-2">
-                            <Toggle checked={form.data.no_cutlery} onChange={(v) => form.setData('no_cutlery', v)} icon={Leaf} title={t('No cutlery or straws')} sub={t('Less plastic. Thank you!')} />
+                            {!p.store?.is_shopper_store && <Toggle checked={form.data.no_cutlery} onChange={(v) => form.setData('no_cutlery', v)} icon={Leaf} title={t('No cutlery or straws')} sub={t('Less plastic. Thank you!')} />}
                             {p.charity && (
                                 <Toggle checked={form.data.round_up} onChange={(v) => form.setData('round_up', v)} icon={Heart} title={`Round up for ${p.charity.name}`} sub={donation > 0 || !form.data.round_up ? `Add ${zig(form.data.round_up ? donation : Math.round((Math.ceil(baseTotal / step) * step - baseTotal) * 100) / 100)}. Every cent goes to the charity` : 'Your total is already round'} />
                             )}

@@ -68,6 +68,8 @@ export default function Checkout() {
     };
     const [roundUp, setRoundUp] = useState(false);
     const [noCutlery, setNoCutlery] = useState(true);
+    const [subPref, setSubPref] = useState<'best' | 'contact' | 'refund'>('best');
+    const shopperStore = !!cart.store?.is_shopper_store;
     const [quote, setQuote] = useState<Quote | null>(null);
     const [placing, setPlacing] = useState(false);
     const [waiting, setWaiting] = useState<{ paymentId: number; orderId: number } | null>(null);
@@ -112,7 +114,7 @@ export default function Checkout() {
                 phone: ['ecocash', 'onemoney', 'innbucks'].includes(method) ? normalisePhone(phone) : null, tip, notes, dropoff,
                 use_wallet: useWallet && method !== 'wallet', cash_part: cashPart || null,
                 split_with: shares.length ? shares.map((f) => ({ name: f.name || null, phone: normalisePhone(f.phone), amount: Number(f.amount) })) : null,
-                prescription, round_up: roundUp, no_cutlery: noCutlery,
+                prescription, round_up: roundUp, no_cutlery: noCutlery, substitution_pref: shopperStore ? subPref : undefined,
             });
             const orderId = res.order.data?.id ?? res.order.id!;
             cart.clear();
@@ -267,8 +269,25 @@ export default function Checkout() {
                     </Card>
                 )}
 
+                {shopperStore && (
+                    <Card style={{ gap: 10 }}>
+                        <Text variant="label">{tr('If an item is out of stock')}</Text>
+                        {([
+                            ['best', 'Let my shopper choose a similar item', 'You’re never charged more; cheaper swaps are refunded.'],
+                            ['contact', 'Call me first', 'Your shopper phones you before swapping anything.'],
+                            ['refund', 'Don’t replace, just refund', 'Missing items go back to your Zvino wallet.'],
+                        ] as const).map(([v, title, sub]) => (
+                            <Pressable key={v} onPress={() => setSubPref(v)} accessibilityRole="radio" accessibilityState={{ selected: subPref === v }}
+                                style={{ flexDirection: 'row', gap: 12, padding: 12, borderRadius: 14, borderWidth: subPref === v ? 2 : 1, borderColor: subPref === v ? t.ink : t.border }}>
+                                <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: subPref === v ? t.brand : t.faint, alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>{subPref === v ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.brand }} /> : null}</View>
+                                <View style={{ flex: 1 }}><Text variant="label">{tr(title)}</Text><Text variant="caption">{tr(sub)}</Text></View>
+                            </Pressable>
+                        ))}
+                    </Card>
+                )}
+
                 <Card>
-                    <Toggle value={noCutlery} onChange={setNoCutlery} label={`🌿  ${tr('No cutlery or straws')}`} description={tr('Less plastic. Thank you!')} />
+                    {!shopperStore && <Toggle value={noCutlery} onChange={setNoCutlery} label={`🌿  ${tr('No cutlery or straws')}`} description={tr('Less plastic. Thank you!')} />}
                     {quote?.round_up && (quote.round_up.amount.zig > 0 || roundUp) && (
                         <Toggle value={roundUp} onChange={setRoundUp} label={`❤️  Round up for ${quote.round_up.charity}`} description={`Add ${zig(quote.round_up.amount.zig)}. Every cent goes to the charity`} />
                     )}

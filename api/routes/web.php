@@ -44,6 +44,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
             Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
             Route::get('orders/{order}/prescription', [OrderController::class, 'prescription'])->name('orders.prescription');
+            Route::get('orders/{order}/till-slip', [OrderController::class, 'tillSlip'])->name('orders.till-slip');
             Route::get('reviews', [ReviewController::class, 'index'])->name('reviews');
         });
         Route::middleware('can:orders.manage')->group(function () {

@@ -54,6 +54,13 @@ class OrderService
         'cancelled' => ['Order cancelled', 'Your order was cancelled.'],
     ];
 
+    /** Zvino-run stores (a Zvino shopper buys the items). */
+    private const SHOPPER_MESSAGES = [
+        'accepted' => ['Order confirmed', 'A Zvino shopper will pick your items at {store}.'],
+        'preparing' => ['Shopping started', 'Your shopper is picking your items at {store}.'],
+        'picked_up' => ['On the way', 'Shopping done! Your order is on its way.'],
+    ];
+
     public function __construct(
         private CartService $carts,
         private PaynowGateway $paynow,
@@ -178,6 +185,7 @@ class OrderService
                 'fulfilment' => $data['fulfilment'],
                 'dropoff' => $data['dropoff'] ?? 'hand_to_me',
                 'no_cutlery' => (bool) ($data['no_cutlery'] ?? false),
+                'substitution_pref' => $vendor->is_shopper_store ? ($data['substitution_pref'] ?? 'best') : null,
                 'payment_method' => $data['payment_method'],
                 'notes' => $data['notes'] ?? null,
                 'prescription_path' => $data['prescription_path'] ?? null,
@@ -575,8 +583,9 @@ class OrderService
             }
         }
 
-        if ($order->user && isset(self::STATUS_MESSAGES[$status])) {
-            [$title, $body] = self::STATUS_MESSAGES[$status];
+        $shopperStore = (bool) $order->vendor?->is_shopper_store && $order->fulfilment === 'delivery';
+        if ($order->user && isset(self::STATUS_MESSAGES[$status]) && ! ($shopperStore && $status === 'ready')) {
+            [$title, $body] = $shopperStore && isset(self::SHOPPER_MESSAGES[$status]) ? self::SHOPPER_MESSAGES[$status] : self::STATUS_MESSAGES[$status];
             $locale = $order->user->locale ?? 'en';
             $title = I18n::t($title, $locale);
             $body = I18n::t($body, $locale, [

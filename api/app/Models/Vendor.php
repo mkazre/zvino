@@ -14,7 +14,7 @@ class Vendor extends Model
         'is_featured' => 'boolean', 'rating' => 'float', 'commission_pct' => 'float',
         'delivery_fee_zig' => 'float', 'min_order_zig' => 'float', 'lat' => 'float', 'lng' => 'float',
         'tags' => 'array', 'delivery_radius_km' => 'float', 'offers_delivery' => 'boolean',
-        'offers_pickup' => 'boolean', 'accepts_scheduled' => 'boolean', 'auto_accept' => 'boolean',
+        'offers_pickup' => 'boolean', 'accepts_scheduled' => 'boolean', 'auto_accept' => 'boolean', 'is_shopper_store' => 'boolean',
         'is_busy' => 'boolean', 'power_out' => 'boolean', 'paused_until' => 'datetime', 'payout_details' => 'array', 'legal' => 'array',
     ];
 

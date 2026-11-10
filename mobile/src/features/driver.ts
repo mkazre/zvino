@@ -29,6 +29,7 @@ export interface HeatCell { lat: number; lng: number; intensity: number; orders_
 
 export interface Offer {
     id: number;
+    shopping?: { items: number; expected_till_usd: number } | null;
     /** Joins a run the driver already has from this store. */
     batch?: { with: number; extra_km: number } | null;
     seconds_left: number;
@@ -64,6 +65,8 @@ export interface DriverRoute { stops: RouteStop[]; total_km: number; nav_url: st
 
 export interface Job {
     id: number;
+    /** Zvino-run store: shop the order first. */
+    shopping?: { started: boolean; finished: boolean; items: number; lines: number; expected_till_usd: number } | null;
     /** Place in the planned drop-off order (1 = first). */
     stop?: number | null;
     stops_total?: number;

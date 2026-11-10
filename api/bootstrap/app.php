@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-        $middleware->alias(['staff' => EnsureStaffRole::class]);
+        $middleware->alias(['staff' => EnsureStaffRole::class, 'throttle' => \App\Http\Middleware\ThrottlePerRoute::class]); // each route counts separately
 
         // Customers go to phone sign-in; staff screens go to the email login.
         $middleware->redirectGuestsTo(fn ($request) => $request->is('dashboard', 'admin', 'admin/*', 'settings/*') ? route('login') : route('site.signin'));

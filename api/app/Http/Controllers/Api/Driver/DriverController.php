@@ -161,6 +161,7 @@ class DriverController extends Controller
             'dropoff_area' => $o->order->address?->suburb ?? $o->order->address?->city,
             'items_count' => $o->order->items()->sum('quantity'),
             'safety' => $this->safety($o->order),
+            'shopping' => $o->order->vendor->is_shopper_store ? ['items' => (int) $o->order->items()->sum('quantity'), 'expected_till_usd' => \App\Services\ShopperService::expectedTillUsd($o->order)] : null,
             // Added to a run the driver already has from this store.
             'batch' => ($n = $driver->activeOrders()->count()) > 0 ? ['with' => $n, 'extra_km' => round(RoutePlanner::detourKm([(float) $o->order->vendor->lat, (float) $o->order->vendor->lng], $driver->activeOrders()->with('address')->get(), $o->order), 1)] : null,
         ]));
@@ -204,6 +205,7 @@ class DriverController extends Controller
     public function pickup(Request $request, Order $order)
     {
         $this->ownJob($request, $order);
+        abort_if($order->vendor->is_shopper_store && ! $order->shopping_finished_at, 422, 'Finish shopping (and add the till slip) first.');
         if (in_array($order->status, ['accepted', 'preparing'], true)) {
             $order = $this->orders->setStatus($order, 'ready');
         }
@@ -413,6 +415,8 @@ class DriverController extends Controller
             'requires_pin' => Setting::get('delivery.require_delivery_pin') && $o->dropoff === 'hand_to_me',
             'collect_cash' => $o->cashDue() > 0 ? Money::both($o->cashDue()) : null,
             'items' => $o->items->map(fn ($i) => ['name' => $i->name, 'quantity' => $i->quantity]),
+            // Zvino-run store: the driver shops the order first.
+            'shopping' => $o->vendor->is_shopper_store ? ['started' => (bool) $o->shopping_started_at, 'finished' => (bool) $o->shopping_finished_at, 'items' => $o->items->sum('quantity'), 'lines' => $o->items->count(), 'expected_till_usd' => \App\Services\ShopperService::expectedTillUsd($o)] : null,
             'pay' => Money::both($o->driver_pay_zig + $o->tip_zig),
             'notes' => $o->notes,
             'safety' => $this->safety($o),

@@ -135,7 +135,7 @@ export default function Shift() {
                     const left = Math.max(0, o.seconds_left);
                     return (
                         <Card key={o.id} style={{ borderWidth: 2, borderColor: t.brand, gap: 10 }}>
-                            <Row justify="space-between"><Row gap={6}><Badge tone="brand">New delivery</Badge>{o.batch ? <Badge tone="gold">{`Adds to your run · +${o.batch.extra_km} km`}</Badge> : null}</Row><Text variant="label" color={left < 10 ? 'red' : 'muted'}>{left}s</Text></Row>
+                            <Row justify="space-between"><Row gap={6}><Badge tone="brand">New delivery</Badge>{o.batch ? <Badge tone="gold">{`Adds to your run · +${o.batch.extra_km} km`}</Badge> : null}{o.shopping ? <Badge tone="dark">{`Shop & deliver · ${o.shopping.items} items`}</Badge> : null}</Row><Text variant="label" color={left < 10 ? 'red' : 'muted'}>{left}s</Text></Row>
                             <Text variant="display">{zig(o.pay.zig)}</Text>
                             {o.tip.zig > 0 && <Text variant="caption" color="brand">Includes {zig(o.tip.zig)} tip</Text>}
                             <Row gap={10}><Ionicons name="storefront-outline" size={18} color={t.ink} /><Text variant="label" style={{ flex: 1 }}>{o.store.name}</Text><Text variant="caption">{o.pickup_km ?? '?'} km away</Text></Row>

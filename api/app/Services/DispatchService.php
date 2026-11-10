@@ -54,7 +54,8 @@ class DispatchService
         $offer = $order->dispatchOffers()->create([
             'driver_id' => $driver->id,
             'pickup_km' => Geo::roadKm($driver->lat, $driver->lng, $vendor->lat, $vendor->lng),
-            'pay_zig' => round(($order->driver_pay_zig ?: $this->pricing->driverPay($order->distance_km)) * (1 + app(DriverTierService::class)->bonusPct($driver->tier ?? 'bronze') / 100), 2),
+            'pay_zig' => round(($order->driver_pay_zig ?: $this->pricing->driverPay($order->distance_km)) * (1 + app(DriverTierService::class)->bonusPct($driver->tier ?? 'bronze') / 100)
+                + ($vendor->is_shopper_store ? (float) Setting::get('delivery.shopper_fee_zig') : 0), 2),
             'expires_at' => now()->addSeconds(Setting::get('delivery.offer_timeout_seconds')),
         ]);
 

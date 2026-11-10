@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { navigateUrl, type Job } from '@/features/driver';
@@ -31,7 +31,7 @@ export default function JobScreen() {
         if (!j) router.replace('/shift');
         else setJob(j);
     }, [id]);
-    useEffect(() => { load(); }, [load]);
+    useFocusEffect(useCallback(() => { load(); }, [load])); // refresh after coming back from shopping
 
     if (!job) return <Loading />;
     const delivering = ['picked_up', 'arriving'].includes(job.status);
@@ -91,7 +91,7 @@ export default function JobScreen() {
             </Row>
             <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
                 <Card tone="inverse" style={{ gap: 6 }}>
-                    <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>{delivering ? 'DELIVER TO' : 'PICK UP FROM'}</Text>
+                    <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>{delivering ? 'DELIVER TO' : job.shopping ? 'SHOP AT' : 'PICK UP FROM'}</Text>
                     <Text variant="title" color="onInverse">{delivering ? job.customer.name ?? 'Customer' : job.store.name}</Text>
                     <Text style={{ color: 'rgba(255,255,255,0.8)' }}>{delivering ? `${job.dropoff?.line1}${job.dropoff?.suburb ? `, ${job.dropoff.suburb}` : ''}` : job.store.address}</Text>
                     {delivering && job.dropoff?.landmark && <Text style={{ color: '#17C74A' }}>📍 {job.dropoff.landmark}</Text>}
@@ -126,7 +126,11 @@ export default function JobScreen() {
                 {delivering ? (
                     <Button title={tr('Delivered')} tone="primary" loading={busy} disabled={(job.requires_pin && pin.length !== 4) || (job.dropoff_type === 'leave_at_door' && !photo)} onPress={deliver} />
                 ) : (
-                    <Button title={tr('Picked up')} loading={busy} onPress={pickup} />
+                    job.shopping && !job.shopping.finished ? (
+                        <Button title={job.shopping.started ? 'Continue shopping' : `Start shopping (${job.shopping.items} items)`} tone="primary" onPress={() => router.push(`/shop/${job.id}`)} icon={<Ionicons name="cart" size={18} color="#fff" />} />
+                    ) : (
+                        <Button title={tr('Picked up')} loading={busy} onPress={pickup} />
+                    )
                 )}
             </View>
         </SafeAreaView>

@@ -13,7 +13,7 @@ export interface CartLine {
     modifiers: string[];
     notes?: string;
 }
-export interface CartStore { id: number; name: string; min_order_zig: number }
+export interface CartStore { id: number; name: string; min_order_zig: number; is_shopper_store?: boolean }
 
 interface CartCtx {
     store: CartStore | null;

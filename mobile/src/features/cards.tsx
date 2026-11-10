@@ -23,6 +23,7 @@ export interface Store {
     has_offers: boolean;
     city: string;
     kind?: string;
+    is_shopper_store?: boolean;
     rating_count?: number;
     distance_km?: number | null;
     availability?: { is_open: boolean; reason: string | null; next_open_at: string | null } | null;

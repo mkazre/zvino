@@ -8,6 +8,7 @@ export default function DriverLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="driver-apply" />
             <Stack.Screen name="job/[id]" />
+            <Stack.Screen name="shop/[id]" />
         </Stack>
     );
 }

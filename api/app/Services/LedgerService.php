@@ -32,6 +32,11 @@ class LedgerService
             if ($storeFundedDiscount > 0) {
                 $this->entry($vendor, $order, 'adjustment', -$storeFundedDiscount, "Store promo {$order->reference}");
             }
+            if ($vendor->is_shopper_store) {
+                // Zvino-run store: Zvino bought the items at the till, so the sales stay with Zvino.
+                $this->entry($vendor, $order, 'adjustment', -$vendorPayout, "Zvino-run store, sales kept by Zvino {$order->reference}");
+                $order->update(['vendor_payout_zig' => 0]);
+            }
 
             // Driver: trip pay + tip. Cash orders: the driver is holding Zvino's money.
             if ($driver = $order->driver) {
