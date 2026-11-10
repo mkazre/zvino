@@ -81,6 +81,10 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::get('hampers', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'hampers'])->name('hampers');
             Route::post('hampers/{hamper?}', [\App\Http\Controllers\Admin\SpecialOrdersController::class, 'saveHamper'])->name('hampers.save');
             Route::get('catalog', [CatalogController::class, 'index'])->name('catalog');
+            Route::get('catalog/import', [\App\Http\Controllers\Admin\CatalogImportController::class, 'show'])->name('catalog.import');
+            Route::get('catalog/import/template', [\App\Http\Controllers\Admin\CatalogImportController::class, 'template'])->name('catalog.import.template');
+            Route::post('catalog/import/preview', [\App\Http\Controllers\Admin\CatalogImportController::class, 'preview'])->middleware('throttle:20,1')->name('catalog.import.preview');
+            Route::post('catalog/import/run', [\App\Http\Controllers\Admin\CatalogImportController::class, 'run'])->middleware('throttle:10,1')->name('catalog.import.run');
             Route::post('catalog/items', [CatalogController::class, 'store'])->name('catalog.store');
             Route::post('catalog/items/{item}', [CatalogController::class, 'update'])->name('catalog.update'); // POST for multipart
             Route::patch('catalog/items/{item}/toggle', [CatalogController::class, 'toggle'])->name('catalog.toggle');
