@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, Badge, Card, CardBody, CardFooter, CardHeader, Field, FormSection, Grid, Input, Page, Select, StatCard, StatusPill, Switch, TabBar, Textarea, Thumb } from '@/components/z';
 import AdminLayout from '@/layouts/admin-layout';
 import { label, timeAgo, zig } from '@/lib/money';
-import { Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { LiveMap } from '@/components/z';
 import { ArrowLeft, ExternalLink, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useState } from 'react';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
@@ -147,6 +148,7 @@ function ProfileForm({ v, cities, zones }: { v: Vendor; cities: string[]; zones:
                         <Field label="Zone"><Select value={data.zone_id} onChange={(e) => setData('zone_id', e.target.value)}><option value="">Auto</option>{zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}</Select></Field>
                         <Field label="Latitude"><Input value={data.lat} onChange={(e) => setData('lat', e.target.value)} /></Field>
                         <Field label="Longitude"><Input value={data.lng} onChange={(e) => setData('lng', e.target.value)} /></Field>
+                        <PinPicker lat={data.lat} lng={data.lng} onPick={(la, ln) => setData((d) => ({ ...d, lat: la.toFixed(7), lng: ln.toFixed(7) }))} />
                         <Field label="Phone"><Input value={data.phone} onChange={(e) => setData('phone', e.target.value)} /></Field>
                         <Field label="Email"><Input value={data.email} onChange={(e) => setData('email', e.target.value)} /></Field>
                     </div>
@@ -222,5 +224,18 @@ function HoursForm({ v }: { v: Vendor }) {
             </div>
             <CardFooter><Button onClick={() => router.put(`/admin/vendors/${v.id}/hours`, { hours, closures } as never, { preserveScroll: true })}>Save hours</Button></CardFooter>
         </Card>
+    );
+}
+
+/** Click (or tap) the map to place the store exactly: delivery distances and fees use this point. */
+function PinPicker({ lat, lng, onPick }: { lat: string | number; lng: string | number; onPick: (lat: number, lng: number) => void }) {
+    const { mapsKey } = usePage<{ mapsKey?: string | null }>().props;
+    const has = lat !== '' && lng !== '' && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng));
+    return (
+        <div className="col-span-2 grid gap-1">
+            <LiveMap apiKey={mapsKey} className="h-64" fitKey={has ? 'pin' : undefined} onMapClick={onPick}
+                markers={has ? [{ id: 'store', lat: Number(lat), lng: Number(lng), kind: 'store', label: 'Store', pinned: true }] : []} />
+            <div className="text-muted-foreground text-xs">Click the map on the store’s building to set its exact position.</div>
+        </div>
     );
 }

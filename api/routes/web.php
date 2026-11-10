@@ -96,6 +96,19 @@ Route::middleware(['auth', 'staff'])->group(function () {
             Route::delete('catalog/modifier-groups/{group}', [CatalogController::class, 'destroyGroup'])->name('catalog.groups.destroy');
         });
 
+        // Supplier integrations (TM Pick n Pay): catalogue, markups, branch stores, weekly sync.
+        Route::middleware(['can:vendors.manage', EnsureMarketplaceMode::class])->prefix('suppliers/tmpnp')->name('suppliers.')->group(function () {
+            $c = \App\Http\Controllers\Admin\SupplierController::class;
+            Route::get('/', [$c, 'show'])->name('show');
+            Route::get('status', [$c, 'status'])->name('status');
+            Route::post('settings', [$c, 'settings'])->name('settings');
+            Route::post('refresh', [$c, 'refresh'])->middleware('throttle:6,1')->name('refresh');
+            Route::post('categories', [$c, 'categories'])->name('categories');
+            Route::post('categories/{category}/markup', [$c, 'categoryMarkup'])->name('categories.markup');
+            Route::post('products/markup', [$c, 'productMarkup'])->name('products.markup');
+            Route::post('stores', [$c, 'stores'])->name('stores');
+            Route::post('sync', [$c, 'sync'])->middleware('throttle:4,1')->name('sync');
+        });
         Route::middleware(['can:vendors.manage', EnsureMarketplaceMode::class])->group(function () {
             Route::get('vendors', [VendorController::class, 'index'])->name('vendors');
             Route::post('vendors', [VendorController::class, 'store'])->name('vendors.store');

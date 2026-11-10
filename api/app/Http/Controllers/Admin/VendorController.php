@@ -46,6 +46,7 @@ class VendorController extends AdminController
         $delivered = fn () => Order::where('vendor_id', $vendor->id)->where('status', 'delivered')->where('created_at', '>=', $from);
 
         return Inertia::render('admin/vendor-show', [
+            'mapsKey' => \App\Models\Setting::get('integrations.google_maps_browser_key'),
             'vendor' => $vendor->toArray() + ['availability' => $availability->status($vendor), 'balance_zig' => $vendor->balance()],
             'stats' => [
                 'orders_30d' => $delivered()->count(),

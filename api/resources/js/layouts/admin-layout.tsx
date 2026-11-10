@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Command } from 'cmdk';
-import { BarChart3, Bell, Bike, Building2, Calculator, ClipboardCheck, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Smartphone, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
+import { BarChart3, Truck, Bell, Bike, Building2, Calculator, ClipboardCheck, ChefHat, ChevronDown, CookingPot, CreditCard, FileClock, Gift, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Map, Megaphone, Menu, Moon, Package, Radar, ReceiptText, RotateCcw, Search, Settings, ShieldCheck, Smartphone, Star, Store, Sun, Users, UtensilsCrossed, Wallet, X, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
@@ -46,6 +46,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
         items: [
             { title: 'Stores', href: '/admin/vendors', icon: Store, can: 'vendors.manage', marketplaceOnly: true },
             { title: 'Menu', href: '/admin/catalog', icon: UtensilsCrossed, can: 'catalog.manage' },
+            { title: 'Suppliers', href: '/admin/suppliers/tmpnp', icon: Truck, can: 'vendors.manage', marketplaceOnly: true },
             { title: 'Hampers', href: '/admin/hampers', icon: Package, can: 'catalog.manage' },
         ],
     },

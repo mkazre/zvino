@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Schedule;
 // scheduler every minute, which drains the queue and runs the order engine.
 //   * * * * * cd /home/USER/zvino && php artisan schedule:run >> /dev/null 2>&1
 Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping();
+// Supplier syncs (TM Pick n Pay) have their own worker, so long catalogue updates never delay order alerts.
+Schedule::command('queue:work --queue=supplier --stop-when-empty --max-time=50 --sleep=3')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('supplier-worker');
+// Weekly price & stock update: Monday night, when ordering is quiet.
+Schedule::call(function () {
+    foreach (\App\Models\SupplierSource::where('enabled', true)->where('weekly_sync', true)->get() as $source) {
+        \App\Services\SupplierSync::start($source, 'weekly');
+    }
+})->weeklyOn(1, '23:00')->timezone('Africa/Harare')->name('supplier-weekly-sync');
 
 Schedule::call(function () {
     $orders = app(OrderService::class);
