@@ -279,6 +279,7 @@ function Details({ v }: { v: OrderView }) {
 
 function HelpModal({ open, onClose, v }: { open: boolean; onClose: () => void; v: OrderView }) {
     const [cancel, setCancel] = useState(false);
+    const [ticket, setTicket] = useState(false);
     const wa = v.support.whatsapp ? `https://wa.me/${v.support.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi Zvino, I need help with order #${v.reference}`)}` : null;
     return (
         <>
@@ -287,10 +288,12 @@ function HelpModal({ open, onClose, v }: { open: boolean; onClose: () => void; v
                     {wa && <a href={wa} target="_blank" rel="noreferrer" className="hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><MessageCircle className="size-5" /> WhatsApp support</a>}
                     {v.support.phone && <a href={`tel:${v.support.phone}`} className="hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><Phone className="size-5" /> Call {v.support.phone}</a>}
                     {v.store.phone && !v.is_done && <a href={`tel:${v.store.phone}`} className="hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><Store className="size-5" /> Call {v.store.name}</a>}
+                    <button onClick={() => { onClose(); setTicket(true); }} className="bg-foreground text-background flex h-12 items-center gap-3 rounded-xl px-4 text-sm font-semibold hover:opacity-90"><Mail className="size-5" /> Send us a message</button>
                     {v.can_cancel && <button onClick={() => { onClose(); setCancel(true); }} className="text-zred hover:bg-muted flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-semibold"><X className="size-5" /> Cancel order</button>}
                 </div>
             </Modal>
             <CancelModal open={cancel} onClose={() => setCancel(false)} id={v.id} />
+            <TicketModal open={ticket} onClose={() => setTicket(false)} v={v} />
         </>
     );
 }
@@ -358,5 +361,29 @@ function ShoppingProgress({ s }: { s: NonNullable<OrderView['shopping']> }) {
             )}
             {s.refund && <p className="text-muted-foreground mt-3 text-sm">{zig(s.refund.zig)} for missing or cheaper items {s.finished ? 'is in' : 'will go back to'} your Zvino wallet. You’re never charged more for a replacement.</p>}
         </div>
+    );
+}
+
+const TOPICS = ['Missing or wrong item', 'Late delivery', 'Payment or refund', 'Quality of my order', 'Something else'];
+
+/** Support ticket about this order: pick a topic, write a message, done. */
+function TicketModal({ open, onClose, v }: { open: boolean; onClose: () => void; v: OrderView }) {
+    const needsEmail = !v.details.account.email;
+    const { data, setData, post, processing, errors, reset } = useForm({ topic: TOPICS[0], message: '', order_id: v.id, email: '' });
+    const send = () => post('/account/support', { preserveScroll: true, onSuccess: () => { reset('message'); onClose(); } });
+    return (
+        <Modal open={open} onClose={onClose} size="md" title="Send us a message" description={`About order #${v.reference}. Our team usually replies within the hour.`}
+            footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={processing || data.message.trim().length < 5} onClick={send}><Mail /> Send</Button></>}>
+            <div className="grid gap-4">
+                <div className="flex flex-wrap gap-2">
+                    {TOPICS.map((t) => (
+                        <button key={t} type="button" onClick={() => setData('topic', t)} className={cn('rounded-full border px-3.5 py-1.5 text-sm font-medium transition', data.topic === t ? 'bg-foreground text-background border-foreground' : 'hover:border-foreground/40')}>{t}</button>
+                    ))}
+                </div>
+                <Textarea value={data.message} onChange={(e) => setData('message', e.target.value)} rows={5} maxLength={3000} placeholder="Tell us what happened. The more detail, the faster we can help." autoFocus />
+                {errors.message && <p className="text-zred -mt-2 text-sm">{errors.message}</p>}
+                {needsEmail && <input type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder="Your email (optional, for our reply)" className="h-11 w-full rounded-xl border px-4 text-sm outline-none focus:border-[#222222] dark:bg-white/5" />}
+            </div>
+        </Modal>
     );
 }

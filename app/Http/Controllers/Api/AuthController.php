@@ -45,6 +45,22 @@ class AuthController extends Controller
         ]);
     }
 
+    /** App: "Continue with Google" with a Google ID token. Signed in already = link Google (adds the email). */
+    public function google(Request $request)
+    {
+        $data = $request->validate(['id_token' => ['required', 'string', 'max:4096'], 'device_name' => ['nullable', 'string', 'max:100']]);
+        $current = auth('sanctum')->user();
+        $user = \App\Support\GoogleAuth::resolveUser(\App\Support\GoogleAuth::profileFromIdToken($data['id_token']), $current);
+        abort_if($user->banned_at, 403, 'This account has been disabled. Contact support.');
+        $user->update(['last_seen_at' => now()]);
+
+        return response()->json([
+            'token' => $current ? null : $user->createToken($data['device_name'] ?? 'mobile')->plainTextToken,
+            'user' => $this->present($user),
+            'is_new' => $user->wasRecentlyCreated,
+        ]);
+    }
+
     public function me(Request $request)
     {
         return response()->json($this->present($request->user()));

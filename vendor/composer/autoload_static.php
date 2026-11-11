@@ -759,6 +759,7 @@ class ComposerStaticInit10ac234cfd3462f4dc8e46b3ede094c4
         'App\\Support\\CustomerLocation' => __DIR__ . '/../..' . '/app/Support/CustomerLocation.php',
         'App\\Support\\DeliveryEta' => __DIR__ . '/../..' . '/app/Support/DeliveryEta.php',
         'App\\Support\\Geo' => __DIR__ . '/../..' . '/app/Support/Geo.php',
+        'App\\Support\\GoogleAuth' => __DIR__ . '/../..' . '/app/Support/GoogleAuth.php',
         'App\\Support\\HomeFeed' => __DIR__ . '/../..' . '/app/Support/HomeFeed.php',
         'App\\Support\\I18n' => __DIR__ . '/../..' . '/app/Support/I18n.php',
         'App\\Support\\Money' => __DIR__ . '/../..' . '/app/Support/Money.php',

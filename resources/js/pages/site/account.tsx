@@ -75,23 +75,26 @@ function Orders({ orders }: { orders: Props['orders']['data'] }) {
     const live = orders.filter((o) => !['delivered', 'cancelled', 'rejected'].includes(o.status));
     const past = orders.filter((o) => ['delivered', 'cancelled', 'rejected'].includes(o.status));
     return (
-        <div className="grid gap-8">
-            {live.length > 0 && <div className="grid gap-3"><h2 className="font-bold">In progress</h2>{live.map((o) => <OrderRow key={o.id} o={o} live />)}</div>}
-            {past.length > 0 && <div className="grid gap-3"><h2 className="font-bold">Past orders</h2>{past.map((o) => <OrderRow key={o.id} o={o} />)}</div>}
+        <div className="grid min-w-0 grid-cols-1 gap-8">
+            {live.length > 0 && <div className="grid min-w-0 grid-cols-1 gap-3"><h2 className="font-bold">In progress</h2>{live.map((o) => <OrderRow key={o.id} o={o} live />)}</div>}
+            {past.length > 0 && <div className="grid min-w-0 grid-cols-1 gap-3"><h2 className="font-bold">Past orders</h2>{past.map((o) => <OrderRow key={o.id} o={o} />)}</div>}
         </div>
     );
 }
 
 function OrderRow({ o, live }: { o: Order & { review?: unknown }; live?: boolean }) {
     return (
-        <div className={cn('flex flex-wrap items-center gap-4 rounded-2xl border p-4', live && 'border-brand bg-brand-50/40')}>
-            <Link href={`/orders/${o.id}`} className="min-w-0 flex-1">
-                <div className="font-bold">{o.vendor?.name}</div>
-                <div className="text-muted-foreground truncate text-sm">{o.items?.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</div>
-                <div className="text-muted-foreground mt-1 text-xs">{new Date(o.created_at).toLocaleDateString('en-ZW', { dateStyle: 'medium' })} · {zig(o.totals.total.zig)} · <span className={cn('font-semibold', live ? 'text-brand-600' : '')}>{label(o.status === 'picked_up' ? 'on_the_way' : o.status)}</span></div>
+        <div className={cn('flex min-w-0 flex-col gap-3 overflow-hidden rounded-2xl border p-4 sm:flex-row sm:items-center sm:gap-4', live && 'border-brand bg-brand-50/40')}>
+            <Link href={`/orders/${o.id}`} className="block w-full min-w-0 sm:flex-1">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                    <div className="truncate font-bold">{o.vendor?.name}</div>
+                    <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold', live ? 'bg-brand/15 text-brand-700' : o.status === 'delivered' ? 'bg-muted' : 'bg-zred/10 text-zred')}>{label(o.status === 'picked_up' ? 'on_the_way' : o.status)}</span>
+                </div>
+                <div className="text-muted-foreground mt-0.5 line-clamp-2 text-sm break-words">{o.items?.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</div>
+                <div className="text-muted-foreground mt-1 text-xs">#{o.reference} · {new Date(o.created_at).toLocaleDateString('en-ZW', { dateStyle: 'medium' })} · <span className="tabular">{zig(o.totals.total.zig)}</span></div>
             </Link>
-            {live ? <Button variant="dark" size="sm" className="rounded-full" asChild><Link href={`/orders/${o.id}`}>Track</Link></Button> : o.status === 'delivered' && (
-                <div className="flex gap-2">
+            {live ? <Button variant="dark" size="sm" className="w-full shrink-0 rounded-full sm:w-auto" asChild><Link href={`/orders/${o.id}`}>Track</Link></Button> : o.status === 'delivered' && (
+                <div className="flex shrink-0 gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">
                     {!o.review && <Button variant="outline" size="sm" className="rounded-full" asChild><Link href={`/orders/${o.id}`}>Rate</Link></Button>}
                     <Button variant="dark" size="sm" className="rounded-full" onClick={() => router.post(`/orders/${o.id}/reorder`)}>Order again</Button>
                 </div>

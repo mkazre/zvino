@@ -1,3 +1,4 @@
+import { GoogleButton } from '@/components/google-button';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/z';
 import { router, useForm, usePage } from '@inertiajs/react';
@@ -5,7 +6,7 @@ import { BellRing, Mail, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-type User = { role: string; email: string | null } | null | undefined;
+type User = { role: string; email: string | null; name?: string | null } | null | undefined;
 const LAST = 'zvino.alerts.last';
 
 /** A short two-note chime (no audio file needed). Browsers only allow it after the visitor has clicked once. */
@@ -38,7 +39,7 @@ export const browserAlertsSupported = () => typeof window !== 'undefined' && 'No
  * system notification when allowed. Uses the same notifications the apps get as push.
  */
 export function OrderAlerts() {
-    const { auth } = usePage<{ auth?: { user?: User } }>().props;
+    const { auth, googleEnabled } = usePage<{ auth?: { user?: User }; googleEnabled?: boolean }>().props;
     const user = auth?.user;
     const customer = !!user && ['customer', 'driver'].includes(user.role);
     const last = useRef<number | null>(null);
@@ -83,7 +84,7 @@ export function OrderAlerts() {
         return () => { stopped = true; clearInterval(timer); };
     }, [customer]);
 
-    return customer ? <EmailPrompt email={user?.email ?? null} /> : null;
+    return customer ? <EmailPrompt email={user?.email ?? null} name={user?.name ?? ''} google={!!googleEnabled} /> : null;
 }
 
 /** "Turn on order alerts" card for the order page. */
@@ -101,10 +102,10 @@ export function EnableAlertsCard() {
 
 const ASKED = 'zvino.email.asked';
 
-/** Customers without an email: ask once per visit, so receipts and order updates can reach them. */
-function EmailPrompt({ email }: { email: string | null }) {
+/** Customers without an email (new phone sign-ups): ask once per visit, with a one-tap Google option. */
+function EmailPrompt({ email, name, google }: { email: string | null; name: string; google: boolean }) {
     const [open, setOpen] = useState(false);
-    const { data, setData, post, processing, errors } = useForm({ email: '' });
+    const { data, setData, post, processing, errors } = useForm({ email: '', ...(name ? {} : { name: '' }) });
     useEffect(() => {
         if (email) return;
         try {
@@ -112,7 +113,7 @@ function EmailPrompt({ email }: { email: string | null }) {
         } catch {
             return;
         }
-        const t = setTimeout(() => setOpen(true), 2500);
+        const t = setTimeout(() => setOpen(true), 1500);
         return () => clearTimeout(t);
     }, [email]);
     const close = () => {
@@ -125,10 +126,14 @@ function EmailPrompt({ email }: { email: string | null }) {
     };
     if (email || !open) return null;
     return (
-        <Modal open onClose={close} size="sm" title="Add your email" description="Get your receipts and order updates by email."
-            footer={<><Button variant="outline" onClick={close}><X /> Not now</Button><Button disabled={processing || !data.email} onClick={() => post('/account/profile', { preserveScroll: true, onSuccess: close })}><Mail /> Save</Button></>}>
-            <input type="email" autoFocus value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder="you@example.com" className="h-12 w-full rounded-xl border px-4 outline-none focus:border-[#222222] dark:bg-white/5" />
-            {errors.email && <p className="text-zred mt-1.5 text-sm">{errors.email}</p>}
+        <Modal open onClose={close} size="sm" title={name ? 'Add your email' : 'Finish your profile'} description="For your receipts, order updates and account recovery."
+            footer={<><Button variant="outline" onClick={close}><X /> Not now</Button><Button disabled={processing || !data.email || ('name' in data && !(data as { name?: string }).name)} onClick={() => post('/account/profile', { preserveScroll: true, onSuccess: close })}><Mail /> Save</Button></>}>
+            <div className="grid gap-3">
+                {google && <><GoogleButton back={typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'} label="Use my Google account" className="h-12 text-[15px]" /><div className="text-muted-foreground flex items-center gap-3 text-xs"><span className="h-px flex-1 bg-current opacity-20" />or type it<span className="h-px flex-1 bg-current opacity-20" /></div></>}
+                {!name && <input autoFocus value={(data as { name?: string }).name ?? ''} onChange={(e) => setData('name' as 'email', e.target.value)} placeholder="Your name" className="h-12 w-full rounded-xl border px-4 outline-none focus:border-[#222222] dark:bg-white/5" />}
+                <input type="email" autoFocus={!!name} value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder="you@example.com" className="h-12 w-full rounded-xl border px-4 outline-none focus:border-[#222222] dark:bg-white/5" />
+                {(errors.email || (errors as Record<string, string>).name) && <p className="text-zred text-sm">{errors.email ?? (errors as Record<string, string>).name}</p>}
+            </div>
         </Modal>
     );
 }

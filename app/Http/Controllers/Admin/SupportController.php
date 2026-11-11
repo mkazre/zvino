@@ -37,7 +37,14 @@ class SupportController extends AdminController
         $body = $request->validate(['body' => ['required', 'string', 'max:5000']])['body'];
         $ticket->messages()->create(['sender_id' => $request->user()->id, 'is_staff' => true, 'body' => $body]);
         $ticket->update(['status' => 'pending', 'assigned_to' => $ticket->assigned_to ?? $request->user()->id]);
-        $push->toUser($ticket->user, 'support', 'Zvino Support replied', \Illuminate\Support\Str::limit($body, 120), ['ticket_id' => $ticket->id]);
+        $push->toUser($ticket->user, 'support', 'Zvino Support replied', \Illuminate\Support\Str::limit($body, 120), ['ticket_id' => $ticket->id, 'order_id' => $ticket->order_id]);
+        if ($ticket->user->email && config('mail.default') !== 'log') {
+            try {
+                \Illuminate\Support\Facades\Mail::to($ticket->user->email)->queue(new \App\Mail\ZvinoMail("Re: {$ticket->subject} (ticket #{$ticket->id})", 'Zvino Support replied', [$body]));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         return back()->with('success', 'Reply sent.');
     }
