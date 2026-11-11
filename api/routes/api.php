@@ -36,6 +36,7 @@ Route::middleware('throttle:5,1')->group(function () {
     Route::get('i18n/{locale}', fn (string $locale) => response()->json(['locale' => $locale, 'languages' => \App\Support\I18n::LOCALES, 'strings' => (object) \App\Support\I18n::dictionary($locale)])->header('Cache-Control', 'public, max-age=3600'));
     Route::post('auth/otp/request', [AuthController::class, 'requestOtp']);
     Route::post('auth/otp/verify', [AuthController::class, 'verifyOtp']);
+    Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:20,1');
 });
 
 Route::post('payments/webhook/{provider}', [PaymentController::class, 'webhook']);

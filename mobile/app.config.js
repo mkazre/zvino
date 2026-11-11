@@ -43,6 +43,9 @@ module.exports = ({ config }) => ({
     permissions: VARIANT === 'driver' ? ['ACCESS_BACKGROUND_LOCATION', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION'] : undefined,
     // Google Maps key for react-native-maps on Android (Settings → Integrations has the same key)
     config: process.env.GOOGLE_MAPS_ANDROID_KEY ? { googleMaps: { apiKey: process.env.GOOGLE_MAPS_ANDROID_KEY } } : undefined,
+    // Push notifications on Android need Firebase (FCM): an EAS file secret GOOGLE_SERVICES_JSON,
+    // or google-services.json next to this file. One Firebase project holds all three app ids.
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? (require('fs').existsSync(require('path').join(__dirname, 'google-services.json')) ? './google-services.json' : undefined),
   },
   plugins: [
     ...config.plugins.filter((p) => p !== 'expo-audio'),

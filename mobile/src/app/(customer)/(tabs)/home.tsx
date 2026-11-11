@@ -14,6 +14,7 @@ import { zig } from '@/lib/money';
 import { useOnReconnect } from '@/lib/network';
 import { useImg } from '@/lib/prefs';
 import { Button, Empty, Loading, Logo, Row, Screen, SectionTitle, Text, useTheme } from '@/ui';
+import { withMeal } from '@/lib/meal-time';
 
 export interface Block { id: number; type: string; title: string | null; subtitle: string | null; cta_label: string | null; link_to: string | null; payload: Record<string, unknown>; data: unknown }
 interface Layout { platform_mode: 'single' | 'marketplace'; single_vendor: { data: Store } | Store | null; nearby?: { has_location: boolean; count: number }; blocks: Block[] }
@@ -141,7 +142,7 @@ function BlockView({ b }: { b: Block }) {
                 <Pressable onPress={() => go(b.link_to)} style={{ marginHorizontal: 16, marginTop: 20, borderRadius: 22, padding: 22, overflow: 'hidden', backgroundColor: str(p.background) || t.brand }}>
                     {p.bg_type === 'image' && str(p.bg_image) ? <Image source={{ uri: img(str(p.bg_image), 900) ?? undefined }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" /> : null}
                     {p.bg_type === 'image' && str(p.bg_image) ? <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} /> : null}
-                    <Text variant="title" style={{ color: '#fff' }}>{b.title}</Text>
+                    <Text variant="title" style={{ color: '#fff' }}>{withMeal(b.title)}</Text>
                     {str(p.accent_text) ? <Text variant="title" style={{ color: '#17C74A' }}>{str(p.accent_text)}</Text> : null}
                     {b.subtitle && <Text style={{ color: 'rgba(255,255,255,0.85)', marginTop: 6 }}>{b.subtitle}</Text>}
                     {b.cta_label && <View style={{ backgroundColor: '#fff', alignSelf: 'flex-start', borderRadius: 99, paddingHorizontal: 16, paddingVertical: 9, marginTop: 16 }}><Text variant="label" style={{ color: '#222222' }}>{b.cta_label}</Text></View>}

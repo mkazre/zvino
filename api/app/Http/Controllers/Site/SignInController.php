@@ -27,7 +27,7 @@ class SignInController extends Controller
             return redirect()->intended('/account');
         }
 
-        return Inertia::render('site/signin', ['seo' => ['title' => 'Sign in | Zvino'], 'phone' => session('signin_phone')]);
+        return Inertia::render('site/signin', ['seo' => ['title' => 'Sign in | Zvino'], 'phone' => session('signin_phone'), 'google' => \App\Support\GoogleAuth::enabled()]);
     }
 
     public function sendCode(Request $request)
@@ -64,6 +64,44 @@ class SignInController extends Controller
         $user->update(['last_seen_at' => now()]);
 
         return redirect()->intended($user->name ? '/' : '/account?welcome=1');
+    }
+
+    /** "Continue with Google" (also links Google to a signed-in customer, e.g. to add their email). */
+    public function google(Request $request)
+    {
+        abort_unless(\App\Support\GoogleAuth::enabled(), 404);
+        $state = \Illuminate\Support\Str::random(40);
+        session(['google_state' => $state, 'google_back' => $this->safeBack($request->query('back'))]);
+
+        return redirect()->away(\App\Support\GoogleAuth::authUrl(route('site.google.callback'), $state));
+    }
+
+    public function googleCallback(Request $request)
+    {
+        $back = session()->pull('google_back') ?: '/';
+        if ($request->query('error') || ! $request->query('code') || ! hash_equals((string) session()->pull('google_state'), (string) $request->query('state'))) {
+            return redirect($request->user() ? $back : '/signin')->with('error', 'Google sign-in was cancelled.');
+        }
+        try {
+            $g = \App\Support\GoogleAuth::profileFromCode((string) $request->query('code'), route('site.google.callback'));
+            $user = \App\Support\GoogleAuth::resolveUser($g, $request->user());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect($request->user() ? $back : '/signin')->with('error', collect($e->errors())->flatten()->first());
+        }
+        abort_if($user->banned_at, 403, 'This account has been disabled. Contact support.');
+        if (! $request->user()) {
+            Auth::login($user, remember: true);
+            $request->session()->regenerate();
+        }
+        $user->update(['last_seen_at' => now()]);
+
+        return redirect($back)->with('success', $request->user() ? 'Google account connected.' : 'Signed in with Google. Welcome, '.(explode(' ', $user->name)[0] ?: 'friend').'!');
+    }
+
+    /** Only same-site paths. */
+    private function safeBack(?string $back): string
+    {
+        return $back && str_starts_with($back, '/') && ! str_starts_with($back, '//') ? $back : '/';
     }
 
     public function logout(Request $request)

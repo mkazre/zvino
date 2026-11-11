@@ -2,6 +2,9 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { api, ApiError } from '@/lib/api';
+import { GoogleButton } from '@/features/google-signin';
+import { useSession } from '@/lib/session';
+import * as Device from 'expo-device';
 import { VARIANT } from '@/lib/config';
 import { normalisePhone } from '@/lib/money';
 import { Button, Row, Screen, Text, useTheme, Logo } from '@/ui';
@@ -13,6 +16,20 @@ export default function SignIn() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const valid = phone.replace(/\D/g, '').length >= 9;
+    const { signIn } = useSession();
+    const google = async (idToken: string) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await api.post<{ token: string }>('/auth/google', { id_token: idToken, device_name: Device.modelName ?? 'mobile' });
+            await signIn(res.token);
+            router.replace(VARIANT === 'driver' ? '/shift' : '/home');
+        } catch (e) {
+            setError(e instanceof ApiError ? e.friendly : 'Google sign-in didn’t work.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const send = async () => {
         setLoading(true);
@@ -43,6 +60,7 @@ export default function SignIn() {
                 </View>
                 <View style={{ gap: 12, paddingBottom: 12 }}>
                     <Button title="Continue" onPress={send} loading={loading} disabled={!valid} />
+                    {VARIANT === 'customer' && <GoogleButton onToken={google} onError={setError} disabled={loading} />}
                     <Text variant="caption" center>By continuing you agree to Zvino’s Terms and Privacy Policy.</Text>
                 </View>
             </KeyboardAvoidingView>

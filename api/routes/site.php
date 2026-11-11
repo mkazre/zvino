@@ -62,6 +62,8 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
     Route::post('signin/code', [SignInController::class, 'sendCode'])->middleware('throttle:10,1')->name('signin.code');
     Route::post('signin/verify', [SignInController::class, 'verify'])->middleware('throttle:10,1')->name('signin.verify');
     Route::post('signout', [SignInController::class, 'logout'])->name('signout');
+    Route::get('auth/google', [SignInController::class, 'google'])->middleware('throttle:20,1')->name('google');
+    Route::get('auth/google/callback', [SignInController::class, 'googleCallback'])->middleware('throttle:20,1')->name('google.callback');
 
     Route::middleware('auth')->group(function () {
         Route::get('checkout', [CheckoutController::class, 'show'])->name('checkout');
@@ -71,9 +73,10 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
 
         Route::get('account', [AccountController::class, 'index'])->name('account');
         // Browser alerts: order updates since the last one this browser saw (polled every ~15 s).
+        Route::post('account/support', [AccountController::class, 'supportTicket'])->middleware('throttle:6,1')->name('support.ticket');
         Route::get('account/alerts', function (\Illuminate\Http\Request $request) {
             $after = $request->integer('after');
-            $q = $request->user()->appNotifications()->whereIn('type', ['order_status', 'late_credit', 'split_declined']);
+            $q = $request->user()->appNotifications()->whereIn('type', ['order_status', 'late_credit', 'split_declined', 'support']);
             if (! $request->has('after')) {
                 return response()->json(['latest_id' => (int) $q->max('id'), 'items' => []]);
             }

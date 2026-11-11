@@ -16,6 +16,7 @@ import { usePrefs } from '@/lib/prefs';
 import { useChannel } from '@/lib/realtime';
 import { useOnReconnect } from '@/lib/network';
 import { LiveTrack } from '@/features/live-track';
+import { TicketSheet } from '@/features/ticket-sheet';
 
 /** Mirrors App\Support\OrderView (the same data drives the website order page). */
 interface OrderView {
@@ -57,6 +58,7 @@ export default function OrderScreen() {
     const [split, setSplit] = useState<Split>([]);
     const [tab, setTab] = useState<Tab>('tracking');
     const [live, setLive] = useState(liveParam === '1');
+    const [ticket, setTicket] = useState(false);
 
     const load = useCallback(async () => {
         const r = await api.get<{ view: OrderView; split?: Split }>(`/orders/${id}`).catch(() => null);
@@ -81,6 +83,7 @@ export default function OrderScreen() {
         const options: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [];
         if (v.support.whatsapp) options.push({ text: 'WhatsApp support', onPress: () => Linking.openURL(`https://wa.me/${v.support.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi Zvino, I need help with order #${v.reference}`)}`) });
         if (v.support.phone) options.push({ text: `Call ${v.support.phone}`, onPress: () => Linking.openURL(`tel:${v.support.phone}`) });
+        options.push({ text: 'Send us a message', onPress: () => setTicket(true) });
         if (v.can_cancel) options.push({ text: 'Cancel order', style: 'destructive', onPress: cancel });
         options.push({ text: 'Close', style: 'cancel' });
         Alert.alert('Need help with this order?', `Quote order #${v.reference}.`, options);
@@ -124,6 +127,7 @@ export default function OrderScreen() {
                 {tab === 'receipt' && <Receipt v={v} />}
                 {tab === 'details' && <Details v={v} />}
             </ScrollView>
+            <TicketSheet open={ticket} onClose={() => setTicket(false)} orderId={v.id} reference={v.reference} />
             <LiveTrack visible={live && (!!v.live || v.status === 'delivered')} view={v} onUpdate={setV} onClose={() => setLive(false)} />
         </View>
     );

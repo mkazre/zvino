@@ -76,6 +76,7 @@ class HandleInertiaRequests extends Middleware
                     ? $request->user()->addresses()->orderByDesc('is_default')->get(['id', 'label', 'line1', 'suburb', 'city', 'lat', 'lng'])
                     : [],
             ],
+            'googleEnabled' => fn () => \App\Support\GoogleAuth::enabled(),
             'mapsMapId' => fn () => Setting::get('integrations.google_maps_map_id') ?: null,
             'activeOrder' => fn () => \App\Support\ActiveOrder::for($request->user()),
             'platformMode' => fn () => Setting::platformMode(),

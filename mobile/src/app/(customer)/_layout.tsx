@@ -1,11 +1,14 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/ui';
 import { useOrderAlerts } from '@/features/order-alerts';
+import { ProfilePrompt } from '@/features/profile-prompt';
+import { View } from 'react-native';
 
 export default function CustomerLayout() {
     const t = useTheme();
     useOrderAlerts();
     return (
+        <View style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="store/[id]" />
@@ -18,5 +21,7 @@ export default function CustomerLayout() {
             <Stack.Screen name="catering" />
             <Stack.Screen name="hampers" />
         </Stack>
+        <ProfilePrompt />
+        </View>
     );
 }

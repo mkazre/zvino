@@ -2,6 +2,7 @@ import { Cover, DishCard, StoreCard, type MenuItem, type StoreCardData } from '@
 import { StoreBadges } from '@/components/store-badges';
 import { Button } from '@/components/ui/button';
 import { type SiteProps } from '@/layouts/site-layout';
+import { withMeal } from '@/lib/meal-time';
 import { type Payload } from '@/lib/blocks';
 import { cn } from '@/lib/utils';
 import { Link, router, usePage } from '@inertiajs/react';
@@ -173,7 +174,7 @@ function Hero({ b }: { b: HomeBlockData }) {
             <div className={cn('relative mx-auto grid max-w-7xl gap-10 px-4 py-16 md:px-6 md:py-24', cards.length && !center ? 'md:grid-cols-[1.1fr_1fr]' : '', center && 'text-center')}>
                 <div className={cn(center && 'mx-auto max-w-3xl')}>
                     <span className={cn('inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur', light ? 'bg-white/10' : 'bg-black/5')}><span className="bg-brand size-1.5 rounded-full" />{str(p.eyebrow) || `Now delivering in ${site.cities.join(' & ')}`}</span>
-                    <h1 className="mt-5 text-[44px] leading-[1.02] font-extrabold tracking-[-0.045em] md:text-[68px]">{b.title ?? 'Your favourite food,'}{str(p.accent_text) && <><br /><span className="text-brand">{str(p.accent_text)}</span></>}</h1>
+                    <h1 className="mt-5 text-[44px] leading-[1.02] font-extrabold tracking-[-0.045em] md:text-[68px]">{withMeal(b.title ?? 'Your favourite food,')}{str(p.accent_text) && <><br /><span className="text-brand">{str(p.accent_text)}</span></>}</h1>
                     {b.subtitle && <p className={cn('mt-5 max-w-md text-lg', light ? 'text-white/75' : 'text-[#222222]/70', center && 'mx-auto')}>{b.subtitle}</p>}
                     {p.show_search !== false && site.platform_mode === 'marketplace' && (
                         <form onSubmit={(e) => { e.preventDefault(); router.get('/stores', { q, city: site.city ?? undefined }); }} className={cn('mt-8 flex max-w-xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-lg sm:flex-row', center && 'mx-auto')}>

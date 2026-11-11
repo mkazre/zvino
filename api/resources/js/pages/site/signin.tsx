@@ -1,3 +1,4 @@
+import { GoogleButton } from '@/components/google-button';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/layouts/site-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -5,7 +6,7 @@ import { ArrowLeft, Smartphone } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Toaster } from 'sonner';
 
-export default function SignIn({ phone: sentTo }: { phone: string | null }) {
+export default function SignIn({ phone: sentTo, google }: { phone: string | null; google?: boolean }) {
     const [step, setStep] = useState<'phone' | 'code'>(sentTo ? 'code' : 'phone');
     const phoneForm = useForm({ phone: '' });
     const codeForm = useForm({ code: '', name: '' });
@@ -40,6 +41,12 @@ export default function SignIn({ phone: sentTo }: { phone: string | null }) {
                             </div>
                             {phoneForm.errors.phone && <p className="mt-2 text-sm text-zred">Enter a valid Zimbabwean mobile number.</p>}
                             <Button type="submit" variant="dark" className="mt-6 h-14 w-full rounded-full text-base" disabled={phoneForm.processing || phoneForm.data.phone.replace(/\D/g, '').length < 9}>Continue</Button>
+                            {google && (
+                                <>
+                                    <div className="text-muted-foreground my-5 flex items-center gap-3 text-xs"><span className="h-px flex-1 bg-current opacity-20" />or<span className="h-px flex-1 bg-current opacity-20" /></div>
+                                    <GoogleButton back={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('back') ?? '/' : '/'} />
+                                </>
+                            )}
                             <p className="text-muted-foreground mt-6 text-center text-xs leading-relaxed">By continuing you agree to Zvino’s <Link href="/p/terms" className="underline">Terms</Link> and <Link href="/p/privacy" className="underline">Privacy Policy</Link>. Standard SMS rates may apply.</p>
                         </form>
                     ) : (

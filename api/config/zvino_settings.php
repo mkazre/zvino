@@ -220,6 +220,10 @@ return [
         'fields' => [
             'google_maps_key' => ['type' => 'string', 'label' => 'Google Maps API key (server)', 'default' => '', 'secret' => true],
             'google_maps_browser_key' => ['type' => 'string', 'label' => 'Google Maps API key (web/app)', 'default' => ''],
+            'google_client_id' => ['type' => 'string', 'label' => 'Google sign-in: Web client ID', 'default' => '', 'help' => 'Google Cloud → APIs & Services → Credentials → OAuth client (Web). Redirect URI: https://zvino.online/auth/google/callback'],
+            'google_client_secret' => ['type' => 'string', 'label' => 'Google sign-in: Web client secret', 'default' => '', 'secret' => true],
+            'google_android_client_id' => ['type' => 'string', 'label' => 'Google sign-in: Android client ID(s)', 'default' => '', 'help' => 'Comma-separated, one per app (customer, driver).'],
+            'google_ios_client_id' => ['type' => 'string', 'label' => 'Google sign-in: iOS client ID(s)', 'default' => ''],
             'import_image_hosts' => ['type' => 'string', 'label' => 'Product import: allowed photo websites', 'default' => 'cdn-s7m8bx8sebjz.vultrcdn.com, tmpnponline.co.zw', 'help' => 'Comma-separated. Imported product photos are only copied from these sites.'],
             'google_maps_map_id' => ['type' => 'string', 'label' => 'Google Maps Map ID', 'default' => '46d01f3a77fd271af24a1b47', 'help' => 'From Google Cloud → Map management (JavaScript, vector). Needed for the map pins.'],
             'analytics_id' => ['type' => 'string', 'label' => 'Google Analytics ID', 'default' => ''],

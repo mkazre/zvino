@@ -87,6 +87,29 @@ class AccountController extends Controller
         ]);
     }
 
+    /** Website "Help": a support ticket (optionally about an order). Staff get the bell + pop-up. */
+    public function supportTicket(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'topic' => ['required', 'string', 'max:60'],
+            'message' => ['required', 'string', 'min:5', 'max:3000'],
+            'order_id' => ['nullable', 'integer'],
+            'email' => ['nullable', 'email', 'max:160'],
+        ], ['message.min' => 'Tell us a little more so we can help.']);
+        $order = ! empty($data['order_id']) ? Order::where('user_id', $user->id)->find($data['order_id']) : null;
+        if (! empty($data['email']) && ! $user->email && ! \App\Models\User::where('email', $data['email'])->exists()) {
+            $user->update(['email' => $data['email']]); // so we can reply by email
+        }
+        $ticket = \App\Models\SupportTicket::create([
+            'user_id' => $user->id, 'order_id' => $order?->id,
+            'subject' => $data['topic'].($order ? " · #{$order->reference}" : ''), 'message' => $data['message'],
+        ]);
+        app(\App\Services\StaffNotifier::class)->notify('support_ticket', 'New support message', ($user->name ?: $user->phone).': '.$ticket->subject, "/admin/support/{$ticket->id}", $order?->vendor_id ? null : null, ['support.manage']);
+
+        return back()->with('success', "Thanks, we’ve got your message (ticket #{$ticket->id}). We’ll reply here and by ".($user->email ? 'email' : 'SMS').'.');
+    }
+
     public function cancel(Request $request, Order $order, OrderService $orders)
     {
         abort_unless($order->user_id === $request->user()->id, 404);
