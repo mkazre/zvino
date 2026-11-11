@@ -144,4 +144,34 @@ class ShopperFlowTest extends TestCase
         // The sync button allows 4 a minute: polling above must not count against it.
         $this->actingAs($admin)->post('/admin/suppliers/tmpnp/sync')->assertStatus(302);
     }
+
+    public function test_customer_substitutes_add_a_buffer_that_is_refunded_when_not_needed(): void
+    {
+        [$milk, $bread] = $this->lines;
+        $customer = $this->order->user;
+        $carts = app(\App\Services\CartService::class);
+
+        // Basket: bread (ZiG 30) with a dearer chosen substitute (ZiG 90) → ZiG 60 buffer.
+        $carts->for($customer)->items()->delete();
+        $carts->add($customer, Item::findOrFail($bread->item_id), 1, null, [], null, true, $this->fancyBread->id);
+        $cart = $carts->for($customer);
+        $this->assertSame($this->fancyBread->id, $cart->items->first()->substitute_item_id);
+        $this->assertEqualsWithDelta(60, $carts->totals($cart, 'delivery')['buffer'], 0.01);
+        $this->assertEqualsWithDelta(0, $carts->totals($cart, 'delivery', [], 0, 'refund')['buffer'], 0.01, 'refund-only: no buffer');
+        Sanctum::actingAs($customer);
+        $this->getJson("/api/items/{$bread->item_id}/substitutes")->assertOk()->assertJsonFragment(['name' => 'Artisan Sourdough']);
+
+        // On the order: bread's chosen substitute (with buffer); milk had a substitute but was found.
+        $bread->update(['substitute' => ['item_id' => $this->fancyBread->id, 'name' => 'Artisan Sourdough', 'image' => null, 'unit_price_zig' => 90], 'buffer_zig' => 60]);
+        $milk->update(['substitute' => ['item_id' => $this->cheaperBread->id, 'name' => 'Brown Bread', 'image' => null, 'unit_price_zig' => 25], 'buffer_zig' => 10]);
+        Sanctum::actingAs($this->driver->user);
+        $this->getJson($this->url())->assertJsonFragment(['name' => 'Artisan Sourdough']);
+
+        // Using the customer's dearer substitute is allowed (they paid the buffer) and nothing comes back.
+        $this->postJson($this->url("/items/{$bread->id}"), ['status' => 'replaced', 'replacement_item_id' => $this->fancyBread->id])->assertOk();
+        $this->assertEqualsWithDelta(0, $bread->fresh()->refund_zig, 0.01);
+        // Milk found as ordered: its unused buffer goes back.
+        $this->postJson($this->url("/items/{$milk->id}"), ['status' => 'found'])->assertOk();
+        $this->assertEqualsWithDelta(10, $milk->fresh()->refund_zig, 0.01);
+    }
 }

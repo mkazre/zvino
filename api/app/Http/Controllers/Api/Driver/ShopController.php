@@ -100,6 +100,7 @@ class ShopController extends Controller
             'status' => $l->shop_status,
             'found_qty' => $l->found_qty,
             'replacement' => $l->replacement,
+            'substitute' => $l->substitute, // chosen by the customer at checkout
         ])->sortBy('aisle')->values();
 
         return [

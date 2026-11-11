@@ -45,6 +45,7 @@ Route::middleware(EnsureSiteOpen::class)->name('site.')->group(function () {
     Route::post('location/detect', [SiteController::class, 'detectLocation'])->middleware('throttle:30,1')->name('location.detect');
     Route::post('location/address', [SiteController::class, 'useAddress'])->middleware('auth')->name('location.address');
     Route::post('location/clear', [SiteController::class, 'clearLocation'])->name('location.clear');
+    Route::get('items/{item}/substitutes', [\App\Http\Controllers\SubstituteController::class, 'index'])->middleware('throttle:60,1')->name('item.substitutes');
     Route::get('shops', fn () => redirect('/stores?segment=shops'))->name('shops');
     Route::post('locale', [SiteController::class, 'setLocale'])->name('locale');
     Route::post('checkout/prescription', fn (\Illuminate\Http\Request $r) => response()->json(['token' => \App\Support\PrescriptionStore::put($r)]))->middleware(['auth', 'throttle:10,1'])->name('checkout.prescription');

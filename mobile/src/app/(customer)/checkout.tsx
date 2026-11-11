@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean }
 interface Quote {
-    totals: Record<'subtotal' | 'delivery' | 'service' | 'small_order' | 'discount' | 'tip' | 'vat' | 'total' | 'member_savings', Money>;
+    totals: Record<'subtotal' | 'delivery' | 'service' | 'small_order' | 'discount' | 'tip' | 'vat' | 'total' | 'member_savings', Money> & { buffer?: Money };
     surge: { multiplier: number; reason: string | null } | null;
     eta_minutes: [number, number] | null;
     tip_presets_pct: number[];
@@ -90,16 +90,16 @@ export default function Checkout() {
     useEffect(() => {
         if (!synced) return;
         const timer = setTimeout(() => {
-            api.post<Quote>('/checkout/quote', { fulfilment, address_id: fulfilment === 'delivery' ? addressId : null, tip })
+            api.post<Quote>('/checkout/quote', { fulfilment, address_id: fulfilment === 'delivery' ? addressId : null, tip, substitution_pref: shopperStore ? subPref : undefined })
                 .then(setQuote).catch((e) => e instanceof ApiError && Alert.alert('Delivery', e.friendly));
         }, 200);
         return () => clearTimeout(timer);
-    }, [synced, fulfilment, addressId, tip]);
+    }, [synced, fulfilment, addressId, tip, subPref]);
 
     const applyPromo = async () => {
         try {
             await api.post('/cart/voucher', { code: promo });
-            setQuote(await api.post<Quote>('/checkout/quote', { fulfilment, address_id: addressId, tip }));
+            setQuote(await api.post<Quote>('/checkout/quote', { fulfilment, address_id: addressId, tip, substitution_pref: shopperStore ? subPref : undefined }));
             Alert.alert('Promo applied 🎉');
         } catch (e) {
             Alert.alert('Promo', e instanceof ApiError ? e.friendly : 'Invalid code');
@@ -273,7 +273,7 @@ export default function Checkout() {
                     <Card style={{ gap: 10 }}>
                         <Text variant="label">{tr('If an item is out of stock')}</Text>
                         {([
-                            ['best', 'Let my shopper choose a similar item', 'You’re never charged more; cheaper swaps are refunded.'],
+                            ['best', 'Take the substitutes I selected', 'For items without one, your shopper picks something similar. Unused buffer is refunded.'],
                             ['contact', 'Call me first', 'Your shopper phones you before swapping anything.'],
                             ['refund', 'Don’t replace, just refund', 'Missing items go back to your Zvino wallet.'],
                         ] as const).map(([v, title, sub]) => (
@@ -295,7 +295,7 @@ export default function Checkout() {
 
                 {quote && (
                     <Card tone="subtle">
-                        {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? [quote.deal ?? 'Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null, sharesTotal ? [`Friends (${shares.length})`, -sharesTotal] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
+                        {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? [quote.deal ?? 'Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, (quote.totals.buffer?.zig ?? 0) > 0 ? ['Substitute buffer (unused is refunded)', quote.totals.buffer!.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null, sharesTotal ? [`Friends (${shares.length})`, -sharesTotal] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
                             <Row key={l} justify="space-between" style={{ paddingVertical: 4 }}><Text color="muted">{l}</Text><Text color={v < 0 ? 'brand' : 'ink'}>{v < 0 ? `−${zig(-v)}` : zig(v)}</Text></Row>
                         ))}
                         {quote.totals.member_savings.zig > 0 && <Text variant="caption" color="brand">Zvino+ saved you {zig(quote.totals.member_savings.zig)} 🎉</Text>}

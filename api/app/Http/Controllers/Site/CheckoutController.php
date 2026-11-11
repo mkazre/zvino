@@ -62,6 +62,7 @@ class CheckoutController extends Controller
             'lines.*.variant' => ['nullable', 'string'],
             'lines.*.modifiers' => ['nullable', 'array'],
             'lines.*.notes' => ['nullable', 'string', 'max:200'],
+            'lines.*.substitute_item_id' => ['nullable', 'integer'],
             'promo' => ['nullable', 'string', 'max:40'],
         ]);
         $user = $request->user();
@@ -73,7 +74,7 @@ class CheckoutController extends Controller
             foreach ($data['lines'] as $l) {
                 $item = Item::where('vendor_id', $data['vendor_id'])->find($l['item_id']);
                 if ($item) {
-                    $this->carts->add($user, $item, $l['quantity'], $l['variant'] ?? null, $l['modifiers'] ?? [], $l['notes'] ?? null, true);
+                    $this->carts->add($user, $item, $l['quantity'], $l['variant'] ?? null, $l['modifiers'] ?? [], $l['notes'] ?? null, true, $l['substitute_item_id'] ?? null);
                 }
             }
         });
@@ -92,6 +93,7 @@ class CheckoutController extends Controller
             'address_id' => ['nullable', Rule::exists('addresses', 'id')->where('user_id', $request->user()->id)],
             'tip' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'promo' => ['nullable', 'string', 'max:40'],
+            'substitution_pref' => ['nullable', 'in:best,contact,refund'],
         ]);
         $cart = $this->carts->for($request->user());
         if (array_key_exists('promo', $data)) {
@@ -105,8 +107,8 @@ class CheckoutController extends Controller
 
         return response()->json($this->carts->present($cart, $data['fulfilment'], $address ? ['lat' => $address->lat, 'lng' => $address->lng] : []) + [
             'batch' => $slot,
-            'tip_totals' => collect($this->carts->totals($cart, $data['fulfilment'], $address ? ['lat' => $address->lat, 'lng' => $address->lng] : [], (float) ($data['tip'] ?? 0)))
-                ->only(['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'vat', 'total', 'member_savings'])->map(fn ($v) => Money::both((float) $v)),
+            'tip_totals' => collect($this->carts->totals($cart, $data['fulfilment'], $address ? ['lat' => $address->lat, 'lng' => $address->lng] : [], (float) ($data['tip'] ?? 0), $data['substitution_pref'] ?? null))
+                ->only(['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'buffer', 'vat', 'total', 'member_savings'])->map(fn ($v) => Money::both((float) $v)),
         ]);
     }
 

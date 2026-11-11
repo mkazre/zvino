@@ -16,11 +16,11 @@ class CartService
 
     public function for(User $user): Cart
     {
-        return Cart::firstOrCreate(['user_id' => $user->id])->load('items.item', 'vendor.zone', 'promoCode', 'user');
+        return Cart::firstOrCreate(['user_id' => $user->id])->load('items.item', 'items.substitute', 'vendor.zone', 'promoCode', 'user');
     }
 
     /** One vendor per cart: adding from another vendor requires replace=true. */
-    public function add(User $user, Item $item, int $qty, ?string $variant, array $modifiers, ?string $notes, bool $replace = false): Cart
+    public function add(User $user, Item $item, int $qty, ?string $variant, array $modifiers, ?string $notes, bool $replace = false, ?int $substituteId = null): Cart
     {
         if (! $item->isOrderable()) {
             throw ValidationException::withMessages(['item_id' => 'This item is currently unavailable.']);
@@ -49,6 +49,7 @@ class CartService
             'options' => ['variant' => $variant, 'modifiers' => $modifiers],
             'unit_price_zig' => $item->priceFor($variant, $modifiers),
             'notes' => $notes,
+            'substitute_item_id' => $this->validSubstitute($item, $substituteId)?->id,
         ]);
 
         return $this->for($user);
@@ -68,13 +69,43 @@ class CartService
         return $cart->load('promoCode');
     }
 
+    /** A customer-chosen substitute: same store, in stock, not the item itself, Zvino-run stores only. */
+    public function validSubstitute(Item $item, ?int $substituteId): ?Item
+    {
+        if (! $substituteId || $substituteId === $item->id || ! $item->vendor?->is_shopper_store) {
+            return null;
+        }
+
+        return Item::where('vendor_id', $item->vendor_id)->where('is_available', true)->find($substituteId);
+    }
+
+    /** Price of a substitute (special price when on promo). */
+    public static function itemPrice(Item $item): float
+    {
+        return (float) ($item->special_price_zig ?: $item->price_zig);
+    }
+
+    /**
+     * Substitution buffer: for lines whose chosen substitute costs more, the difference is paid up
+     * front; unused buffer goes back to the wallet after shopping. Nothing when the customer wants refunds only.
+     */
+    public function buffer(Cart $cart, ?string $pref = null): float
+    {
+        if ($pref === 'refund' || ! $cart->vendor?->is_shopper_store) {
+            return 0.0;
+        }
+        $cart->loadMissing('items.substitute');
+
+        return round($cart->items->sum(fn ($ci) => $ci->substitute ? max(0, self::itemPrice($ci->substitute) - (float) $ci->unit_price_zig) * $ci->quantity : 0), 2);
+    }
+
     public function subtotal(Cart $cart): float
     {
         return round($cart->items->sum(fn ($i) => $i->unit_price_zig * $i->quantity), 2);
     }
 
     /** Fee breakdown in ZiG via PricingService; shared by the Cart screen and order placement. */
-    public function totals(Cart $cart, string $fulfilment = 'delivery', array $dest = [], float $tip = 0): array
+    public function totals(Cart $cart, string $fulfilment = 'delivery', array $dest = [], float $tip = 0, ?string $substitutionPref = null): array
     {
         if (! $cart->vendor) {
             return ['subtotal' => 0.0, 'delivery' => 0.0, 'service' => 0.0, 'small_order' => 0.0, 'discount' => 0.0, 'tip' => 0.0, 'vat' => 0.0, 'total' => 0.0, 'member_savings' => 0.0, 'surge' => null, 'distance_km' => null, 'eta_minutes' => null, 'zone_id' => null, 'promo_id' => null, 'deal' => null];
@@ -82,13 +113,17 @@ class CartService
 
         $lines = $cart->items->map(fn ($i) => ['item_id' => $i->item_id, 'quantity' => $i->quantity, 'unit' => (float) $i->unit_price_zig])->all();
 
-        return $this->pricing->quote($cart->vendor, $this->subtotal($cart), $fulfilment, $dest, $cart->user, $cart->promoCode, $tip, $lines);
+        $t = $this->pricing->quote($cart->vendor, $this->subtotal($cart), $fulfilment, $dest, $cart->user, $cart->promoCode, $tip, $lines);
+        $t['buffer'] = $fulfilment === 'delivery' ? $this->buffer($cart, $substitutionPref) : 0.0;
+        $t['total'] = round($t['total'] + $t['buffer'], 2);
+
+        return $t;
     }
 
     public function present(Cart $cart, string $fulfilment = 'delivery', array $dest = []): array
     {
         $t = $this->totals($cart, $fulfilment, $dest);
-        $moneyKeys = ['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'vat', 'total', 'member_savings'];
+        $moneyKeys = ['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'buffer', 'vat', 'total', 'member_savings'];
 
         return [
             'vendor' => $cart->vendor?->only('id', 'name', 'slug', 'min_order_zig'),
@@ -102,6 +137,7 @@ class CartService
                 'notes' => $ci->notes,
                 'unit_price' => Money::both($ci->unit_price_zig),
                 'line_total' => Money::both($ci->unit_price_zig * $ci->quantity),
+                'substitute' => $ci->substitute ? ['item_id' => $ci->substitute->id, 'name' => $ci->substitute->name, 'image' => $ci->substitute->image_path, 'price' => Money::both(self::itemPrice($ci->substitute))] : null,
             ])->values(),
             'voucher' => $cart->promoCode?->only('code', 'type', 'value'),
             'totals' => collect($t)->only($moneyKeys)->map(fn ($v) => Money::both($v))->all(),

@@ -12,7 +12,10 @@ export interface CartLine {
     variant: string | null;
     modifiers: string[];
     notes?: string;
+    /** Customer's chosen substitute (Zvino-run stores), one per line. */
+    substitute?: CartSubstitute | null;
 }
+export interface CartSubstitute { item_id: number; name: string; image: string | null; price_zig: number }
 export interface CartStore { id: number; name: string; min_order_zig: number; is_shopper_store?: boolean }
 
 interface CartCtx {
@@ -23,6 +26,9 @@ interface CartCtx {
     /** false = basket holds another store; caller asks the customer to start a new basket. */
     add: (store: CartStore, line: Omit<CartLine, 'key' | 'quantity'>, qty?: number, replace?: boolean) => boolean;
     setQty: (key: string, qty: number) => void;
+    setSubstitute: (key: string, s: CartSubstitute | null) => void;
+    /** Up-front buffer for substitutes dearer than the original (refunded if not used). */
+    buffer: number;
     clear: () => void;
     /** Push the device basket into the server cart before checkout (server re-prices everything). */
     syncToServer: () => Promise<void>;
@@ -70,6 +76,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    const setSubstitute = useCallback((key: string, s: CartSubstitute | null) => {
+        setLines((ls) => ls.map((l) => (l.key === key ? { ...l, substitute: s } : l)));
+    }, []);
+
     const clear = useCallback(() => {
         setLines([]);
         setStore(null);
@@ -78,15 +88,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const syncToServer = useCallback(async () => {
         await api.delete('/cart');
         for (const [i, l] of lines.entries()) {
-            await api.post('/cart/items', { item_id: l.item_id, quantity: l.quantity, variant: l.variant, modifiers: l.modifiers, notes: l.notes, replace: i === 0 });
+            await api.post('/cart/items', { item_id: l.item_id, quantity: l.quantity, variant: l.variant, modifiers: l.modifiers, notes: l.notes, replace: i === 0, substitute_item_id: l.substitute?.item_id ?? null });
         }
     }, [lines]);
 
     const value = useMemo(() => ({
-        store, lines, add, setQty, clear, syncToServer,
+        store, lines, add, setQty, setSubstitute, clear, syncToServer,
         count: lines.reduce((s, l) => s + l.quantity, 0),
         subtotal: lines.reduce((s, l) => s + l.unit_zig * l.quantity, 0),
-    }), [store, lines, add, setQty, clear, syncToServer]);
+        buffer: store?.is_shopper_store ? lines.reduce((s, l) => s + (l.substitute ? Math.max(0, l.substitute.price_zig - l.unit_zig) * l.quantity : 0), 0) : 0,
+    }), [store, lines, add, setQty, setSubstitute, clear, syncToServer]);
 
     return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

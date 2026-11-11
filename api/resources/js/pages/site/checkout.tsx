@@ -15,9 +15,9 @@ import { toast } from 'sonner';
 interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; instructions: string | null; is_default: boolean }
 interface ServerCart {
     vendor: { id: number; name: string; slug: string } | null;
-    items: { id: number; name: string; quantity: number; options: { variant?: string; modifiers?: string[] } | null; line_total: Money }[];
+    items: { id: number; name: string; quantity: number; options: { variant?: string; modifiers?: string[] } | null; line_total: Money; substitute?: { name: string } | null }[];
     voucher: { code: string } | null;
-    totals: Record<'subtotal' | 'delivery' | 'service' | 'small_order' | 'discount' | 'tip' | 'vat' | 'total' | 'member_savings', Money>;
+    totals: Record<'subtotal' | 'delivery' | 'service' | 'small_order' | 'discount' | 'tip' | 'vat' | 'total' | 'member_savings', Money> & { buffer?: Money };
     surge: { multiplier: number; reason: string | null } | null;
     distance_km: number | null;
     eta_minutes: [number, number] | null;
@@ -89,7 +89,7 @@ export default function Checkout(p: Props) {
     useEffect(() => {
         if (!browser.vendor || !browser.lines.length) return;
         setSyncing(true);
-        fetch('/checkout/sync', { method: 'POST', headers: headers(), body: JSON.stringify({ vendor_id: browser.vendor.id, promo: browser.promo, lines: browser.lines.map((l) => ({ item_id: l.item_id, quantity: l.quantity, variant: l.variant, modifiers: l.modifiers, notes: l.notes })) }) })
+        fetch('/checkout/sync', { method: 'POST', headers: headers(), body: JSON.stringify({ vendor_id: browser.vendor.id, promo: browser.promo, lines: browser.lines.map((l) => ({ item_id: l.item_id, quantity: l.quantity, variant: l.variant, modifiers: l.modifiers, notes: l.notes, substitute_item_id: l.substitute?.item_id ?? null })) }) })
             .then(async (r) => (r.ok ? setServer(await r.json()) : toast.error((await r.json()).message ?? 'Some items are no longer available.')))
             .finally(() => setSyncing(false));
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,7 +98,7 @@ export default function Checkout(p: Props) {
     // 2. live quote when address / fulfilment / tip / promo change
     const quote = useCallback(
         (withPromo?: string) => {
-            fetch('/checkout/quote', { method: 'POST', headers: headers(), body: JSON.stringify({ fulfilment: form.data.fulfilment, address_id: form.data.address_id, tip, ...(withPromo !== undefined ? { promo: withPromo } : {}) }) })
+            fetch('/checkout/quote', { method: 'POST', headers: headers(), body: JSON.stringify({ fulfilment: form.data.fulfilment, address_id: form.data.address_id, tip, substitution_pref: form.data.substitution_pref, ...(withPromo !== undefined ? { promo: withPromo } : {}) }) })
                 .then(async (r) => {
                     const d = await r.json();
                     if (r.ok) setServer(d);
@@ -109,7 +109,7 @@ export default function Checkout(p: Props) {
                     }
                 });
         },
-        [form.data.fulfilment, form.data.address_id, tip],
+        [form.data.fulfilment, form.data.address_id, tip, form.data.substitution_pref],
     );
     useEffect(() => {
         const t = setTimeout(() => quote(), 250);
@@ -293,7 +293,7 @@ export default function Checkout(p: Props) {
                         <Block title={t('If an item is out of stock')}>
                             <div className="grid gap-2">
                                 {([
-                                    ['best', 'Let my shopper choose a similar item', 'Same or better. You’re never charged more; cheaper swaps are refunded.'],
+                                    ['best', 'Take the substitutes I selected', 'For items without one, your shopper picks something similar. Cheaper swaps and unused buffer are refunded.'],
                                     ['contact', 'Call me first', 'Your shopper will phone you before swapping anything.'],
                                     ['refund', 'Don’t replace, just refund', 'Missing items go back to your Zvino wallet.'],
                                 ] as const).map(([v, title, sub]) => (
@@ -329,7 +329,7 @@ export default function Checkout(p: Props) {
                         </div>
                         <ul className="mt-4 grid gap-3 border-b pb-4 text-sm">
                             {server.items.map((i) => (
-                                <li key={i.id} className="flex gap-3"><span className="tabular font-semibold">{i.quantity}×</span><span className="flex-1">{i.name}{(i.options?.variant || i.options?.modifiers?.length) && <span className="text-muted-foreground block text-xs">{[i.options?.variant, ...(i.options?.modifiers ?? [])].filter(Boolean).join(' · ')}</span>}</span><span className="tabular">{zig(i.line_total.zig)}</span></li>
+                                <li key={i.id} className="flex gap-3"><span className="tabular font-semibold">{i.quantity}×</span><span className="flex-1">{i.name}{(i.options?.variant || i.options?.modifiers?.length) && <span className="text-muted-foreground block text-xs">{[i.options?.variant, ...(i.options?.modifiers ?? [])].filter(Boolean).join(' · ')}</span>}{i.substitute && <span className="text-brand-700 dark:text-brand block text-xs">Substitute: {i.substitute.name}</span>}</span><span className="tabular">{zig(i.line_total.zig)}</span></li>
                             ))}
                         </ul>
                         <form onSubmit={(e) => { e.preventDefault(); quote(promo); }} className="mt-4 flex gap-2">
@@ -343,6 +343,7 @@ export default function Checkout(p: Props) {
                             {totals.small_order.zig > 0 && <Row l="Small order fee" v={totals.small_order.zig} />}
                             {totals.discount.zig > 0 && <Row l={server.deal ?? 'Promo'} v={-totals.discount.zig} green />}
                             {totals.tip.zig > 0 && <Row l="Driver tip" v={totals.tip.zig} />}
+                            {(totals.buffer?.zig ?? 0) > 0 && <Row l={<>Substitute buffer <span className="text-muted-foreground text-xs">(unused goes back to your wallet)</span></>} v={totals.buffer!.zig} />}
                             {donation > 0 && <Row l={`Donation · ${p.charity?.name}`} v={donation} />}
                             {totals.member_savings.zig > 0 && <div className="rounded-lg bg-brand-50 px-3 py-2 text-xs font-medium text-brand-600">Zvino+ saved you {zig(totals.member_savings.zig)} 🎉</div>}
                         </dl>

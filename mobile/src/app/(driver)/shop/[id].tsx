@@ -15,6 +15,8 @@ interface Line {
     id: number; name: string; quantity: number; options: string[]; notes: string | null; image: string | null; aisle: string; size: string | null;
     unit_price: Money; shelf_usd: number | null; status: Status | null; found_qty: number | null;
     replacement: { item_id: number; name: string; quantity: number; line_total_zig: number; image: string | null } | null;
+    /** Chosen by the customer at checkout. */
+    substitute: { item_id: number; name: string; image: string | null; unit_price_zig: number } | null;
 }
 interface Shop {
     id: number; reference: string; status: string; store: { name: string; address: string | null }; customer: { name: string | null; phone: string | null };
@@ -95,6 +97,7 @@ export default function ShopScreen() {
                                     <Text variant="label" numberOfLines={2}>{l.quantity}× {l.name}</Text>
                                     <Text variant="caption" numberOfLines={1}>{[l.size, l.shelf_usd ? `shelf $${l.shelf_usd.toFixed(2)}` : null, ...l.options].filter(Boolean).join(' · ')}</Text>
                                     {l.notes ? <Text variant="caption" color="gold">“{l.notes}”</Text> : null}
+                                    {l.substitute && !l.status ? <Text variant="caption">If out: <Text variant="caption" style={{ fontWeight: '700' }}>{l.substitute.name}</Text></Text> : null}
                                     {l.status === 'replaced' && l.replacement ? <Text variant="caption" color="brand">→ {l.replacement.quantity}× {l.replacement.name}</Text> : null}
                                     {l.status === 'partial' ? <Text variant="caption" color="gold">Found {l.found_qty} of {l.quantity}</Text> : null}
                                 </View>
@@ -155,7 +158,15 @@ function ItemSheet({ shop, line, busy, onClose, onMark }: { shop: Shop; line: Li
                     <View style={{ gap: 10 }}>
                         <Button title={`Found all ${line.quantity}`} tone="primary" loading={busy} onPress={() => onMark(line, { status: 'found' })} icon={<Ionicons name="checkmark" size={18} color="#fff" />} />
                         {line.quantity > 1 && <Button title="Found only some" tone="outline" onPress={() => { setQty(Math.max(1, line.quantity - 1)); setMode('partial'); }} />}
-                        {canReplace && <Button title={shop.substitution_pref === 'contact' ? 'Replace (after calling the customer)' : 'Out of stock: replace it'} tone="outline" onPress={() => setMode('replace')} icon={<Ionicons name="swap-horizontal" size={18} color={t.ink} />} />}
+                        {canReplace && line.substitute && (
+                            <Pressable onPress={() => onMark(line, { status: 'replaced', replacement_item_id: line.substitute!.item_id, replacement_qty: line.quantity })} disabled={busy}
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 2, borderColor: t.brand, backgroundColor: t.brandSoft }}>
+                                {line.substitute.image ? <Image source={{ uri: img(line.substitute.image, 120) ?? undefined }} style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: '#fff' }} contentFit="contain" /> : null}
+                                <View style={{ flex: 1 }}><Text variant="label">Out of stock: use their substitute</Text><Text variant="caption" numberOfLines={2}>{line.quantity}× {line.substitute.name}</Text></View>
+                                <Ionicons name="swap-horizontal" size={20} color={t.brandText} />
+                            </Pressable>
+                        )}
+                        {canReplace && <Button title={line.substitute ? 'Replace with something else' : shop.substitution_pref === 'contact' ? 'Replace (after calling the customer)' : 'Out of stock: replace it'} tone="outline" onPress={() => setMode('replace')} icon={<Ionicons name="swap-horizontal" size={18} color={t.ink} />} />}
                         <Button title="Not available: refund it" tone="soft" loading={busy} onPress={() => onMark(line, { status: 'missing' })} icon={<Ionicons name="close" size={18} color={t.ink} />} />
                     </View>
                 )}
