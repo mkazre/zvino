@@ -33,7 +33,7 @@ class OrderView
 
     public static function forCustomer(Order $order, bool $web = true): array
     {
-        $order->loadMissing('vendor', 'items', 'address', 'driver.user', 'review', 'user');
+        $order->loadMissing('vendor', 'items.item:id,image_path', 'address', 'driver.user', 'review', 'user');
         $pickup = $order->fulfilment === 'pickup';
         $at = self::times($order);
         $vars = [
@@ -133,6 +133,7 @@ class OrderView
             'receipt' => [
                 'lines' => $order->items->map(fn ($i) => [
                     'name' => $i->name,
+                    'image' => $i->item?->image_path,
                     'quantity' => $i->quantity,
                     'options' => self::options($i->options),
                     'notes' => $i->notes,

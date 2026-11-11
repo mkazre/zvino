@@ -31,7 +31,7 @@ class AccountController extends Controller
             'tab' => $request->query('tab', 'orders'),
             'welcome' => $request->boolean('welcome'),
             'profile' => $user->only('id', 'name', 'email', 'phone', 'locale', 'marketing_opt_in'),
-            'orders' => OrderResource::collection($user->orders()->with('vendor', 'items', 'review')->where('status', '!=', 'pending_payment')->latest()->limit(30)->get()),
+            'orders' => OrderResource::collection($user->orders()->with('vendor', 'items.item:id,image_path', 'review')->where('status', '!=', 'pending_payment')->latest()->limit(30)->get()),
             'addresses' => $user->addresses()->orderByDesc('is_default')->get(),
             'wallet' => ['balance' => Money::both($user->walletBalance()), 'transactions' => $user->walletTransactions()->latest()->limit(20)->get(['id', 'type', 'amount_zig', 'reason', 'created_at'])],
             'loyalty' => ['points' => $account->points, 'lifetime' => $account->lifetime_points] + $loyalty->tierFor($account->lifetime_points),

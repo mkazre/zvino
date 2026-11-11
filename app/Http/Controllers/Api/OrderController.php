@@ -23,7 +23,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $orders = $request->user()->orders()->with('vendor', 'items')
+        $orders = $request->user()->orders()->with('vendor', 'items.item:id,image_path')
             ->where('status', '!=', 'pending_payment')
             ->latest()->paginate(20);
 
