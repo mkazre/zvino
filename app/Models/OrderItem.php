@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class OrderItem extends Model
 {
     protected $guarded = [];
-    protected $casts = ['options' => 'array', 'unit_price_zig' => 'float', 'line_total_zig' => 'float', 'replacement' => 'array', 'refund_zig' => 'float', 'shopped_at' => 'datetime'];
+    protected $casts = ['options' => 'array', 'unit_price_zig' => 'float', 'line_total_zig' => 'float', 'replacement' => 'array', 'substitute' => 'array', 'buffer_zig' => 'float', 'refund_zig' => 'float', 'shopped_at' => 'datetime'];
 
     public function item(): BelongsTo { return $this->belongsTo(Item::class); }
 

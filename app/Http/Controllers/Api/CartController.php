@@ -27,11 +27,12 @@ class CartController extends Controller
             'modifiers.*' => ['string'],
             'notes' => ['nullable', 'string', 'max:255'],
             'replace' => ['boolean'],
+            'substitute_item_id' => ['nullable', 'integer'],
         ]);
 
         $cart = $this->carts->add(
             $request->user(), Item::findOrFail($data['item_id']), $data['quantity'],
-            $data['variant'] ?? null, $data['modifiers'] ?? [], $data['notes'] ?? null, $data['replace'] ?? false,
+            $data['variant'] ?? null, $data['modifiers'] ?? [], $data['notes'] ?? null, $data['replace'] ?? false, $data['substitute_item_id'] ?? null,
         );
 
         return response()->json($this->carts->present($cart), 201);

@@ -75,6 +75,7 @@ return array(
     'App\\Http\\Controllers\\Site\\ReceiptController' => $baseDir . '/app/Http/Controllers/Site/ReceiptController.php',
     'App\\Http\\Controllers\\Site\\SignInController' => $baseDir . '/app/Http/Controllers/Site/SignInController.php',
     'App\\Http\\Controllers\\Site\\SiteController' => $baseDir . '/app/Http/Controllers/Site/SiteController.php',
+    'App\\Http\\Controllers\\SubstituteController' => $baseDir . '/app/Http/Controllers/SubstituteController.php',
     'App\\Http\\Middleware\\EnsureMarketplaceMode' => $baseDir . '/app/Http/Middleware/EnsureMarketplaceMode.php',
     'App\\Http\\Middleware\\EnsureSiteOpen' => $baseDir . '/app/Http/Middleware/EnsureSiteOpen.php',
     'App\\Http\\Middleware\\EnsureStaffRole' => $baseDir . '/app/Http/Middleware/EnsureStaffRole.php',

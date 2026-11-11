@@ -51,6 +51,9 @@ class ShopperService
         }
         $status = $data['status'];
         $update = ['shop_status' => $status, 'found_qty' => null, 'replacement' => null, 'refund_zig' => 0, 'shopped_at' => now()];
+        // What the customer paid for this line: the item, plus any buffer for their chosen substitute.
+        $paid = round($line->line_total_zig + (float) $line->buffer_zig, 2);
+        $charged = $line->line_total_zig;
 
         if ($status === 'found') {
             $update['found_qty'] = $line->quantity;
@@ -60,10 +63,10 @@ class ShopperService
                 throw ValidationException::withMessages(['found_qty' => 'Enter how many you found (less than '.$line->quantity.').']);
             }
             $update['found_qty'] = $qty;
-            $update['refund_zig'] = round(($line->quantity - $qty) * $line->unit_price_zig, 2);
+            $charged = round($qty * $line->unit_price_zig, 2);
         } elseif ($status === 'missing') {
             $update['found_qty'] = 0;
-            $update['refund_zig'] = $line->line_total_zig;
+            $charged = 0;
         } elseif ($status === 'replaced') {
             if ($order->substitution_pref === 'refund') {
                 throw ValidationException::withMessages(['status' => 'This customer asked for refunds, not replacements.']);
@@ -72,14 +75,17 @@ class ShopperService
             $qty = max(1, (int) ($data['replacement_qty'] ?? $line->quantity));
             $unit = (float) ($item->special_price_zig ?: $item->price_zig);
             $total = round($unit * $qty, 2);
+            $chosen = ($line->substitute['item_id'] ?? null) === $item->id;
             $cap = round($line->line_total_zig * ((int) Setting::get('delivery.shopper_max_replacement_pct') ?: 120) / 100, 2);
-            if ($total > $cap) {
+            if (! $chosen && $total > $cap) {
                 throw ValidationException::withMessages(['replacement_item_id' => 'That replacement costs too much more than the original. Choose a cheaper one or mark it not available.']);
             }
             $update['found_qty'] = 0;
-            $update['replacement'] = ['item_id' => $item->id, 'name' => $item->name, 'quantity' => $qty, 'unit_price_zig' => $unit, 'line_total_zig' => $total, 'image' => $item->image_path];
-            $update['refund_zig'] = max(0, round($line->line_total_zig - $total, 2)); // cheaper: refund the difference; dearer: Zvino covers it
+            $update['replacement'] = ['item_id' => $item->id, 'name' => $item->name, 'quantity' => $qty, 'unit_price_zig' => $unit, 'line_total_zig' => $total, 'image' => $item->image_path, 'chosen_by_customer' => $chosen];
+            // The customer's own substitute uses their buffer; any other swap never costs them more (Zvino covers it).
+            $charged = $chosen ? min($total, $paid) : min($total, $line->line_total_zig);
         }
+        $update['refund_zig'] = max(0, round($paid - $charged, 2)); // missing, short, cheaper, or unused buffer
         $line->update($update);
 
         // Tell the customer about anything that isn't exactly what they ordered.
@@ -87,7 +93,7 @@ class ShopperService
             $body = match ($status) {
                 'missing' => "{$line->name} isn’t available. You’ll get ".self::money($line->line_total_zig).' back.',
                 'partial' => "Only {$update['found_qty']} of {$line->quantity} × {$line->name} available. The rest is refunded.",
-                default => "{$line->name} was out, so your shopper chose {$update['replacement']['name']}.",
+                default => ($update['replacement']['chosen_by_customer'] ?? false) ? "{$line->name} was out, so your shopper took your substitute: {$update['replacement']['name']}." : "{$line->name} was out, so your shopper chose {$update['replacement']['name']}.",
             };
             $this->push->toUser($order->user, 'order_status', 'Update from your shopper', $body, ['order_id' => $order->id, 'status' => 'shopping']);
         }

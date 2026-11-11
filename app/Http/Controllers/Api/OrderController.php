@@ -108,14 +108,15 @@ class OrderController extends Controller
             'address_id' => ['nullable', Rule::exists('addresses', 'id')->where('user_id', $request->user()->id)],
             'lat' => ['nullable', 'numeric'], 'lng' => ['nullable', 'numeric'],
             'tip' => ['nullable', 'numeric', 'min:0'],
+            'substitution_pref' => ['nullable', 'in:best,contact,refund'],
         ]);
         $address = isset($data['address_id']) ? \App\Models\Address::find($data['address_id']) : null;
         $dest = $address ? ['lat' => $address->lat, 'lng' => $address->lng] : array_filter(['lat' => $data['lat'] ?? null, 'lng' => $data['lng'] ?? null]);
 
         $cart = $carts->for($request->user());
         $company = app(\App\Services\CompanyService::class)->summary($request->user());
-        $t = $carts->totals($cart, $data['fulfilment'], $dest, (float) ($data['tip'] ?? 0));
-        $money = ['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'vat', 'total', 'member_savings'];
+        $t = $carts->totals($cart, $data['fulfilment'], $dest, (float) ($data['tip'] ?? 0), $data['substitution_pref'] ?? null);
+        $money = ['subtotal', 'delivery', 'service', 'small_order', 'discount', 'tip', 'buffer', 'vat', 'total', 'member_savings'];
 
         return response()->json([
             'totals' => collect($t)->only($money)->map(fn ($v) => \App\Support\Money::both($v)),

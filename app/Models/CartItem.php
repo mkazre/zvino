@@ -12,4 +12,5 @@ class CartItem extends Model
 
     public function cart(): BelongsTo { return $this->belongsTo(Cart::class); }
     public function item(): BelongsTo { return $this->belongsTo(Item::class); }
+    public function substitute(): \Illuminate\Database\Eloquent\Relations\BelongsTo { return $this->belongsTo(Item::class, 'substitute_item_id'); }
 }

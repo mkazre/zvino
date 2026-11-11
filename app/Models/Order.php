@@ -13,7 +13,7 @@ class Order extends Model
     protected $guarded = [];
     protected $casts = [
         'status_history' => 'array',
-        'shopping_started_at' => 'datetime', 'shopping_finished_at' => 'datetime', 'till_total_usd' => 'float', 'shopping_refund_zig' => 'float',
+        'shopping_started_at' => 'datetime', 'shopping_finished_at' => 'datetime', 'till_total_usd' => 'float', 'shopping_refund_zig' => 'float', 'substitution_buffer_zig' => 'float',
         'subtotal_zig' => 'float', 'delivery_fee_zig' => 'float', 'service_fee_zig' => 'float',
         'discount_zig' => 'float', 'vat_zig' => 'float', 'total_zig' => 'float',
         'zig_per_usd' => 'float', 'total_usd' => 'float', 'commission_zig' => 'float',

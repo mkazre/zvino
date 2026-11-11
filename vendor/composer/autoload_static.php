@@ -641,6 +641,7 @@ class ComposerStaticInit10ac234cfd3462f4dc8e46b3ede094c4
         'App\\Http\\Controllers\\Site\\ReceiptController' => __DIR__ . '/../..' . '/app/Http/Controllers/Site/ReceiptController.php',
         'App\\Http\\Controllers\\Site\\SignInController' => __DIR__ . '/../..' . '/app/Http/Controllers/Site/SignInController.php',
         'App\\Http\\Controllers\\Site\\SiteController' => __DIR__ . '/../..' . '/app/Http/Controllers/Site/SiteController.php',
+        'App\\Http\\Controllers\\SubstituteController' => __DIR__ . '/../..' . '/app/Http/Controllers/SubstituteController.php',
         'App\\Http\\Middleware\\EnsureMarketplaceMode' => __DIR__ . '/../..' . '/app/Http/Middleware/EnsureMarketplaceMode.php',
         'App\\Http\\Middleware\\EnsureSiteOpen' => __DIR__ . '/../..' . '/app/Http/Middleware/EnsureSiteOpen.php',
         'App\\Http\\Middleware\\EnsureStaffRole' => __DIR__ . '/../..' . '/app/Http/Middleware/EnsureStaffRole.php',

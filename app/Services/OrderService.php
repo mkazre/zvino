@@ -99,7 +99,8 @@ class OrderService
 
         $address = isset($data['address_id']) ? Address::find($data['address_id']) : null;
         $dest = $address ? ['lat' => $address->lat, 'lng' => $address->lng] : [];
-        $t = $this->carts->totals($cart, $data['fulfilment'], $dest, (float) ($data['tip'] ?? 0));
+        $pref = $vendor->is_shopper_store ? ($data['substitution_pref'] ?? 'best') : null;
+        $t = $this->carts->totals($cart, $data['fulfilment'], $dest, (float) ($data['tip'] ?? 0), $pref);
 
         if ($t['subtotal'] < max($vendor->min_order_zig, $vendor->zone?->min_order_zig ?? 0)) {
             throw ValidationException::withMessages(['cart' => "Minimum order for {$vendor->name} is ZiG {$vendor->min_order_zig}."]);
@@ -201,6 +202,7 @@ class OrderService
                 'wallet_applied_zig' => $t['wallet_applied'],
                 'cash_part_zig' => $t['cash_part'],
                 'donation_zig' => $t['donation'],
+                'substitution_buffer_zig' => $t['buffer'] ?? 0,
                 'distance_km' => $t['distance_km'],
                 'zig_per_usd' => $rate,
                 'total_usd' => ExchangeRate::toUsd($t['total'], $rate),
@@ -218,6 +220,9 @@ class OrderService
                     'unit_price_zig' => $ci->unit_price_zig,
                     'line_total_zig' => $ci->unit_price_zig * $ci->quantity,
                     'notes' => $ci->notes,
+                    // Customer's chosen substitute (Zvino-run stores) and the buffer paid for it.
+                    'substitute' => $ci->substitute && $order->substitution_pref !== 'refund' ? ['item_id' => $ci->substitute->id, 'name' => $ci->substitute->name, 'image' => $ci->substitute->image_path, 'unit_price_zig' => CartService::itemPrice($ci->substitute)] : null,
+                    'buffer_zig' => $ci->substitute && ($t['buffer'] ?? 0) > 0 ? round(max(0, CartService::itemPrice($ci->substitute) - (float) $ci->unit_price_zig) * $ci->quantity, 2) ?: null : null,
                 ]);
             }
 

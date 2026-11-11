@@ -147,6 +147,7 @@ class OrderView
                     (float) $order->small_order_fee_zig ? ['label' => 'Small-order fee', 'amount' => $money($order->small_order_fee_zig)] : null,
                     (float) $order->tip_zig ? ['label' => 'Driver tip', 'amount' => $money($order->tip_zig)] : null,
                     (float) $order->donation_zig ? ['label' => 'Donation', 'amount' => $money($order->donation_zig)] : null,
+                    (float) $order->substitution_buffer_zig ? ['label' => 'Substitute buffer', 'amount' => $money($order->substitution_buffer_zig), 'help' => 'Covers dearer substitutes you chose. Anything not used goes back to your Zvino wallet.'] : null,
                 ])),
                 'total' => $money($order->total_zig),
                 'vat' => $money($order->vat_zig),

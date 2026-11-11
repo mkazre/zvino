@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('orders', [OrderController::class, 'index']);
     Route::post('orders', [OrderController::class, 'store']);
     Route::get('orders/active', [OrderController::class, 'active']);
+    Route::get('items/{item}/substitutes', [\App\Http\Controllers\SubstituteController::class, 'index'])->middleware('throttle:60,1');
     Route::get('orders/{order}', [OrderController::class, 'show']);
     Route::get('orders/{order}/track', [OrderController::class, 'track']);
     Route::post('orders/{order}/reorder', [OrderController::class, 'reorder']);

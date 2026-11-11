@@ -122,7 +122,7 @@ export function DishCard({ i, onClick, showStore = false }: { i: MenuItem; onCli
 }
 
 /** Item details with sizes, add-on groups (min/max), notes and quantity. Adds to the browser basket. */
-export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { id: number; name: string; slug: string; min_order: Money; kind?: string | null }; onClose: () => void }) {
+export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { id: number; name: string; slug: string; min_order: Money; kind?: string | null; is_shopper_store?: boolean }; onClose: () => void }) {
     // Shops show product packshots: the whole photo, never cropped. Restaurants keep full-bleed food photos.
     const product = !!store.kind && store.kind !== 'restaurant';
     const [variant, setVariant] = useState<string | null>(item.variants[0]?.name ?? null);
@@ -149,7 +149,7 @@ export function ItemModal({ item, store, onClose }: { item: MenuItem; store: { i
     };
 
     const add = (replace = false) => {
-        const ok = cart.add({ id: store.id, name: store.name, slug: store.slug, min_order_zig: store.min_order.zig }, { item_id: item.id, name: perKg ? `${item.name} (per ${step} kg)` : item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
+        const ok = cart.add({ id: store.id, name: store.name, slug: store.slug, min_order_zig: store.min_order.zig, is_shopper_store: !!store.is_shopper_store }, { item_id: item.id, name: perKg ? `${item.name} (per ${step} kg)` : item.name, image: item.image, unit_zig: unit, variant, modifiers: mods, notes: notes || undefined }, qty, replace);
         if (!ok) {
             if (confirm(`Your basket has items from another store. Start a new basket from ${store.name}?`)) add(true);
             return;

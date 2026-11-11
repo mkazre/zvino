@@ -6,13 +6,14 @@ import { useLocale, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Globe, Minus, Plus, Search, ShoppingBag, Trash2, X } from 'lucide-react';
+import { Globe, Minus, Plus, Repeat, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { AppVersion, BrandLogo } from '@/components/brand-logo';
 import { CurrencySwitch } from '@/components/currency-switch';
 import { StoreBadges } from '@/components/store-badges';
 import { OrderAlerts } from '@/components/order-alerts';
+import { SubstitutePicker } from '@/components/substitute-picker';
 import { ActiveOrderButton } from '@/components/active-order-button';
 import { AddressPicker, LocationProvider, type ActiveLocation, type SavedAddress } from '@/components/address-picker';
 
@@ -144,7 +145,8 @@ function Header({ transparent, onCart, hideCart }: { transparent: boolean; onCar
 }
 
 function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-    const { vendor, lines, subtotal, count } = useCart();
+    const { vendor, lines, subtotal, count, buffer } = useCart();
+    const [subFor, setSubFor] = useState<(typeof lines)[number] | null>(null);
     const short = vendor ? Math.max(0, vendor.min_order_zig - subtotal) : 0;
 
     return (
@@ -175,6 +177,12 @@ function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                                         <div className="font-semibold">{l.name}</div>
                                         {(l.variant || l.modifiers.length > 0) && <div className="text-muted-foreground text-[13px]">{[l.variant, ...l.modifiers].filter(Boolean).join(' · ')}</div>}
                                         {l.notes && <div className="text-muted-foreground text-xs italic">“{l.notes}”</div>}
+                                        {vendor?.is_shopper_store && (
+                                            <button onClick={() => setSubFor(l)} className={cn('mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition', l.substitute ? 'border-brand/40 bg-brand/10 text-brand-700 dark:text-brand' : 'text-muted-foreground hover:border-foreground/40 hover:text-foreground')}>
+                                                <Repeat className="size-3 shrink-0" />
+                                                <span className="truncate">{l.substitute ? `Substitute: ${l.substitute.name}` : 'Select substitute (optional)'}</span>
+                                            </button>
+                                        )}
                                         <div className="mt-2 flex items-center justify-between">
                                             <div className="bg-muted flex items-center rounded-full">
                                                 <button onClick={() => cart.setQty(l.key, l.quantity - 1)} className="flex size-8 items-center justify-center" aria-label="Less">{l.quantity === 1 ? <Trash2 className="size-3.5" /> : <Minus className="size-3.5" />}</button>
@@ -189,6 +197,7 @@ function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                         </ul>
                         <footer className="border-t px-6 py-5">
                             <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal · {count} items</span><span className="tabular font-semibold">{zig(subtotal)}</span></div>
+                            {buffer > 0 && <div className="mt-1 flex justify-between text-sm"><span className="text-muted-foreground">Substitute buffer <span className="text-xs">(refunded if not used)</span></span><span className="tabular">{zig(buffer)}</span></div>}
                             <div className="text-muted-foreground mb-4 text-right text-xs">{[alt(subtotal), 'fees calculated at checkout'].filter(Boolean).join(' · ')}</div>
                             {short > 0 && <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-900">Add {zig(short)} more to reach the {zig(vendor!.min_order_zig)} minimum.</p>}
                             <Button className="h-14 w-full rounded-full text-base" variant="dark" disabled={short > 0} onClick={() => { onClose(); router.visit('/checkout'); }}>
@@ -198,6 +207,7 @@ function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                     </>
                 )}
             </aside>
+            {subFor && <SubstitutePicker itemId={subFor.item_id} itemName={subFor.name} current={subFor.substitute} onPick={(s) => cart.setSubstitute(subFor.key, s)} onClose={() => setSubFor(null)} />}
         </div>
     );
 }

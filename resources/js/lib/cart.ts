@@ -14,10 +14,14 @@ export interface CartLine {
     variant: string | null;
     modifiers: string[];
     notes?: string;
+    /** Customer's chosen substitute (Zvino-run stores), one per line. */
+    substitute?: CartSubstitute | null;
 }
 
+export interface CartSubstitute { item_id: number; name: string; image: string | null; price_zig: number }
+
 export interface Cart {
-    vendor: { id: number; name: string; slug: string; min_order_zig: number } | null;
+    vendor: { id: number; name: string; slug: string; min_order_zig: number; is_shopper_store?: boolean } | null;
     lines: CartLine[];
     promo?: string;
 }
@@ -74,6 +78,9 @@ export const cart = {
         const lines = quantity <= 0 ? state.lines.filter((l) => l.key !== key) : state.lines.map((l) => (l.key === key ? { ...l, quantity } : l));
         set(lines.length ? { ...state, lines } : EMPTY);
     },
+    setSubstitute(key: string, substitute: CartSubstitute | null) {
+        set({ ...state, lines: state.lines.map((l) => (l.key === key ? { ...l, substitute } : l)) });
+    },
     setPromo(promo?: string) {
         set({ ...state, promo });
     },
@@ -86,5 +93,7 @@ export function useCart() {
     const c = useSyncExternalStore(cart.subscribe, cart.get, () => EMPTY);
     const count = c.lines.reduce((s, l) => s + l.quantity, 0);
     const subtotal = c.lines.reduce((s, l) => s + l.unit_zig * l.quantity, 0);
-    return { ...c, count, subtotal };
+    // Up-front buffer for substitutes dearer than the original.
+    const buffer = c.vendor?.is_shopper_store ? c.lines.reduce((s, l) => s + (l.substitute ? Math.max(0, l.substitute.price_zig - l.unit_zig) * l.quantity : 0), 0) : 0;
+    return { ...c, count, subtotal, buffer };
 }
