@@ -24,8 +24,8 @@ const locationText = {
 module.exports = ({ config }) => ({
   ...config,
   // Expo project: https://expo.dev/accounts/khuphukiles-team/projects/zvino (one project, three app variants)
-  owner: 'khuphukiles-team',
-  slug: 'zvino',
+  owner: 'zvinoappss-team',
+  slug: 'zvino-o3eewb-rlbmdeotvl15w',
   name: v.name,
   scheme: v.scheme,
   icon: `./assets/brand/icon-${VARIANT}.png`,
@@ -76,6 +76,6 @@ module.exports = ({ config }) => ({
   extra: {
     variant: VARIANT,
     apiUrl: API_URL,
-    eas: { projectId: process.env.EAS_PROJECT_ID ?? 'a1854f97-5f84-484c-96a3-25b74b89d37e' },
+    eas: { projectId: process.env.EAS_PROJECT_ID ?? '48ea2f30-35f7-4a9e-92fd-e7943ef7f091' },
   },
 });
