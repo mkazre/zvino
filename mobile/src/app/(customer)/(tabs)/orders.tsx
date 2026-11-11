@@ -1,4 +1,6 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
+import { ProductThumb } from '@/features/product-thumb';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +9,7 @@ import { label, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Badge, Button, Empty, Row, STATUS_TONE, Text, useTheme } from '@/ui';
 
-interface Order { id: number; reference: string; status: string; created_at: string; totals: { total: Money }; vendor?: { name: string }; items?: { name: string; quantity: number }[] }
+interface Order { id: number; reference: string; status: string; created_at: string; totals: { total: Money }; vendor?: { name: string; logo_path?: string | null }; items?: { name: string; quantity: number; image?: string | null }[] }
 
 export default function Orders() {
     const t = useTheme();
@@ -33,11 +35,29 @@ export default function Orders() {
                 renderItem={({ item: o }) => {
                     const live = !['delivered', 'cancelled', 'rejected'].includes(o.status);
                     return (
-                        <Pressable onPress={() => router.push(`/order/${o.id}`)} style={{ borderRadius: 16, borderWidth: live ? 1.5 : 0.5, borderColor: live ? t.brand : t.border, padding: 16, backgroundColor: live ? t.brandSoft : t.surface, gap: 6 }}>
-                            <Row justify="space-between"><Text variant="heading" numberOfLines={1} style={{ flex: 1 }}>{o.vendor?.name}</Text><Badge tone={STATUS_TONE[o.status]}>{label(o.status === 'picked_up' ? 'on_the_way' : o.status)}</Badge></Row>
-                            <Text variant="caption" numberOfLines={1}>{o.items?.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</Text>
-                            <Row justify="space-between"><Text variant="caption">{new Date(o.created_at).toLocaleDateString()} · {o.reference}</Text><Text variant="label">{zig(o.totals.total.zig)}</Text></Row>
-                            {live && <View style={{ marginTop: 4 }}><Text variant="label" color="brand">Track order →</Text></View>}
+                        <Pressable onPress={() => router.push(`/order/${o.id}`)} style={({ pressed }) => ({ borderRadius: 20, borderWidth: live ? 1.5 : 1, borderColor: live ? t.brand : t.border, padding: 14, backgroundColor: live ? t.brandSoft : t.surface, gap: 12, opacity: pressed ? 0.92 : 1 })}>
+                            <Row justify="space-between" gap={10}>
+                                <View style={{ flex: 1 }}>
+                                    <Text variant="heading" numberOfLines={1}>{o.vendor?.name}</Text>
+                                    <Text variant="caption">{new Date(o.created_at).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })} · #{o.reference}</Text>
+                                </View>
+                                <Badge tone={STATUS_TONE[o.status]}>{label(o.status === 'picked_up' ? 'on_the_way' : o.status)}</Badge>
+                            </Row>
+                            <Row gap={8}>
+                                {(o.items ?? []).slice(0, 4).map((i, k) => (
+                                    <View key={k}>
+                                        <ProductThumb uri={i.image} size={52} product radius={12} />
+                                        {i.quantity > 1 && <View style={{ position: 'absolute', right: -4, top: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: t.inverse, alignItems: 'center', justifyContent: 'center' }}><Text variant="caption" style={{ color: t.onInverse, fontWeight: '800', fontSize: 11 }}>{i.quantity}</Text></View>}
+                                    </View>
+                                ))}
+                                {(o.items?.length ?? 0) > 4 && <View style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }}><Text variant="label">+{(o.items?.length ?? 0) - 4}</Text></View>}
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}><Text variant="heading" style={{ fontSize: 16 }}>{zig(o.totals.total.zig)}</Text><Text variant="caption">{o.items?.reduce((n, i) => n + i.quantity, 0)} items</Text></View>
+                            </Row>
+                            {live ? (
+                                <Row gap={6} style={{ alignSelf: 'flex-start', backgroundColor: t.brand, paddingHorizontal: 14, height: 36, borderRadius: 18 }}><Ionicons name="navigate" size={15} color="#111" /><Text variant="label" style={{ color: '#111' }}>Track order</Text></Row>
+                            ) : o.status === 'delivered' ? (
+                                <Row gap={6}><Ionicons name="refresh" size={15} color={t.brandText} /><Text variant="label" color="brand">Order again</Text></Row>
+                            ) : null}
                         </Pressable>
                     );
                 }}

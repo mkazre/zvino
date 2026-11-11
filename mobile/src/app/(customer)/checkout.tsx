@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, ApiError, type Money } from '@/lib/api';
+import { ProductThumb } from '@/features/product-thumb';
 import { useCart } from '@/lib/cart';
 import { alt, label, normalisePhone, zig } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -291,6 +292,21 @@ export default function Checkout() {
                     {quote?.round_up && (quote.round_up.amount.zig > 0 || roundUp) && (
                         <Toggle value={roundUp} onChange={setRoundUp} label={`Round up for ${quote.round_up.charity}`} description={`Add ${zig(quote.round_up.amount.zig)}. Every cent goes to the charity`} />
                     )}
+                </Card>
+
+                <Card style={{ gap: 12 }}>
+                    <Row justify="space-between"><Text variant="heading">Your order</Text><Pressable onPress={() => router.push('/cart')} hitSlop={8}><Text variant="label" color="brand">Edit</Text></Pressable></Row>
+                    {cart.lines.map((l) => (
+                        <Row key={l.key} gap={12}>
+                            <ProductThumb uri={l.image} size={52} product={shopperStore} radius={12} />
+                            <View style={{ flex: 1 }}>
+                                <Text variant="label" numberOfLines={2}>{l.quantity}× {l.name}</Text>
+                                {(l.variant || l.modifiers.length > 0) ? <Text variant="caption" numberOfLines={1}>{[l.variant, ...l.modifiers].filter(Boolean).join(' · ')}</Text> : null}
+                                {l.substitute ? <Text variant="caption" numberOfLines={1} style={{ color: t.brandText }}>If out of stock: {l.substitute.name}</Text> : null}
+                            </View>
+                            <Text variant="label">{zig(l.unit_zig * l.quantity)}</Text>
+                        </Row>
+                    ))}
                 </Card>
 
                 {quote && (

@@ -17,6 +17,7 @@ import { useChannel } from '@/lib/realtime';
 import { useOnReconnect } from '@/lib/network';
 import { LiveTrack } from '@/features/live-track';
 import { TicketSheet } from '@/features/ticket-sheet';
+import { ProductThumb } from '@/features/product-thumb';
 
 /** Mirrors App\Support\OrderView (the same data drives the website order page). */
 interface OrderView {
@@ -25,7 +26,7 @@ interface OrderView {
     banner: { key: string; image: string; title: string; subtitle: string | null };
     review_banner: string | null;
     timeline: { key: string; label: string; at: string | null; state: 'done' | 'current' | 'upcoming' | 'stopped'; detail: string | null }[];
-    store: { id: number; name: string; logo: string | null; address: string | null; phone: string | null; lat: number | null; lng: number | null };
+    store: { id: number; name: string; kind?: string; logo: string | null; address: string | null; phone: string | null; lat: number | null; lng: number | null };
     driver: { name: string; phone: string; vehicle: string; plate: string | null; rating: number; lat: number | null; lng: number | null; located_at?: string | null; stops_before?: number } | null;
     live?: boolean;
     shopping?: {
@@ -34,7 +35,7 @@ interface OrderView {
         refund: Money | null;
     } | null;
     delivery_pin: string | null; can_cancel: boolean; review: { vendor_rating: number } | null;
-    receipt: { lines: { name: string; quantity: number; options: string[]; notes: string | null; unit: Money; total: Money }[]; totals: { label: string; amount: Money; help?: string }[]; total: Money; vat: Money; wallet_applied: Money | null; pdf_url: string };
+    receipt: { lines: { name: string; image?: string | null; quantity: number; options: string[]; notes: string | null; unit: Money; total: Money }[]; totals: { label: string; amount: Money; help?: string }[]; total: Money; vat: Money; wallet_applied: Money | null; pdf_url: string };
     details: {
         address: { label?: string; line1?: string; landmark?: string; suburb?: string; city?: string } | null; address_lat: number | null; address_lng: number | null;
         instructions: string | null; dropoff: string | null; no_cutlery: boolean;
@@ -320,8 +321,11 @@ function Receipt({ v }: { v: OrderView }) {
             <Card style={{ padding: 0 }}>
                 <View style={{ padding: 14, borderBottomWidth: 1, borderColor: t.border }}><Text variant="caption">{v.fulfilment === 'pickup' ? 'Pickup' : 'Delivery'} · {new Date(v.placed_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</Text></View>
                 {v.receipt.lines.map((l, i) => (
-                    <Row key={i} align="flex-start" style={{ padding: 14, borderBottomWidth: i < v.receipt.lines.length - 1 ? 1 : 0, borderColor: t.border }}>
-                        <View style={{ width: 34 }}><Text variant="heading">{l.quantity}×</Text></View>
+                    <Row key={i} align="flex-start" gap={12} style={{ padding: 14, borderBottomWidth: i < v.receipt.lines.length - 1 ? 1 : 0, borderColor: t.border }}>
+                        <View>
+                            <ProductThumb uri={l.image} size={52} product={v.store.kind ? v.store.kind !== 'restaurant' : !!v.shopping} radius={12} />
+                            <View style={{ position: 'absolute', right: -4, top: -4, minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 5, backgroundColor: t.inverse, alignItems: 'center', justifyContent: 'center' }}><Text variant="caption" style={{ color: t.onInverse, fontWeight: '800', fontSize: 11 }}>{l.quantity}×</Text></View>
+                        </View>
                         <View style={{ flex: 1, gap: 2 }}>
                             <Text variant="label">{l.name}</Text>
                             {l.options.map((o) => <Text key={o} color="muted">{o}</Text>)}

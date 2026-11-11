@@ -15,6 +15,7 @@ import { useOnReconnect } from '@/lib/network';
 import { useImg } from '@/lib/prefs';
 import { Button, Empty, Loading, Logo, Row, Screen, SectionTitle, Text, useTheme } from '@/ui';
 import { withMeal } from '@/lib/meal-time';
+import { categoryIcon } from '@/lib/category-icon';
 
 export interface Block { id: number; type: string; title: string | null; subtitle: string | null; cta_label: string | null; link_to: string | null; payload: Record<string, unknown>; data: unknown }
 interface Layout { platform_mode: 'single' | 'marketplace'; single_vendor: { data: Store } | Store | null; nearby?: { has_location: boolean; count: number }; blocks: Block[] }
@@ -156,7 +157,7 @@ function BlockView({ b }: { b: Block }) {
                     <FlatList horizontal data={cats} keyExtractor={(c) => String(c.id)} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14, paddingTop: b.title ? 0 : 16 }}
                         renderItem={({ item }) => (
                             <Pressable onPress={() => router.push({ pathname: '/search', params: { cuisine: item.name } })} style={{ alignItems: 'center', gap: 6, width: 72 }}>
-                                <View style={{ width: 66, height: 66, borderRadius: p.shape === 'square' ? 18 : 33, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 28 }}>{item.icon ?? ''}</Text></View>
+                                <View style={{ width: 66, height: 66, borderRadius: p.shape === 'square' ? 18 : 33, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={categoryIcon(item.name)} size={28} color={t.brandText} /></View>
                                 <Text variant="caption" style={{ color: t.ink, fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
                             </Pressable>
                         )} />
@@ -173,7 +174,7 @@ function BlockView({ b }: { b: Block }) {
                         renderItem={({ item }) => (
                             <Pressable onPress={() => go(item.link)} style={{ alignItems: 'center', gap: 6 }}>
                                 <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-                                    {item.image ? <Image source={{ uri: img(item.image, 240) ?? undefined }} style={{ width: size, height: size }} contentFit="contain" /> : <Text style={{ fontSize: size * 0.6 }}>{item.emoji || ''}</Text>}
+                                    {item.image ? <Image source={{ uri: img(item.image, 240) ?? undefined }} style={{ width: size, height: size }} contentFit="contain" /> : <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={categoryIcon(item.label)} size={size * 0.42} color={t.brandText} /></View>}
                                 </View>
                                 <Text variant="label" style={{ fontSize: 14 }}>{item.label}</Text>
                             </Pressable>
