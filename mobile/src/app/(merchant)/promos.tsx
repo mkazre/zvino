@@ -98,7 +98,7 @@ export default function Promos() {
             )}
 
             <SectionTitle>Your codes</SectionTitle>
-            {d?.promos.length === 0 && <Empty emoji="🏷️" title="No promotions yet" body="A good first code: 10% off for new customers, minimum ZiG 100." />}
+            {d?.promos.length === 0 && <Empty icon="pricetag-outline" title="No promotions yet" body="A good first code: 10% off for new customers, minimum ZiG 100." />}
             {d?.promos.map((p) => (
                 <Card key={p.id} style={{ marginBottom: 10, gap: 6 }}>
                     <Row justify="space-between">

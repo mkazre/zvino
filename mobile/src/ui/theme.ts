@@ -26,6 +26,11 @@ const light = {
     redSoft: '#FCEAEA',
     inverse: '#222222',
     onInverse: '#FFFFFF',
+    /** Secondary text, input fill and green accent on inverse surfaces (basket bar, wallet card…). */
+    onInverseMuted: 'rgba(255,255,255,0.68)',
+    onInverseFaint: 'rgba(255,255,255,0.4)',
+    onInverseFill: 'rgba(255,255,255,0.12)',
+    onInverseAccent: '#17C74A',
 };
 
 const dark: typeof light = {
@@ -48,6 +53,10 @@ const dark: typeof light = {
     redSoft: '#2E1414',
     inverse: '#F2F2F2',
     onInverse: '#111111',
+    onInverseMuted: 'rgba(17,17,17,0.62)',
+    onInverseFaint: 'rgba(17,17,17,0.4)',
+    onInverseFill: 'rgba(17,17,17,0.07)',
+    onInverseAccent: '#108B34',
 };
 
 export type Theme = typeof light;

@@ -79,9 +79,9 @@ export default function EarningsScreen() {
             <Text variant="title" style={{ marginTop: 8 }}>Earnings</Text>
             <Row gap={8} style={{ marginTop: 12 }}>{(['today', 'week', 'month'] as const).map((p) => <Chip key={p} label={p === 'today' ? 'Today' : p === 'week' ? 'This week' : 'This month'} active={period === p} onPress={() => setPeriod(p)} />)}</Row>
             <Card tone="inverse" style={{ marginTop: 14 }}>
-                <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>Earned</Text>
+                <Text variant="caption" style={{ color: t.onInverseMuted }}>Earned</Text>
                 <Text variant="display" color="onInverse">{zig(e?.earned.zig)}</Text>
-                <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>{e?.trips ?? 0} trips · {zig(e?.tips.zig)} in tips · ${e?.earned.usd.toFixed(2) ?? '0.00'}</Text>
+                <Text variant="caption" style={{ color: t.onInverseMuted }}>{e?.trips ?? 0} trips · {zig(e?.tips.zig)} in tips · ${e?.earned.usd.toFixed(2) ?? '0.00'}</Text>
                 {days.length > 1 && (
                     <Row gap={6} align="flex-end" style={{ height: 70, marginTop: 16 }}>
                         {days.map(([d, v]) => <View key={d} style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: 3, backgroundColor: '#17C74A', borderRadius: 4 }} />)}
@@ -103,7 +103,7 @@ export default function EarningsScreen() {
                             <View key={k} style={{ gap: 4 }}>
                                 <Row justify="space-between"><Text variant="label">{k === 'daily' ? 'Today’s goal' : 'This week’s goal'}</Text><Text variant="label">{zig(g.earned)} / {zig(g.target)}</Text></Row>
                                 <View style={{ height: 8, borderRadius: 4, backgroundColor: t.subtle, overflow: 'hidden' }}><View style={{ height: 8, width: `${pct}%`, backgroundColor: pct >= 100 ? '#D9A520' : t.brand }} /></View>
-                                {pct >= 100 && <Text variant="caption" color="brand">Goal reached 🎉</Text>}
+                                {pct >= 100 && <Text variant="caption" color="brand">Goal reached</Text>}
                             </View>
                         );
                     })}

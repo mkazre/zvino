@@ -23,7 +23,7 @@ export default function Cart() {
                 <Pressable onPress={() => router.back()}><Ionicons name="close" size={26} color={t.ink} /></Pressable>
             </Row>
             {!lines.length ? (
-                <Empty emoji="🛍️" title="Your basket is empty" body="Add something delicious to get started." action={<Button title="Browse stores" onPress={() => router.replace('/search')} size="md" />} />
+                <Empty icon="bag-handle-outline" title="Your basket is empty" body="Add something delicious to get started." action={<Button title="Browse stores" onPress={() => router.replace('/search')} size="md" />} />
             ) : (
                 <>
                     <ScrollView contentContainerStyle={{ paddingHorizontal: 20 }}>

@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch as RNSwitch, Text as RNText, TextInput, View, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
@@ -136,13 +137,19 @@ export function Toggle({ value, onChange, label, description }: { value: boolean
     );
 }
 
-export function Empty({ emoji = '🍽️', title, body, action }: { emoji?: string; title: string; body?: string; action?: ReactNode }) {
+/** Empty state: icon in a soft double ring, title, short help and an optional action. */
+export function Empty({ icon = 'sparkles-outline', title, body, action }: { icon?: keyof typeof Ionicons.glyphMap; title: string; body?: string; action?: ReactNode }) {
+    const t = useTheme();
     return (
-        <View style={{ alignItems: 'center', paddingVertical: 56, gap: 8 }}>
-            <RNText style={{ fontSize: 44 }}>{emoji}</RNText>
+        <View style={{ alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 8 }}>
+            <View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: t.border, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}>
+                    <Ionicons name={icon} size={32} color={t.brandText} />
+                </View>
+            </View>
             <Text variant="heading" center>{title}</Text>
-            {body && <Text variant="caption" center style={{ maxWidth: 280 }}>{body}</Text>}
-            {action && <View style={{ marginTop: 12 }}>{action}</View>}
+            {body && <Text variant="caption" center style={{ maxWidth: 300, lineHeight: 19 }}>{body}</Text>}
+            {action && <View style={{ marginTop: 14 }}>{action}</View>}
         </View>
     );
 }

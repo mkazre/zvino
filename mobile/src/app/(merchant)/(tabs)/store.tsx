@@ -34,7 +34,7 @@ export default function StoreControls() {
             <Card style={{ gap: 6 }}>
                 <Toggle label="Busy mode" description={`Adds ${s.busy_extra_minutes} min to prep times`} value={s.is_busy} onChange={(v) => update({ is_busy: v })} />
                 {s.is_busy && <Row gap={8}>{[10, 15, 20, 30].map((m) => <Chip key={m} label={`+${m} min`} active={s.busy_extra_minutes === m} onPress={() => update({ busy_extra_minutes: m })} />)}</Row>}
-                <Toggle label="⚡ Load-shedding mode" description="Power is out: hide oven/fryer items and add prep time" value={s.power_out} onChange={(v) => update({ power_out: v })} />
+                <Toggle label="Load-shedding mode" description="Power is out: hide oven/fryer items and add prep time" value={s.power_out} onChange={(v) => update({ power_out: v })} />
                 <Toggle label="Auto-accept orders" description="Skip confirming each order" value={s.auto_accept} onChange={(v) => update({ auto_accept: v })} />
             </Card>
 

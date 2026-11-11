@@ -63,7 +63,7 @@ export default function StoreScreen() {
             const slots = (extras.hours ?? []).filter((h) => h.weekday === i);
             return `${d}  ${slots.length ? slots.map((h) => `${h.opens_at.slice(0, 5)}–${h.closes_at.slice(0, 5)}`).join(', ') : 'Closed'}`;
         }).join('\n');
-        Alert.alert(store.name, [store.description, store.address ? `📍 ${store.address}, ${store.city}` : null, `Opening hours\n${hours}`, store.min_order.zig > 0 ? `Minimum order ${zig(store.min_order.zig)}` : null].filter(Boolean).join('\n\n'));
+        Alert.alert(store.name, [store.description, store.address ? `${store.address}, ${store.city}` : null, `Opening hours\n${hours}`, store.min_order.zig > 0 ? `Minimum order ${zig(store.min_order.zig)}` : null].filter(Boolean).join('\n\n'));
     };
 
     const Rail = ({ title, items, badge }: { title: string; items: MenuItem[]; badge?: string }) => (
@@ -142,15 +142,15 @@ export default function StoreScreen() {
                                 <TextInput value={q} onChangeText={setQ} placeholder={`Search ${store.name}`} placeholderTextColor={t.faint} style={{ flex: 1, fontSize: 16, color: t.ink }} />
                                 {!!q && <Pressable onPress={() => setQ('')}><Ionicons name="close-circle" size={18} color={t.muted} /></Pressable>}
                             </Row>
-                            {store.accepts_catering && <Pressable onPress={() => router.push({ pathname: '/catering', params: { store: String(store.id), storeName: store.name } })} style={{ padding: 12, borderRadius: 12, backgroundColor: t.subtle }}><Text variant="label">🍲  Cater an event: funerals, weddings, gatherings ›</Text></Pressable>}
+                            {store.accepts_catering && <Pressable onPress={() => router.push({ pathname: '/catering', params: { store: String(store.id), storeName: store.name } })} style={{ padding: 12, borderRadius: 12, backgroundColor: t.subtle }}><Text variant="label">Cater an event: funerals, weddings, gatherings ›</Text></Pressable>}
                             {deals.map((d) => (
                                 <View key={d.id} style={{ padding: 12, borderRadius: 12, backgroundColor: d.live ? t.brandSoft : t.subtle }}>
-                                    <Text variant="label" color={d.live ? 'brand' : 'muted'}>🏷️  {d.headline}{d.live ? '' : ' · later today'}</Text>
+                                    <Text variant="label" color={d.live ? 'brand' : 'muted'}>{d.headline}{d.live ? '' : ' · later today'}</Text>
                                 </View>
                             ))}
                         </View>
                         {!q && highlights.length > 0 && <Rail title="Highlights" items={highlights} />}
-                        {!q && specials.length > 0 && <Rail title="Specials 🔥" items={specials} badge="Special" />}
+                        {!q && specials.length > 0 && <Rail title="Specials" items={specials} badge="Special" />}
                         {sections.length > 1 && (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingTop: 22 }}>
                                 {sections.map((s, i) => <Chip key={s.title} label={s.title} active={false} onPress={() => jump(i)} />)}

@@ -57,7 +57,7 @@ export default function Verify() {
         return (
             <Screen>
                 <View style={{ gap: 14, paddingTop: 40 }}>
-                    <Text variant="display">Welcome! 👋</Text>
+                    <Text variant="display">Welcome!</Text>
                     <Text color="muted">What should we call you?</Text>
                     <Input autoFocus value={name} onChangeText={setName} placeholder="First name" />
                     <Button title="Let’s eat" onPress={saveName} disabled={name.trim().length < 2} />

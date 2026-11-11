@@ -88,7 +88,7 @@ export default function Plans() {
             )}
 
             <SectionTitle>Your plans</SectionTitle>
-            {plans.length === 0 && !source && <Empty emoji="🔁" title="No regular orders yet" body="Open any past order and tap “Make this a regular order”." />}
+            {plans.length === 0 && !source && <Empty icon="repeat-outline" title="No regular orders yet" body="Open any past order and tap “Make this a regular order”." />}
             {plans.map((p) => (
                 <Card key={p.id} style={{ marginBottom: 10, gap: 6 }}>
                     <Row justify="space-between"><Text variant="heading">{p.name}</Text><Badge tone={p.is_active ? 'brand' : 'neutral'}>{p.is_active ? 'On' : 'Paused'}</Badge></Row>

@@ -44,12 +44,12 @@ export default function Inbox() {
                 onRefresh={load}
                 refreshing={false}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
-                ListEmptyComponent={loading ? undefined : <Empty emoji="🔔" title="No notifications yet" body="Order updates, offers and news from Zvino show up here." />}
+                ListEmptyComponent={loading ? undefined : <Empty icon="notifications-outline" title="No notifications yet" body="Order updates, offers and news from Zvino show up here." />}
                 renderItem={({ item: n }) => (
                     <Pressable onPress={() => open(n)} style={{ paddingVertical: 14, borderBottomWidth: 0.5, borderColor: t.border, flexDirection: 'row', gap: 12 }}>
                         <View style={{ width: 8, paddingTop: 6 }}>{!n.read_at && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: t.brand }} />}</View>
                         <View style={{ flex: 1, gap: 4 }}>
-                            <Row justify="space-between"><Text variant="label" style={{ flex: 1 }}>{n.type === 'announcement' ? '📣  ' : ''}{n.title}</Text><Text variant="caption">{timeAgo(n.created_at)}</Text></Row>
+                            <Row justify="space-between"><Text variant="label" style={{ flex: 1 }}>{n.title}</Text><Text variant="caption">{timeAgo(n.created_at)}</Text></Row>
                             <Text color="muted">{n.body}</Text>
                             {n.data?.image && <Image source={{ uri: n.data.image }} style={{ height: 150, borderRadius: 12, marginTop: 6 }} contentFit="cover" />}
                         </View>

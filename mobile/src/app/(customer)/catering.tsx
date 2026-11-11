@@ -70,7 +70,7 @@ export default function Catering() {
             )}
 
             <SectionTitle>Your bookings</SectionTitle>
-            {list.length === 0 && !store && <Empty emoji="🍲" title="No catering yet" body="Open a store that offers catering and tap “Cater an event”." />}
+            {list.length === 0 && !store && <Empty icon="restaurant-outline" title="No catering yet" body="Open a store that offers catering and tap “Cater an event”." />}
             {list.map((r) => (
                 <Card key={r.id} style={{ marginBottom: 10, gap: 4 }}>
                     <Row justify="space-between"><Text variant="heading">{label(r.event_type)} · {r.headcount}</Text><Badge tone={['deposit_paid', 'paid', 'completed'].includes(r.status) ? 'brand' : r.status === 'quoted' ? 'gold' : 'neutral'}>{label(r.status)}</Badge></Row>

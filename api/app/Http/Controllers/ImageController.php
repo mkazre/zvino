@@ -11,13 +11,14 @@ use Illuminate\Support\Facades\Storage;
  */
 class ImageController extends Controller
 {
-    public const WIDTHS = [160, 320, 640, 1024];
+    public const WIDTHS = [160, 320, 480, 640, 960, 1280, 1600];
 
     public function show(int $width, string $path)
     {
         abort_unless(in_array($width, self::WIDTHS, true) && ! str_contains($path, '..') && ! str_starts_with($path, 'thumbs/'), 404);
         $disk = Storage::disk('public');
-        $thumb = "thumbs/{$width}/".preg_replace('/\.\w+$/', '', $path).'.jpg';
+        // v2: sharper (higher quality) than the first thumbnails, so they're made again once.
+        $thumb = "thumbs/v2/{$width}/".preg_replace('/\.\w+$/', '', $path).'.jpg';
 
         if (! $disk->exists($thumb)) {
             abort_unless($disk->exists($path) && function_exists('imagecreatefromstring'), 404);
@@ -30,7 +31,7 @@ class ImageController extends Controller
             imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255)); // flatten PNG transparency
             imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
             ob_start();
-            imagejpeg($dst, null, $width <= 320 ? 62 : 75);
+            imagejpeg($dst, null, $width <= 320 ? 72 : 85);
             $disk->put($thumb, ob_get_clean());
             imagedestroy($src);
             imagedestroy($dst);

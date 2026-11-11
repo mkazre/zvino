@@ -238,7 +238,7 @@ function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean;
             form.append('paid_with', paidWith);
             form.append('slip', { uri: slip!, name: 'till-slip.jpg', type: 'image/jpeg' } as unknown as Blob);
             await api.post(`/driver/jobs/${shop.id}/shop/finish`, form);
-            Alert.alert('Shopping done 🛒', 'The customer has been told their order is on the way.', [{ text: 'Deliver', onPress: onDone }]);
+            Alert.alert('Shopping done', 'The customer has been told their order is on the way.', [{ text: 'Deliver', onPress: onDone }]);
         } catch (e) {
             Alert.alert('Couldn’t finish', e instanceof ApiError ? e.friendly : '');
         } finally {

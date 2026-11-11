@@ -14,7 +14,7 @@ export default function Account() {
     const t = useTheme();
     const { me, signOut } = useSession();
     const { dataLight, setDataLight } = usePrefs();
-    if (!me) return <Screen><Empty emoji="👋" title="Welcome to Zvino" body="Sign in to save addresses, earn rewards and track orders." action={<Button title="Sign in" size="md" onPress={() => router.push('/sign-in')} />} /><ThemePicker /><LanguagePicker /></Screen>;
+    if (!me) return <Screen><Empty icon="person-circle-outline" title="Welcome to Zvino" body="Sign in to save addresses, earn rewards and track orders." action={<Button title="Sign in" size="md" onPress={() => router.push('/sign-in')} />} /><ThemePicker /><LanguagePicker /></Screen>;
 
     const Item = ({ icon, title, sub, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; sub?: string; onPress: () => void }) => (
         <Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15, borderBottomWidth: 0.5, borderColor: t.border }}>
@@ -29,7 +29,7 @@ export default function Account() {
             <Text variant="title" style={{ marginTop: 8 }}>{me.name || 'Your account'}</Text>
             <Text color="muted">{me.phone}</Text>
             <Row gap={12} style={{ marginTop: 18 }}>
-                <Card tone="inverse" style={{ flex: 1 }} onPress={() => router.push('/wallet')}><Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>Wallet</Text><Text variant="heading" color="onInverse">{zig(me.wallet_balance_zig)}</Text></Card>
+                <Card tone="inverse" style={{ flex: 1 }} onPress={() => router.push('/wallet')}><Text variant="caption" style={{ color: t.onInverseMuted }}>Wallet</Text><Text variant="heading" color="onInverse">{zig(me.wallet_balance_zig)}</Text></Card>
                 <Card tone="gold" style={{ flex: 1 }} onPress={() => router.push('/wallet')}><Text variant="caption" style={{ color: '#6b4e05' }}>{me.tier}</Text><Text variant="heading" style={{ color: '#3d2c03' }}>{me.points} pts</Text></Card>
             </Row>
             {!me.zvino_plus && (
@@ -49,7 +49,7 @@ export default function Account() {
                 <Item icon="help-buoy-outline" title="Help & support" sub="WhatsApp, call or chat" onPress={() => Alert.alert('Zvino support', 'WhatsApp or call +263 242 000 000')} />
             </View>
             <Card style={{ marginTop: 16 }}>
-                <Toggle value={dataLight} onChange={setDataLight} label="📶  Data-light mode" description="Smaller photos, no map tiles on tracking. Saves your bundle." />
+                <Toggle value={dataLight} onChange={setDataLight} label="Data-light mode" description="Smaller photos, no map tiles on tracking. Saves your bundle." />
             </Card>
             <ThemePicker />
             <LanguagePicker />

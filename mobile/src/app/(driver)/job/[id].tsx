@@ -73,7 +73,7 @@ export default function JobScreen() {
             if (changeToWallet) form.append('change_to_wallet_zig', changeToWallet);
             if (photo) form.append('photo', { uri: photo, name: 'proof.jpg', type: 'image/jpeg' } as unknown as Blob);
             const r = await api.post<{ earned: { zig: number } }>(`/driver/jobs/${job.id}/deliver`, form);
-            Alert.alert('Delivered! 🎉', `You earned ${zig(r.earned.zig)}`, [{ text: 'Next job', onPress: () => router.replace('/shift') }]);
+            Alert.alert('Delivered!', `You earned ${zig(r.earned.zig)}`, [{ text: 'Next job', onPress: () => router.replace('/shift') }]);
         } catch (e) {
             Alert.alert('Can’t complete', e instanceof ApiError ? e.friendly : '');
         } finally {
@@ -91,11 +91,11 @@ export default function JobScreen() {
             </Row>
             <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
                 <Card tone="inverse" style={{ gap: 6 }}>
-                    <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>{delivering ? 'DELIVER TO' : job.shopping ? 'SHOP AT' : 'PICK UP FROM'}</Text>
+                    <Text variant="caption" style={{ color: t.onInverseMuted }}>{delivering ? 'DELIVER TO' : job.shopping ? 'SHOP AT' : 'PICK UP FROM'}</Text>
                     <Text variant="title" color="onInverse">{delivering ? job.customer.name ?? 'Customer' : job.store.name}</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>{delivering ? `${job.dropoff?.line1}${job.dropoff?.suburb ? `, ${job.dropoff.suburb}` : ''}` : job.store.address}</Text>
-                    {delivering && job.dropoff?.landmark && <Text style={{ color: '#17C74A' }}>📍 {job.dropoff.landmark}</Text>}
-                    {delivering && job.dropoff?.instructions && <Text style={{ color: 'rgba(255,255,255,0.8)' }}>“{job.dropoff.instructions}”</Text>}
+                    <Text style={{ color: t.onInverseMuted }}>{delivering ? `${job.dropoff?.line1}${job.dropoff?.suburb ? `, ${job.dropoff.suburb}` : ''}` : job.store.address}</Text>
+                    {delivering && job.dropoff?.landmark && <Text style={{ color: t.onInverseAccent }}>{job.dropoff.landmark}</Text>}
+                    {delivering && job.dropoff?.instructions && <Text style={{ color: t.onInverseMuted }}>“{job.dropoff.instructions}”</Text>}
                     <Row gap={10} style={{ marginTop: 10 }}>
                         {target?.lat && <Button title={tr('Navigate')} tone="primary" size="md" style={{ flex: 1 }} onPress={() => Linking.openURL(navigateUrl(target.lat!, target.lng!))} icon={<Ionicons name="navigate" size={18} color="#fff" />} />}
                         {(delivering ? job.customer.phone : job.store.phone) && <Button title="Call" tone="soft" size="md" onPress={() => Linking.openURL(`tel:${delivering ? job.customer.phone : job.store.phone}`)} icon={<Ionicons name="call" size={18} color={t.ink} />} />}

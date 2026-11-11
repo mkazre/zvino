@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 import { CartProvider } from '@/lib/cart';
 import { VARIANT } from '@/lib/config';
 import { I18nProvider } from '@/lib/i18n';
@@ -35,10 +36,15 @@ function RootNavigator() {
         return () => sub.remove();
     }, []);
     const t = useTheme();
+    const insets = useSafeAreaInsets();
     if (!ready) return <Loading />;
 
     const signedIn = !!me;
+    // Android draws apps edge-to-edge: keep every screen (tab bar, basket bar, last cards) above the
+    // system navigation bar. Screens below see no bottom inset, so nothing is padded twice.
     return (
+        <View style={{ flex: 1, paddingBottom: insets.bottom, backgroundColor: t.bg }}>
+        <SafeAreaInsetsContext.Provider value={{ ...insets, bottom: 0 }}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
             <Stack.Screen name="index" />
 
@@ -64,6 +70,8 @@ function RootNavigator() {
                 <Stack.Screen name="(merchant)" />
             </Stack.Protected>
         </Stack>
+        </SafeAreaInsetsContext.Provider>
+        </View>
     );
 }
 

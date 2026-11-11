@@ -60,7 +60,7 @@ export function Feed({ segment }: { segment: 'restaurants' | 'shops' }) {
     if (!layout) {
         return failed ? (
             <Screen>
-                <Empty emoji="📶" title="Couldn’t load Zvino" body="Check your connection. We’ll keep trying." action={<Button title="Try again" size="md" onPress={load} />} />
+                <Empty icon="cloud-offline-outline" title="Couldn’t load Zvino" body="Check your connection. We’ll keep trying." action={<Button title="Try again" size="md" onPress={load} />} />
             </Screen>
         ) : <Loading />;
     }
@@ -79,7 +79,7 @@ export function Feed({ segment }: { segment: 'restaurants' | 'shops' }) {
                 </View>
                 {layout.nearby?.has_location && layout.nearby.count === 0 && (
                     <View style={{ padding: 24 }}>
-                        <Empty emoji="📍" title="We don’t deliver here yet" body={`No stores deliver to ${active?.address_id ? active.label : 'this location'} yet. Try another address at the top.`} />
+                        <Empty icon="location-outline" title="We don’t deliver here yet" body={`No stores deliver to ${active?.address_id ? active.label : 'this location'} yet. Try another address at the top.`} />
                     </View>
                 )}
                 {layout.blocks.map((b) => <BlockView key={b.id} b={b} />)}
@@ -156,7 +156,7 @@ function BlockView({ b }: { b: Block }) {
                     <FlatList horizontal data={cats} keyExtractor={(c) => String(c.id)} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14, paddingTop: b.title ? 0 : 16 }}
                         renderItem={({ item }) => (
                             <Pressable onPress={() => router.push({ pathname: '/search', params: { cuisine: item.name } })} style={{ alignItems: 'center', gap: 6, width: 72 }}>
-                                <View style={{ width: 66, height: 66, borderRadius: p.shape === 'square' ? 18 : 33, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 28 }}>{item.icon ?? '🍽️'}</Text></View>
+                                <View style={{ width: 66, height: 66, borderRadius: p.shape === 'square' ? 18 : 33, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 28 }}>{item.icon ?? ''}</Text></View>
                                 <Text variant="caption" style={{ color: t.ink, fontWeight: '600' }} numberOfLines={1}>{item.name}</Text>
                             </Pressable>
                         )} />
@@ -173,7 +173,7 @@ function BlockView({ b }: { b: Block }) {
                         renderItem={({ item }) => (
                             <Pressable onPress={() => go(item.link)} style={{ alignItems: 'center', gap: 6 }}>
                                 <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-                                    {item.image ? <Image source={{ uri: img(item.image, 240) ?? undefined }} style={{ width: size, height: size }} contentFit="contain" /> : <Text style={{ fontSize: size * 0.6 }}>{item.emoji || '🍽️'}</Text>}
+                                    {item.image ? <Image source={{ uri: img(item.image, 240) ?? undefined }} style={{ width: size, height: size }} contentFit="contain" /> : <Text style={{ fontSize: size * 0.6 }}>{item.emoji || ''}</Text>}
                                 </View>
                                 <Text variant="label" style={{ fontSize: 14 }}>{item.label}</Text>
                             </Pressable>
@@ -263,7 +263,7 @@ function BlockView({ b }: { b: Block }) {
             if (!items.length) return null;
             return (
                 <View>
-                    <Heading b={b} title={b.title ?? 'Today’s specials 🔥'} />
+                    <Heading b={b} title={b.title ?? 'Today’s specials'} />
                     <FlatList horizontal data={items} keyExtractor={(i) => String(i.id)} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
                         renderItem={({ item }) => (
                             <Pressable onPress={() => router.push(`/store/${item.vendor_id}`)} style={{ width: 160 }}>
@@ -281,7 +281,7 @@ function BlockView({ b }: { b: Block }) {
             return (
                 <Pressable onPress={() => go(b.link_to)} style={{ marginHorizontal: 16, marginTop: 20, borderRadius: 14, padding: 14, backgroundColor: gold ? t.goldSoft : p.tone === 'brand' ? t.brand : p.tone === 'red' ? t.red : t.inverse }}>
                     <Text variant="label" style={{ color: gold ? '#6b4e05' : p.tone === 'brand' ? '#111' : t.onInverse }}>{b.title}</Text>
-                    {b.subtitle && <Text variant="caption" style={{ color: gold ? '#6b4e05' : p.tone === 'brand' ? '#111' : 'rgba(255,255,255,0.75)' }}>{b.subtitle}</Text>}
+                    {b.subtitle && <Text variant="caption" style={{ color: gold ? '#6b4e05' : p.tone === 'brand' ? '#111' : t.onInverseMuted }}>{b.subtitle}</Text>}
                 </Pressable>
             );
         }
@@ -289,7 +289,7 @@ function BlockView({ b }: { b: Block }) {
             const d = b.data as { points: number | null; rewards: { id: number; name: string; points_cost: number }[] };
             return (
                 <Pressable onPress={() => router.push('/wallet')} style={{ marginHorizontal: 16, marginTop: 20, borderRadius: 18, padding: 16, backgroundColor: t.goldSoft, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                    <Text style={{ fontSize: 30 }}>🎁</Text>
+                    <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(61,44,3,0.08)', alignItems: 'center', justifyContent: 'center' }}><Ionicons name="gift-outline" size={24} color="#3d2c03" /></View>
                     <View style={{ flex: 1 }}>
                         <Text variant="heading" style={{ color: '#3d2c03' }}>{b.title ?? 'Zvino Rewards'}</Text>
                         <Text variant="caption" style={{ color: '#3d2c03' }}>{d?.points !== null && d?.points !== undefined ? `You have ${d.points} points` : b.subtitle}</Text>

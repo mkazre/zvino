@@ -25,7 +25,7 @@ export default function Hampers() {
         setBusy(true);
         try {
             const r = await api.post<{ next_delivery: string }>(`/hampers/${pick.id}/send`, { ...f, recipient_phone: normalisePhone(f.recipient_phone), day_of_month: f.frequency === 'monthly' ? Number(f.day_of_month) : null, deliver_on: f.frequency === 'once' ? f.deliver_on : null });
-            Alert.alert('Hamper on its way 🎁', `First delivery ${new Date(r.next_delivery).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}. ${f.recipient_name} gets an SMS.`);
+            Alert.alert('Hamper on its way', `First delivery ${new Date(r.next_delivery).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}. ${f.recipient_name} gets an SMS.`);
             setPick(null);
             refresh();
         } catch (e) {
@@ -65,7 +65,7 @@ export default function Hampers() {
                 </Card>
             ) : (
                 <>
-                    {list.length === 0 && <Empty emoji="🎁" title="Hampers coming soon" />}
+                    {list.length === 0 && <Empty icon="gift-outline" title="Hampers coming soon" />}
                     {list.map((h) => (
                         <Card key={h.id} style={{ marginTop: 12, gap: 6 }} onPress={() => setPick(h)}>
                             <Row justify="space-between"><Text variant="heading">{h.name}</Text><Text variant="heading">{zig(h.price.zig)}</Text></Row>

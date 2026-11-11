@@ -100,7 +100,7 @@ export default function Checkout() {
         try {
             await api.post('/cart/voucher', { code: promo });
             setQuote(await api.post<Quote>('/checkout/quote', { fulfilment, address_id: addressId, tip, substitution_pref: shopperStore ? subPref : undefined }));
-            Alert.alert('Promo applied 🎉');
+            Alert.alert('Promo applied');
         } catch (e) {
             Alert.alert('Promo', e instanceof ApiError ? e.friendly : 'Invalid code');
         }
@@ -156,7 +156,7 @@ export default function Checkout() {
     if (waiting) {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 }}>
-                <Text style={{ fontSize: 56 }}>📲</Text>
+                <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="phone-portrait-outline" size={44} color={t.brandText} /></View>
                 <Text variant="title" center>{tr('Check your phone')}</Text>
                 <Text color="muted" center>Approve the {label(method)} payment of {zig(due)} on {phone}. Enter your PIN when prompted.</Text>
                 <ActivityIndicator color={t.brand} size="large" style={{ marginTop: 12 }} />
@@ -174,8 +174,8 @@ export default function Checkout() {
             </Row>
             <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 4, gap: 14, paddingBottom: 140 }}>
                 <Row gap={8}>
-                    <Chip label={`🛵  ${tr('Delivery')}`} active={fulfilment === 'delivery'} onPress={() => setFulfilment('delivery')} />
-                    <Chip label={`🚶  ${tr('Pickup')}`} active={fulfilment === 'pickup'} onPress={() => setFulfilment('pickup')} />
+                    <Chip label={`${tr('Delivery')}`} active={fulfilment === 'delivery'} onPress={() => setFulfilment('delivery')} />
+                    <Chip label={`${tr('Pickup')}`} active={fulfilment === 'pickup'} onPress={() => setFulfilment('pickup')} />
                     {quote?.eta_minutes && <Text variant="caption" style={{ marginLeft: 'auto' }}>{quote.eta_minutes[0]}–{quote.eta_minutes[1]} min</Text>}
                 </Row>
 
@@ -190,7 +190,7 @@ export default function Checkout() {
                         ))}
                         {quote?.batch && (
                             <View style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: t.brandSoft }}>
-                                <Text variant="label" color="brand">🚐  {quote.batch.zone} run</Text>
+                                <Text variant="label" color="brand">{quote.batch.zone} run</Text>
                                 <Text variant="caption">Leaves {new Date(quote.batch.departs_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · arrives about {new Date(quote.batch.arrives_at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</Text>
                             </View>
                         )}
@@ -219,7 +219,7 @@ export default function Checkout() {
                     {splitOk && (
                         <View style={{ marginTop: 10, gap: 8 }}>
                             <Row justify="space-between">
-                                <Text variant="label">👥  Split the bill</Text>
+                                <Text variant="label">Split the bill</Text>
                                 <Row gap={14}>
                                     {friends.length > 0 && <Pressable onPress={() => { const each = Math.floor((((total?.zig ?? 0) - walletPart - cashPart) / (friends.length + 1)) * 100) / 100; setFriends(friends.map((f) => ({ ...f, amount: String(each) }))); }}><Text variant="label" color="brand">Split evenly</Text></Pressable>}
                                     {friends.length < (quote?.split_bill?.max_people ?? 0) && <Pressable onPress={() => setFriends([...friends, { name: '', phone: '', amount: '' }])}><Text variant="label" color="brand">+ Friend</Text></Pressable>}
@@ -238,7 +238,7 @@ export default function Checkout() {
                     )}
                     {cashAllowed && (
                         <View style={{ marginTop: 8, gap: 6 }}>
-                            <Text variant="label">💵  Pay part in cash? (optional)</Text>
+                            <Text variant="label">Pay part in cash? (optional)</Text>
                             <TextInput value={cashPartText} onChangeText={setCashPartText} keyboardType="decimal-pad" placeholder="ZiG 0" placeholderTextColor={t.faint} style={{ height: 46, borderRadius: 12, backgroundColor: t.subtle, paddingHorizontal: 14, fontSize: 15, color: t.ink }} />
                             {cashPart > 0 && <Text variant="caption">Hand {zig(cashPart)} to your driver · {zig(due)} by {METHOD_LABEL[method] ?? label(method)}</Text>}
                         </View>
@@ -263,7 +263,7 @@ export default function Checkout() {
 
                 {quote?.needs_prescription && (
                     <Card style={{ gap: 8 }}>
-                        <Text variant="heading">💊  Prescription</Text>
+                        <Text variant="heading">Prescription</Text>
                         <Text variant="caption">Your basket has prescription medicine. The pharmacist checks your prescription before accepting (full refund if declined).</Text>
                         <Button title={uploading ? 'Uploading…' : prescription ? 'Prescription added ✓ · replace' : 'Add prescription photo'} tone={prescription ? 'soft' : 'primary'} size="md" onPress={addPrescription} disabled={uploading} />
                     </Card>
@@ -287,9 +287,9 @@ export default function Checkout() {
                 )}
 
                 <Card>
-                    {!shopperStore && <Toggle value={noCutlery} onChange={setNoCutlery} label={`🌿  ${tr('No cutlery or straws')}`} description={tr('Less plastic. Thank you!')} />}
+                    {!shopperStore && <Toggle value={noCutlery} onChange={setNoCutlery} label={`${tr('No cutlery or straws')}`} description={tr('Less plastic. Thank you!')} />}
                     {quote?.round_up && (quote.round_up.amount.zig > 0 || roundUp) && (
-                        <Toggle value={roundUp} onChange={setRoundUp} label={`❤️  Round up for ${quote.round_up.charity}`} description={`Add ${zig(quote.round_up.amount.zig)}. Every cent goes to the charity`} />
+                        <Toggle value={roundUp} onChange={setRoundUp} label={`Round up for ${quote.round_up.charity}`} description={`Add ${zig(quote.round_up.amount.zig)}. Every cent goes to the charity`} />
                     )}
                 </Card>
 
@@ -298,7 +298,7 @@ export default function Checkout() {
                         {([[tr('Subtotal'), quote.totals.subtotal.zig], fulfilment === 'delivery' ? ['Delivery' + (quote.surge ? ` (${quote.surge.multiplier}× busy)` : ''), quote.totals.delivery.zig] : null, [tr('Service fee'), quote.totals.service.zig], quote.totals.small_order.zig ? ['Small order fee', quote.totals.small_order.zig] : null, quote.totals.discount.zig ? [quote.deal ?? 'Promo', -quote.totals.discount.zig] : null, tip ? ['Driver tip', quote.totals.tip.zig] : null, (quote.totals.buffer?.zig ?? 0) > 0 ? ['Substitute buffer (unused is refunded)', quote.totals.buffer!.zig] : null, donation ? ['Donation', donation] : null, walletPart ? ['From wallet', -walletPart] : null, cashPart ? ['Cash to driver', -cashPart] : null, sharesTotal ? [`Friends (${shares.length})`, -sharesTotal] : null].filter(Boolean) as [string, number][]).map(([l, v]) => (
                             <Row key={l} justify="space-between" style={{ paddingVertical: 4 }}><Text color="muted">{l}</Text><Text color={v < 0 ? 'brand' : 'ink'}>{v < 0 ? `−${zig(-v)}` : zig(v)}</Text></Row>
                         ))}
-                        {quote.totals.member_savings.zig > 0 && <Text variant="caption" color="brand">Zvino+ saved you {zig(quote.totals.member_savings.zig)} 🎉</Text>}
+                        {quote.totals.member_savings.zig > 0 && <Text variant="caption" color="brand">Zvino+ saved you {zig(quote.totals.member_savings.zig)}</Text>}
                     </Card>
                 )}
             </ScrollView>

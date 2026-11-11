@@ -128,7 +128,7 @@ export function LiveTrack<T extends LiveView>({ visible, view, onClose, onUpdate
                     <View style={{ backgroundColor: t.surface, borderRadius: 26, padding: 18, gap: 12, elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 20 }}>
                         {delivered ? (
                             <View style={{ alignItems: 'center', gap: 6 }}>
-                                <Text variant="title">Delivered 🎉</Text>
+                                <Text variant="title">Delivered</Text>
                                 <Text color="muted">Enjoy your order!</Text>
                                 <Pressable onPress={onClose} style={{ marginTop: 8, alignSelf: 'stretch', height: 48, borderRadius: 24, backgroundColor: t.brand, alignItems: 'center', justifyContent: 'center' }}><Text variant="label" style={{ color: '#111' }}>Done</Text></Pressable>
                             </View>

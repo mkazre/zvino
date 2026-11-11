@@ -53,7 +53,7 @@ export default function SignIn() {
                     <Text variant="display" style={{ marginTop: 12 }}>{VARIANT === 'driver' ? 'Drive with Zvino' : 'What’s your number?'}</Text>
                     <Text color="muted">We’ll text you a 6-digit code. No password needed.</Text>
                     <Row gap={0} style={{ marginTop: 20, height: 60, borderRadius: 16, borderWidth: 2, borderColor: error ? t.red : t.ink, overflow: 'hidden' }}>
-                        <View style={{ paddingHorizontal: 16, height: '100%', justifyContent: 'center', borderRightWidth: 1, borderColor: t.border }}><Text variant="label">🇿🇼 +263</Text></View>
+                        <View style={{ paddingHorizontal: 16, height: '100%', justifyContent: 'center', borderRightWidth: 1, borderColor: t.border }}><Text variant="label">+263</Text></View>
                         <TextInput autoFocus value={phone} onChangeText={setPhone} keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" placeholder="77 123 4567" placeholderTextColor={t.faint} style={{ flex: 1, height: '100%', paddingHorizontal: 16, fontSize: 19, color: t.ink }} onSubmitEditing={() => valid && send()} />
                     </Row>
                     {error && <Text variant="caption" color="red">{error}</Text>}

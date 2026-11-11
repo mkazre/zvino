@@ -97,7 +97,7 @@ export default function Shift() {
     if (me.status !== 'approved') {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: t.bg, padding: 24, justifyContent: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 48 }}>{me.status === 'applied' ? '⏳' : '⛔'}</Text>
+                <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: me.status === 'applied' ? t.goldSoft : t.redSoft, alignItems: 'center', justifyContent: 'center' }}><Ionicons name={me.status === 'applied' ? 'hourglass-outline' : 'close-circle-outline'} size={34} color={me.status === 'applied' ? t.goldText : t.red} /></View>
                 <Text variant="title">{me.status === 'applied' ? 'Application under review' : `Account ${me.status}`}</Text>
                 <Text color="muted">{me.status === 'applied' ? 'We’re checking your documents. You’ll get a notification as soon as you’re approved, usually within 1–2 days.' : 'Please contact Zvino support.'}</Text>
                 <Button title="Check documents" tone="outline" onPress={() => router.push('/driver-apply')} />
@@ -233,7 +233,7 @@ function Heatmap() {
     if (!cells.length) return null;
     return (
         <Card style={{ gap: 10 }}>
-            <Text variant="heading">🔥 {tr('Busy areas right now')}</Text>
+            <Text variant="heading">{tr('Busy areas right now')}</Text>
             {cells.slice(0, 5).map((c) => (
                 <Pressable key={`${c.lat},${c.lng}`} onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`)}>
                     <Row gap={10}>

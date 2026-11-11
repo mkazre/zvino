@@ -32,12 +32,12 @@ export default function MerchantCatering() {
                     <Button title="Take catering requests" size="md" tone="dark" onPress={() => api.patch('/merchant/store', { accepts_catering: true }).then(load)} />
                 </Card>
             )}
-            {d?.requests.length === 0 && <Empty emoji="🍲" title="No catering requests" />}
+            {d?.requests.length === 0 && <Empty icon="restaurant-outline" title="No catering requests" />}
             {d?.requests.map((r) => (
                 <Card key={r.id} style={{ marginTop: 12, gap: 4 }}>
                     <Row justify="space-between"><Text variant="heading">{label(r.event_type)} · {r.headcount} people</Text><Badge tone={r.status === 'requested' ? 'red' : ['deposit_paid', 'paid'].includes(r.status) ? 'brand' : 'neutral'}>{label(r.status)}</Badge></Row>
                     <Text color="muted">{new Date(r.event_at).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {r.location}</Text>
-                    <Pressable onPress={() => r.contact_phone && Linking.openURL(`tel:${r.contact_phone}`)}><Text variant="caption">{r.contact_name} · {r.contact_phone} 📞</Text></Pressable>
+                    <Pressable onPress={() => r.contact_phone && Linking.openURL(`tel:${r.contact_phone}`)}><Text variant="caption">{r.contact_name} · {r.contact_phone}</Text></Pressable>
                     {r.notes && <Text variant="caption">“{r.notes}”</Text>}
                     {r.quote_zig != null && <Text>Quoted {zig(r.quote_zig)} · paid {zig(r.paid_zig)}</Text>}
                     {quoting === r.id ? (

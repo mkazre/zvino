@@ -18,7 +18,7 @@ export default function Orders() {
     }, [me]);
     useFocusEffect(load);
 
-    if (!me) return <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}><Empty emoji="🧾" title="Your orders live here" body="Sign in to see and track your orders." action={<Button title="Sign in" size="md" onPress={() => router.push('/sign-in')} />} /></SafeAreaView>;
+    if (!me) return <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}><Empty icon="receipt-outline" title="Your orders live here" body="Sign in to see and track your orders." action={<Button title="Sign in" size="md" onPress={() => router.push('/sign-in')} />} /></SafeAreaView>;
 
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
@@ -29,7 +29,7 @@ export default function Orders() {
                 refreshing={orders === null}
                 contentContainerStyle={{ padding: 20, gap: 12 }}
                 ListHeaderComponent={<Text variant="title" style={{ marginBottom: 8 }}>Orders</Text>}
-                ListEmptyComponent={orders ? <Empty emoji="🧾" title="No orders yet" body="Your first order is a few taps away." action={<Button title="Find food" size="md" onPress={() => router.push("/search")} />} /> : undefined}
+                ListEmptyComponent={orders ? <Empty icon="receipt-outline" title="No orders yet" body="Your first order is a few taps away." action={<Button title="Find food" size="md" onPress={() => router.push("/search")} />} /> : undefined}
                 renderItem={({ item: o }) => {
                     const live = !['delivered', 'cancelled', 'rejected'].includes(o.status);
                     return (

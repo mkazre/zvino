@@ -40,9 +40,9 @@ export default function More() {
                 <>
                     <SectionTitle>This week</SectionTitle>
                     <Card tone="inverse">
-                        <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>Net to your store</Text>
+                        <Text variant="caption" style={{ color: t.onInverseMuted }}>Net to your store</Text>
                         <Text variant="display" color="onInverse">{zig(e.net.zig)}</Text>
-                        <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }}>Sales {zig(e.sales.zig)} · commission {zig(e.commission.zig)} · refunds {zig(e.refunds.zig)}</Text>
+                        <Text variant="caption" style={{ color: t.onInverseMuted }}>Sales {zig(e.sales.zig)} · commission {zig(e.commission.zig)} · refunds {zig(e.refunds.zig)}</Text>
                     </Card>
                     <Card style={{ marginTop: 10, gap: 8 }}>
                         <Text variant="caption">Owed to you (next payout)</Text><Text variant="heading">{zig(e.balance.zig)}</Text>
@@ -53,8 +53,8 @@ export default function More() {
                     {e.payouts.map((p) => <Row key={p.id} justify="space-between" style={{ paddingVertical: 8 }}><Text>{new Date(p.period_end).toLocaleDateString()}</Text><Text variant="label">{zig(p.amount_zig)} · {label(p.status)}</Text></Row>)}
                 </>
             )}
-            {manager && <Button title="🏷️  Promotions" tone="soft" onPress={() => router.push('/promos')} style={{ marginTop: 16 }} />}
-            {manager && <Button title="🍲  Catering requests" tone="soft" onPress={() => router.push('/catering')} style={{ marginTop: 8 }} />}
+            {manager && <Button title="Promotions" tone="soft" onPress={() => router.push('/promos')} style={{ marginTop: 16 }} />}
+            {manager && <Button title="Catering requests" tone="soft" onPress={() => router.push('/catering')} style={{ marginTop: 8 }} />}
             {manager && ins && (
                 <>
                     <SectionTitle>Best sellers (30 days)</SectionTitle>

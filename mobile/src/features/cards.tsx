@@ -153,7 +153,7 @@ export function CartBar() {
         <Pressable onPress={() => router.push('/cart')} style={{ position: 'absolute', left: 16, right: 16, bottom: 16, height: 58, borderRadius: 99, backgroundColor: t.inverse, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, elevation: 8 }}>
             <View>
                 <Text variant="label" color="onInverse">View basket · {count}</Text>
-                <Text variant="caption" style={{ color: 'rgba(255,255,255,0.6)' }} numberOfLines={1}>{store?.name}</Text>
+                <Text variant="caption" style={{ color: t.onInverseMuted }} numberOfLines={1}>{store?.name}</Text>
             </View>
             <Text variant="heading" color="onInverse">{zig(subtotal)}</Text>
         </Pressable>

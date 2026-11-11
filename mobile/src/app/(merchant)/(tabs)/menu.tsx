@@ -36,7 +36,7 @@ export default function MenuScreen() {
                             <Pressable key={i.id} onPress={() => choose(i)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5, borderColor: t.border, opacity: out ? 0.55 : 1 }}>
                                 <View style={{ flex: 1 }}><Text variant="label">{i.name}</Text><Text variant="caption">{zig(i.price.zig)}</Text></View>
                                 <Row gap={6}>
-                                    {i.needs_power && <Badge tone="gold">⚡</Badge>}
+                                    {i.needs_power && <Badge tone="gold">Needs power</Badge>}
                                     <Badge tone={out ? 'red' : 'brand'}>{out ? (i.unavailable_until ? 'Off today' : i.needs_power && menu.power_out ? 'No power' : 'Sold out') : 'In stock'}</Badge>
                                 </Row>
                             </Pressable>

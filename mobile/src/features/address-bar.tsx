@@ -12,7 +12,7 @@ export function addAddressHere(loc: { lat: number | null; lng: number | null; li
     router.push({ pathname: '/addresses', params: { add: '1', ...(loc?.lat != null ? { lat: String(loc.lat), lng: String(loc.lng), line1: loc.line ?? '', suburb: loc.suburb ?? '', city: loc.city ?? '' } : {}) } });
 }
 
-/** "📍 Home · 21 Moepel Ave ⌄" at the top of Restaurants, Shops and Search. */
+/** "Home · 21 Moepel Ave ⌄" at the top of Restaurants, Shops and Search. */
 export function AddressBar() {
     const t = useTheme();
     const { active, status } = useLocation();

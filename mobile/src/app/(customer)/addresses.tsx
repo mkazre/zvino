@@ -81,9 +81,9 @@ export default function Addresses() {
                             <View style={{ flex: 1 }}>
                                 <Text variant="label">{a.label}{a.is_default ? '  · Default' : ''}</Text>
                                 <Text variant="caption">{a.line1}{a.suburb ? `, ${a.suburb}` : ''}, {a.city}</Text>
-                                {a.landmark && <Text variant="caption">📍 {a.landmark}</Text>}
+                                {a.landmark && <Text variant="caption">{a.landmark}</Text>}
                                 <VoiceNoteRecorder addressId={a.id} existing={a.voice_note_path} onSaved={load} />
-                                <Pressable onPress={() => gatePhoto(a.id)} style={{ marginTop: 8 }}><Text variant="label" color="brand">{a.gate_photo_path ? '📷 Gate photo added · replace' : '📷 Add a photo of your gate'}</Text></Pressable>
+                                <Pressable onPress={() => gatePhoto(a.id)} style={{ marginTop: 8 }}><Text variant="label" color="brand">{a.gate_photo_path ? 'Gate photo added · replace' : 'Add a photo of your gate'}</Text></Pressable>
                             </View>
                             <Pressable onPress={() => api.delete(`/addresses/${a.id}`).then(load)}><Ionicons name="trash-outline" size={20} color={t.muted} /></Pressable>
                         </Row>

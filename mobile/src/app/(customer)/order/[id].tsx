@@ -115,7 +115,7 @@ export default function OrderScreen() {
                             {eta !== null && <Text variant="caption">about {eta} min</Text>}
                             {!v.is_done && v.time.trend ? (
                                 <View style={{ alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: v.time.trend.type === 'early' ? t.brandSoft : t.goldSoft }}>
-                                    <Text variant="caption" style={{ fontWeight: '800', color: v.time.trend.type === 'early' ? t.brandText : t.goldText }}>{v.time.trend.type === 'early' ? '⚡ ' : ''}{v.time.trend.text}</Text>
+                                    <Text variant="caption" style={{ fontWeight: '800', color: v.time.trend.type === 'early' ? t.brandText : t.goldText }}>{v.time.trend.type === 'early' ? '' : ''}{v.time.trend.text}</Text>
                                 </View>
                             ) : null}
                         </View>
@@ -223,7 +223,7 @@ function Tracking({ v, split, dataLight, reload, cancel, onLive }: { v: OrderVie
             {v.review_banner && <><Banner image={v.review_banner} title="How was it?" subtitle={`Rate ${v.store.name}.`} /><Review v={v} reload={reload} /></>}
             {v.can_cancel && <Button title={tr('Cancel order')} tone="outline" onPress={cancel} />}
             {v.status === 'delivered' && <Button title={tr('Reorder')} onPress={() => router.push(`/store/${v.store.id}`)} />}
-            {!['cancelled', 'rejected', 'pending_payment'].includes(v.status) && <Button title="🔁  Make this a regular order" tone="ghost" onPress={() => router.push(`/plans?fromOrder=${v.id}`)} />}
+            {!['cancelled', 'rejected', 'pending_payment'].includes(v.status) && <Button title="Make this a regular order" tone="ghost" onPress={() => router.push(`/plans?fromOrder=${v.id}`)} />}
         </>
     );
 }
@@ -388,7 +388,7 @@ function ShoppingProgress({ s }: { s: NonNullable<OrderView['shopping']> }) {
     const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
     return (
         <Card style={{ gap: 10 }}>
-            <Row justify="space-between"><Text variant="label">🛒 {s.finished ? 'Shopping done' : 'Your shopper is picking your items'}</Text><Text variant="caption">{s.done} of {s.total}</Text></Row>
+            <Row justify="space-between"><Text variant="label">{s.finished ? 'Shopping done' : 'Your shopper is picking your items'}</Text><Text variant="caption">{s.done} of {s.total}</Text></Row>
             <View style={{ height: 8, borderRadius: 4, backgroundColor: t.subtle, overflow: 'hidden' }}><View style={{ width: `${pct}%`, height: 8, backgroundColor: t.brand }} /></View>
             {s.changes.map((c, i) => (
                 <Row key={i} justify="space-between" align="flex-start" gap={10}>

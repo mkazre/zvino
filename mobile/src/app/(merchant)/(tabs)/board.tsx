@@ -105,11 +105,11 @@ export default function Board() {
                     </View>
                     {me && <Badge tone={!me.availability.is_open ? 'red' : me.store.is_busy ? 'gold' : 'brand'}>{!me.availability.is_open ? label(me.availability.reason ?? 'closed') : me.store.is_busy ? 'Busy' : 'Open'}</Badge>}
                 </Row>
-                {me?.store.power_out && <Card tone="gold" style={{ paddingVertical: 10 }}><Text variant="label" style={{ color: '#3d2c03' }}>⚡ Load-shedding mode: power items hidden</Text></Card>}
+                {me?.store.power_out && <Card tone="gold" style={{ paddingVertical: 10 }}><Text variant="label" style={{ color: '#3d2c03' }}>Load-shedding mode: power items hidden</Text></Card>}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>{tabs.map(([v, l]) => <Chip key={v} label={l} active={tab === v} onPress={() => setTab(v)} />)}</ScrollView>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: 40 }}>
-                {orders.length === 0 && <Empty emoji={tab === 'incoming' ? '🛎️' : '✅'} title={tab === 'incoming' ? 'No new orders' : 'Nothing here'} body={tab === 'incoming' ? 'New orders ring and vibrate the moment they arrive.' : undefined} />}
+                {orders.length === 0 && <Empty icon={tab === 'incoming' ? 'notifications-outline' : 'checkmark-done-outline'} title={tab === 'incoming' ? 'No new orders' : 'Nothing here'} body={tab === 'incoming' ? 'New orders ring and vibrate the moment they arrive.' : undefined} />}
                 {orders.map((o) => {
                     const mins = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000);
                     const isNew = o.status === 'placed';
@@ -125,14 +125,14 @@ export default function Board() {
                                     <View key={k}>
                                         <Text variant="label" style={{ fontSize: 16 }}>{i.quantity}× {i.name}</Text>
                                         {(i.options?.variant || i.options?.modifiers?.length) && <Text variant="caption">{[i.options?.variant, ...(i.options?.modifiers ?? [])].filter(Boolean).join(' · ')}</Text>}
-                                        {i.notes && <Text variant="caption" color="gold">⚠ {i.notes}</Text>}
+                                        {i.notes && <Text variant="caption" color="gold">{i.notes}</Text>}
                                     </View>
                                 ))}
                             </View>
-                            {o.no_cutlery && <Text variant="caption" color="brand">🌿 No cutlery</Text>}
-                            {o.has_prescription && <Pressable onPress={() => setRx(o.id)}><Text variant="label" color="red">💊 View prescription before accepting</Text></Pressable>}
-                            {o.notes && <Text variant="caption" color="gold">📝 {o.notes}</Text>}
-                            {o.driver && <Text variant="caption">🛵 {o.driver.name}</Text>}
+                            {o.no_cutlery && <Text variant="caption" color="brand">No cutlery</Text>}
+                            {o.has_prescription && <Pressable onPress={() => setRx(o.id)}><Text variant="label" color="red">View prescription before accepting</Text></Pressable>}
+                            {o.notes && <Text variant="caption" color="gold">{o.notes}</Text>}
+                            {o.driver && <Text variant="caption">{o.driver.name}</Text>}
 
                             {isNew && !kitchen && (
                                 <View style={{ gap: 8 }}>

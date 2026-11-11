@@ -11,7 +11,7 @@ import { useLocation } from '@/lib/location';
 import { useOnReconnect } from '@/lib/network';
 import { Chip, Empty, Loading, Logo, Row, SectionTitle, Text, useTheme } from '@/ui';
 
-const KINDS: Record<string, string> = { grocery: '🛒 Groceries', pharmacy: '💊 Pharmacy', market: '🥩 Butchery & market', bakery: '🥖 Bakery' };
+const KINDS: Record<string, string> = { grocery: 'Groceries', pharmacy: 'Pharmacy', market: 'Butchery & market', bakery: 'Bakery' };
 
 /** Shops tab: groceries, pharmacies and markets that deliver to the active address. */
 export default function Shops() {
@@ -64,7 +64,7 @@ export default function Shops() {
                     </View>
                 }
                 renderItem={({ item }) => <View style={{ paddingHorizontal: 16 }}><StoreCard s={item} /></View>}
-                ListEmptyComponent={<View style={{ padding: 24 }}><Empty emoji="🛒" title="No shops deliver here yet" body={active ? 'Try another address at the top.' : 'Set your delivery address at the top to see shops near you.'} /></View>}
+                ListEmptyComponent={<View style={{ padding: 24 }}><Empty icon="cart-outline" title="No shops deliver here yet" body={active ? 'Try another address at the top.' : 'Set your delivery address at the top to see shops near you.'} /></View>}
             />
             <CartBar />
         </SafeAreaView>

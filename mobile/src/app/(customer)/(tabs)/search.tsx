@@ -10,8 +10,8 @@ import { Chip, Empty, Row, SectionTitle, Text, useTheme } from '@/ui';
 import { AddressBar } from '@/features/address-bar';
 import { useLocation } from '@/lib/location';
 
-const DIETS = [['vegetarian', '🥬 Vegetarian'], ['vegan', '🌱 Vegan'], ['halal', 'Halal'], ['no_pork', 'No pork'], ['nut_free', '🥜 Nut-free'], ['gluten_free', 'Gluten-free'], ['dairy_free', 'Dairy-free'], ['spicy', '🌶️ Spicy']] as const;
-const FILTERS = [['', 'All'], ['offers', '🔥 Offers'], ['free_delivery', 'Free delivery'], ['fastest', 'Fastest'], ['rating', 'Top rated']] as const;
+const DIETS = [['vegetarian', 'Vegetarian'], ['vegan', 'Vegan'], ['halal', 'Halal'], ['no_pork', 'No pork'], ['nut_free', 'Nut-free'], ['gluten_free', 'Gluten-free'], ['dairy_free', 'Dairy-free'], ['spicy', 'Spicy']] as const;
+const FILTERS = [['', 'All'], ['offers', 'Offers'], ['free_delivery', 'Free delivery'], ['fastest', 'Fastest'], ['rating', 'Top rated']] as const;
 
 export default function Search() {
     const t = useTheme();
@@ -86,7 +86,7 @@ export default function Search() {
                         <View style={{ gap: 24 }}>{stores.map((s) => <StoreCard key={s.id} s={s} />)}</View>
                     </>
                 )}
-                {!loading && !stores.length && !items.length && <Empty emoji="🔍" title="Nothing found" body="Try a different dish or store name." />}
+                {!loading && !stores.length && !items.length && <Empty icon="search-outline" title="Nothing found" body="Try a different dish or store name." />}
             </ScrollView>
             <CartBar />
         </SafeAreaView>
