@@ -218,8 +218,8 @@ class OriginalsFourTest extends TestCase
         $this->assertNotNull($a->fresh()->voice_note_path);
 
         Storage::disk('public')->put('items/test.jpg', UploadedFile::fake()->image('x.jpg', 1200, 800)->getContent());
-        $this->get('/img/320/items/test.jpg')->assertRedirect('/storage/thumbs/320/items/test.jpg');
-        [$w] = getimagesizefromstring(Storage::disk('public')->get('thumbs/320/items/test.jpg'));
+        $this->get('/img/320/items/test.jpg')->assertRedirect('/storage/thumbs/v2/320/items/test.jpg');
+        [$w] = getimagesizefromstring(Storage::disk('public')->get('thumbs/v2/320/items/test.jpg'));
         $this->assertSame(320, $w);
         $this->get('/img/999/items/test.jpg')->assertNotFound();
         $this->get('/img/320/../.env')->assertNotFound();

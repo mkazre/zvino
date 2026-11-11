@@ -1,43 +1,73 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { api, ApiError } from '@/lib/api';
-import { Button, Card, Chip, Input, Row, Text, useTheme } from '@/ui';
-import * as ImagePicker from 'expo-image-picker';
 import { VoiceNoteRecorder } from '@/features/voice-note';
+import { api, ApiError } from '@/lib/api';
 import { type SavedAddress, useLocation } from '@/lib/location';
+import { Button, Card, Input, Row, Text, useTheme } from '@/ui';
 
-interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean; voice_note_path: string | null; gate_photo_path: string | null }
+interface Address extends SavedAddress { landmark: string | null; is_default: boolean; voice_note_path: string | null; gate_photo_path: string | null }
 
-/** Saved addresses + add new with landmark and GPS pin (Zimbabwean addresses are tricky). */
+const LABELS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { label: 'Home', icon: 'home-outline' },
+    { label: 'Work', icon: 'briefcase-outline' },
+    { label: 'Other', icon: 'location-outline' },
+];
+const iconFor = (label: string) => LABELS.find((l) => l.label === label)?.icon ?? 'location-outline';
+
+/** Saved addresses: tap one to deliver there. Add new ones with a GPS pin and landmark. */
 export default function Addresses() {
     const t = useTheme();
     const params = useLocalSearchParams<{ add?: string; lat?: string; lng?: string; line1?: string; suburb?: string; city?: string }>();
-    const { chooseAddress, reloadAddresses } = useLocation();
+    const { active, chooseAddress, reloadAddresses } = useLocation();
     const [list, setList] = useState<Address[]>([]);
-    // Opened from "Add this address" / the address picker: start with the form open and the GPS point.
     const [adding, setAdding] = useState(params.add === '1');
     const [form, setForm] = useState({
         label: 'Home', line1: params.line1 ?? '', landmark: '', suburb: params.suburb ?? '', city: params.city || 'Harare', instructions: '',
         lat: params.lat ? Number(params.lat) : (null as number | null), lng: params.lng ? Number(params.lng) : (null as number | null),
     });
     const [saving, setSaving] = useState(false);
+    const [locating, setLocating] = useState(false);
 
-    const load = useCallback(() => {
-        api.get<Address[]>('/addresses').then(setList);
-    }, []);
+    const load = useCallback(() => { api.get<Address[]>('/addresses').then(setList).catch(() => {}); }, []);
     useFocusEffect(load);
 
+    const select = (a: Address) => {
+        chooseAddress(a);
+        if (router.canGoBack()) router.back();
+    };
+    const makeDefault = async (a: Address) => {
+        await api.patch(`/addresses/${a.id}`, { is_default: true }).catch(() => {});
+        load();
+        reloadAddresses();
+    };
+    const remove = (a: Address) => Alert.alert('Delete this address?', `${a.label}: ${a.line1}`, [
+        { text: 'Keep', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => api.delete(`/addresses/${a.id}`).then(() => { load(); reloadAddresses(); }).catch(() => {}) },
+    ]);
+    const more = (a: Address) => {
+        const options = [...(a.is_default ? [] : ['Make default']), 'Delete', 'Cancel'];
+        const run = (i: number) => { const o = options[i]; if (o === 'Make default') makeDefault(a); if (o === 'Delete') remove(a); };
+        if (Platform.OS === 'ios') ActionSheetIOS.showActionSheetWithOptions({ options, destructiveButtonIndex: options.indexOf('Delete'), cancelButtonIndex: options.length - 1 }, run);
+        else Alert.alert(a.label, a.line1, options.map((o, i) => ({ text: o, style: o === 'Delete' ? 'destructive' as const : o === 'Cancel' ? 'cancel' as const : 'default' as const, onPress: () => run(i) })));
+    };
+
     const pin = async () => {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return Alert.alert('Location', 'Allow location to pin your exact gate.');
-        const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        setForm((f) => ({ ...f, lat: p.coords.latitude, lng: p.coords.longitude }));
-        const r = await api.post<{ line1: string; suburb: string | null; city: string | null }[]>('/addresses/geocode', { lat: p.coords.latitude, lng: p.coords.longitude }).catch(() => []);
-        if (r[0]) setForm((f) => ({ ...f, line1: f.line1 || r[0].line1, suburb: f.suburb || (r[0].suburb ?? ''), city: r[0].city ?? f.city }));
+        setLocating(true);
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') return Alert.alert('Location', 'Allow location to pin your exact gate.');
+            const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+            setForm((f) => ({ ...f, lat: p.coords.latitude, lng: p.coords.longitude }));
+            const r = await api.post<{ line1: string; suburb: string | null; city: string | null }[]>('/addresses/geocode', { lat: p.coords.latitude, lng: p.coords.longitude }).catch(() => []);
+            if (r[0]) setForm((f) => ({ ...f, line1: f.line1 || r[0].line1, suburb: f.suburb || (r[0].suburb ?? ''), city: r[0].city ?? f.city }));
+        } finally {
+            setLocating(false);
+        }
     };
 
     const gatePhoto = async (id: number) => {
@@ -69,39 +99,77 @@ export default function Addresses() {
 
     return (
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
-            <Row style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
-                <Pressable onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={t.ink} /></Pressable>
-                <Text variant="title" style={{ fontSize: 22 }}>Addresses</Text>
+            <Row style={{ paddingHorizontal: 16, paddingVertical: 10 }} gap={10}>
+                <Pressable onPress={() => router.back()} style={{ padding: 6 }} accessibilityLabel="Back"><Ionicons name="arrow-back" size={24} color={t.ink} /></Pressable>
+                <View style={{ flex: 1 }}>
+                    <Text variant="title" style={{ fontSize: 22 }}>Delivery addresses</Text>
+                    {list.length > 0 && <Text variant="caption">Tap an address to deliver there</Text>}
+                </View>
             </Row>
-            <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }} keyboardShouldPersistTaps="handled">
-                {list.map((a) => (
-                    <Card key={a.id}>
-                        <Row align="flex-start">
-                            <Ionicons name={a.label === 'Work' ? 'briefcase-outline' : 'home-outline'} size={22} color={t.ink} />
-                            <View style={{ flex: 1 }}>
-                                <Text variant="label">{a.label}{a.is_default ? '  · Default' : ''}</Text>
-                                <Text variant="caption">{a.line1}{a.suburb ? `, ${a.suburb}` : ''}, {a.city}</Text>
-                                {a.landmark && <Text variant="caption">{a.landmark}</Text>}
+            <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+                {list.map((a) => {
+                    const on = active?.address_id === a.id;
+                    return (
+                        <Pressable key={a.id} onPress={() => select(a)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`Deliver to ${a.label}, ${a.line1}`}
+                            style={({ pressed }) => ({ borderRadius: 20, borderWidth: on ? 2 : 1, borderColor: on ? t.brand : t.border, backgroundColor: on ? t.brandSoft : t.surface, padding: 14, gap: 12, opacity: pressed ? 0.92 : 1 })}>
+                            <Row align="flex-start" gap={12}>
+                                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: on ? t.brand : t.subtle, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Ionicons name={iconFor(a.label)} size={22} color={on ? '#111' : t.ink} />
+                                </View>
+                                <View style={{ flex: 1, gap: 2 }}>
+                                    <Row gap={8}>
+                                        <Text variant="label" style={{ fontSize: 16 }}>{a.label}</Text>
+                                        {a.is_default && <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, backgroundColor: on ? 'rgba(0,0,0,0.06)' : t.subtle }}><Text variant="caption" style={{ fontWeight: '700' }}>Default</Text></View>}
+                                    </Row>
+                                    <Text variant="caption" numberOfLines={2}>{[a.line1, a.suburb, a.city].filter(Boolean).join(', ')}</Text>
+                                    {a.landmark ? <Row gap={4}><Ionicons name="flag-outline" size={13} color={t.muted} /><Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>{a.landmark}</Text></Row> : null}
+                                </View>
+                                <View style={{ alignItems: 'center', gap: 10 }}>
+                                    <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: on ? t.brand : t.faint, backgroundColor: on ? t.brand : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                                        {on ? <Ionicons name="checkmark" size={15} color="#111" /> : null}
+                                    </View>
+                                    <Pressable onPress={() => more(a)} hitSlop={10} accessibilityLabel="More options"><Ionicons name="ellipsis-horizontal" size={20} color={t.muted} /></Pressable>
+                                </View>
+                            </Row>
+                            {on && <Row gap={6}><Ionicons name="bicycle-outline" size={15} color={t.brandText} /><Text variant="caption" style={{ color: t.brandText, fontWeight: '700' }}>Delivering here</Text></Row>}
+                            <Row gap={8} style={{ flexWrap: 'wrap' }}>
                                 <VoiceNoteRecorder addressId={a.id} existing={a.voice_note_path} onSaved={load} />
-                                <Pressable onPress={() => gatePhoto(a.id)} style={{ marginTop: 8 }}><Text variant="label" color="brand">{a.gate_photo_path ? 'Gate photo added · replace' : 'Add a photo of your gate'}</Text></Pressable>
-                            </View>
-                            <Pressable onPress={() => api.delete(`/addresses/${a.id}`).then(load)}><Ionicons name="trash-outline" size={20} color={t.muted} /></Pressable>
-                        </Row>
-                    </Card>
-                ))}
+                                <Pressable onPress={() => gatePhoto(a.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 36, borderRadius: 99, backgroundColor: on ? 'rgba(0,0,0,0.06)' : t.subtle }}>
+                                    <Ionicons name={a.gate_photo_path ? 'checkmark-circle' : 'camera-outline'} size={16} color={a.gate_photo_path ? t.brandText : t.ink} />
+                                    <Text variant="caption" style={{ fontWeight: '700', color: t.ink }}>{a.gate_photo_path ? 'Gate photo added' : 'Add gate photo'}</Text>
+                                </Pressable>
+                            </Row>
+                        </Pressable>
+                    );
+                })}
+
                 {!adding ? (
-                    <Button title="Add address" tone="outline" onPress={() => setAdding(true)} icon={<Ionicons name="add" size={20} color={t.ink} />} />
+                    <Pressable onPress={() => setAdding(true)} style={{ height: 64, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.faint, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                        <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: t.subtle, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="add" size={20} color={t.ink} /></View>
+                        <Text variant="label">Add a new address</Text>
+                    </Pressable>
                 ) : (
                     <Card style={{ gap: 12 }}>
-                        <Row gap={8}>{['Home', 'Work', 'Other'].map((l) => <Chip key={l} label={l} active={form.label === l} onPress={() => setForm({ ...form, label: l })} />)}</Row>
-                        <Button title={form.lat ? 'Exact location pinned ✓' : 'Use my current location'} tone={form.lat ? 'soft' : 'primary'} size="md" onPress={pin} icon={<Ionicons name="locate" size={18} color={form.lat ? t.ink : '#fff'} />} />
+                        <Row justify="space-between"><Text variant="heading">New address</Text>{list.length > 0 && <Pressable onPress={() => setAdding(false)} hitSlop={10}><Ionicons name="close" size={22} color={t.muted} /></Pressable>}</Row>
+                        <Row gap={8}>
+                            {LABELS.map((l) => {
+                                const on = form.label === l.label;
+                                return (
+                                    <Pressable key={l.label} onPress={() => setForm({ ...form, label: l.label })} style={{ flex: 1, height: 44, borderRadius: 12, borderWidth: on ? 2 : 1, borderColor: on ? t.ink : t.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                        <Ionicons name={l.icon} size={17} color={t.ink} /><Text variant="label">{l.label}</Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </Row>
+                        <Button title={form.lat ? 'Exact location pinned' : 'Use my current location'} tone={form.lat ? 'soft' : 'primary'} size="md" loading={locating} onPress={pin}
+                            icon={<Ionicons name={form.lat ? 'checkmark-circle' : 'locate'} size={18} color={form.lat ? t.brandText : '#fff'} />} />
                         <Input placeholder="Street address" value={form.line1} onChangeText={(v) => setForm({ ...form, line1: v })} />
                         <Input placeholder="Landmark, e.g. opposite OK Mart, blue gate" value={form.landmark} onChangeText={(v) => setForm({ ...form, landmark: v })} />
                         <Row gap={8}>
                             <View style={{ flex: 1 }}><Input placeholder="Suburb" value={form.suburb} onChangeText={(v) => setForm({ ...form, suburb: v })} /></View>
                             <View style={{ flex: 1 }}><Input placeholder="City" value={form.city} onChangeText={(v) => setForm({ ...form, city: v })} /></View>
                         </Row>
-                        <Input placeholder="Instructions for driver (gate code, call when outside)" value={form.instructions} onChangeText={(v) => setForm({ ...form, instructions: v })} />
+                        <Input placeholder="Instructions for the driver (gate code, call when outside)" value={form.instructions} onChangeText={(v) => setForm({ ...form, instructions: v })} />
                         <Button title="Save address" onPress={save} loading={saving} disabled={!form.line1} />
                     </Card>
                 )}

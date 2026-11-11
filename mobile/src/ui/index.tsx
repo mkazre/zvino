@@ -181,7 +181,11 @@ export const STATUS_TONE: Record<string, 'neutral' | 'brand' | 'gold' | 'red' | 
 };
 
 /** Zvino logo (from the admin's Branding settings when online; bundled copy otherwise). */
-export function Logo({ height = 32, inverse = false }: { height?: number; inverse?: boolean }) {
+/** Brand logo. Dark mode (or a dark surface: inverse) uses the white-text version automatically. */
+export function Logo({ height = 32, inverse }: { height?: number; inverse?: boolean }) {
+    const t = useTheme();
+    const darkBg = (() => { const h = t.bg.replace('#', ''); const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h.slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 < 128; })();
+    inverse = inverse ?? darkBg;
     const remote = useBrandLogo(inverse);
     // logo.png is 391×120 → keep the aspect ratio
     return <ExpoImage source={remote ? { uri: remote } : inverse ? require('../../assets/brand/logo-inverse.png') : require('../../assets/brand/logo.png')} style={{ height, width: height * 3.26 }} contentFit="contain" />;
