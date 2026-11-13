@@ -12,6 +12,7 @@ import { useCart } from '@/lib/cart';
 import { zig } from '@/lib/money';
 import { Button, Chip, Loading, Row, Text, useTheme } from '@/ui';
 import { useSession } from '@/lib/session';
+import { ModalInsets } from '@/lib/insets';
 
 type Menu = Store & { accepts_catering?: boolean; description: string | null; address?: string | null; categories: { id: number; name: string; items: { data?: MenuItem[] } | MenuItem[] }[] };
 type Extras = { availability?: Store['availability']; hours?: { weekday: number; opens_at: string; closes_at: string }[]; distance_km?: number | null; rating_count?: number; offers_pickup?: boolean };
@@ -236,6 +237,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
 
     return (
         <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+            <ModalInsets>
             <View style={{ flex: 1, backgroundColor: t.bg }}>
                 <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
                     <Cover uri={item.image} seed={item.id} height={store.kind && store.kind !== 'restaurant' ? 300 : 240} radius={0} fit={store.kind && store.kind !== 'restaurant' ? 'contain' : 'cover'} />
@@ -273,6 +275,7 @@ function ItemSheet({ item, store, onClose }: { item: MenuItem; store: Store; onC
                     <Button style={{ flex: 1 }} disabled={!!missing} title={missing ? `Choose ${missing.name.toLowerCase()}` : `Add ${perKg ? kg(qty) : qty} · ${zig(unit * qty)}`} onPress={() => add()} />
                 </SafeAreaView>
             </View>
+            </ModalInsets>
         </Modal>
     );
 }

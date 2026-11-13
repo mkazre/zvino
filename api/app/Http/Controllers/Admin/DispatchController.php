@@ -43,12 +43,12 @@ class DispatchController extends AdminController
     {
         $offer = $dispatch->dispatch($order);
 
-        return back()->with($offer ? 'success' : 'error', $offer ? 'Offer sent to the nearest driver.' : 'No available driver nearby right now.');
+        return back()->with($offer ? 'success' : 'error', $offer ? (\App\Services\DispatchService::broadcasting() ? 'Job sent to every suitable driver nearby.' : 'Offer sent to the nearest driver.') : 'No suitable driver nearby right now, or drivers are still deciding.');
     }
 
     private function snapshot(): array
     {
-        $orders = Order::whereIn('status', Order::LIVE)->with('vendor:id,name,lat,lng', 'address:id,lat,lng,suburb,line1', 'driver.user:id,name', 'user:id,name')
+        $orders = Order::whereIn('status', Order::LIVE)->with('vendor:id,name,lat,lng,is_shopper_store', 'address:id,lat,lng,suburb,line1', 'driver.user:id,name', 'user:id,name')
             ->oldest()->get();
 
         $now = now();
@@ -76,6 +76,9 @@ class DispatchController extends AdminController
                     collect($o->status_history)->contains('flag', 'needs_manual_dispatch') ? 'manual' : null,
                 ])),
                 'offers' => $o->dispatchOffers()->count(),
+                'shop' => (bool) $o->vendor?->is_shopper_store,
+                // Drivers looking at the job right now (broadcast: first to accept gets it).
+                'seeing' => $o->dispatchOffers()->where('status', 'offered')->where('expires_at', '>', $now)->count(),
             ];
         });
 

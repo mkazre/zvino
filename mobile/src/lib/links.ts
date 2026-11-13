@@ -11,6 +11,9 @@ export async function openLink(link?: string | null, data?: Record<string, unkno
     if (data?.order_id && !link) {
         return router.push(VARIANT === 'driver' ? `/job/${data.order_id}` : VARIANT === 'merchant' ? '/board' : `/order/${data.order_id}`);
     }
+    // Driver app: a job offer opens the app (the offer pops up there); an assigned job opens the job.
+    if (link === 'driver_offer') return router.push('/shift');
+    if (link === 'driver_job' && data?.order_id) return router.push(`/job/${data.order_id}`);
     if (!link) return router.push('/inbox');
     const [type, ...rest] = link.split(':');
     const value = rest.join(':');

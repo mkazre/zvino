@@ -4,9 +4,13 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { api } from './api';
 
-// Show notifications while the app is open (order updates, job offers).
+// Show notifications while the app is open (order updates). Job offers already pop up full-screen in
+// the driver app, so their banner is skipped while it's open.
 Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+    handleNotification: async (n) => {
+        const offer = (n.request.content.data as Record<string, unknown> | undefined)?.type === 'dispatch_offer';
+        return { shouldShowBanner: !offer, shouldShowList: !offer, shouldPlaySound: !offer, shouldSetBadge: false };
+    },
 });
 
 /**
@@ -21,6 +25,8 @@ export async function registerForPush(): Promise<string | null> {
 
     if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('orders', { name: 'Orders & deliveries', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 250, 250, 250], lightColor: '#0B6E4F' });
+        // Drivers: new jobs ring loudly and show on the lock screen (first to accept gets the job).
+        await Notifications.setNotificationChannelAsync('offers', { name: 'Job offers', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 700, 400, 700, 400, 700], lightColor: '#17C74A', lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC, sound: 'default' });
         await Notifications.setNotificationChannelAsync('marketing', { name: 'Deals & offers', importance: Notifications.AndroidImportance.DEFAULT });
     }
 

@@ -9,6 +9,8 @@ import { api, ApiError, type Money } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { useImg } from '@/lib/prefs';
 import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
+import { useDeviceInsets } from '@/lib/insets';
+import { shrinkPhoto } from '@/lib/photo';
 
 type Status = 'found' | 'partial' | 'missing' | 'replaced';
 interface Line {
@@ -130,6 +132,7 @@ function StatusIcon({ status }: { status: Status | null }) {
 /** One item: found it all, found some, replace it, or not available. */
 function ItemSheet({ shop, line, busy, onClose, onMark }: { shop: Shop; line: Line | null; busy: boolean; onClose: () => void; onMark: (l: Line, body: Record<string, unknown>) => void }) {
     const t = useTheme();
+    const nav = useDeviceInsets();
     const img = useImg();
     const [mode, setMode] = useState<'menu' | 'partial' | 'replace'>('menu');
     const [qty, setQty] = useState(1);
@@ -148,7 +151,7 @@ function ItemSheet({ shop, line, busy, onClose, onMark }: { shop: Shop; line: Li
     return (
         <Modal visible transparent animationType="slide" onRequestClose={onClose}>
             <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} onPress={onClose} />
-            <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 12, maxHeight: '85%' }}>
+            <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 20 + nav.bottom, gap: 12, maxHeight: '85%' }}>
                 <Row gap={12}>
                     {line.image ? <Image source={{ uri: img(line.image, 200) ?? undefined }} style={{ width: 64, height: 64, borderRadius: 12 }} contentFit="cover" /> : null}
                     <View style={{ flex: 1 }}><Text variant="heading" numberOfLines={2}>{line.quantity}× {line.name}</Text><Text variant="caption">{line.aisle}{line.size ? ` · ${line.size}` : ''}</Text></View>
@@ -217,6 +220,7 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
 /** Pay at the till: total, slip photo, how it was paid. Then the order is on its way. */
 function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean; onClose: () => void; onDone: () => void }) {
     const t = useTheme();
+    const nav = useDeviceInsets();
     const [total, setTotal] = useState('');
     const [slip, setSlip] = useState<string | null>(null);
     const [paidWith, setPaidWith] = useState<'zvino_card' | 'own_cash'>('zvino_card');
@@ -228,7 +232,7 @@ function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean;
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return Alert.alert('Camera needed', 'Allow the camera to photograph the till slip.');
         const r = await ImagePicker.launchCameraAsync({ quality: 0.6 });
-        if (!r.canceled) setSlip(r.assets[0].uri);
+        if (!r.canceled) setSlip(await shrinkPhoto(r.assets[0]));
     };
     const submit = async () => {
         setBusy(true);
@@ -240,7 +244,7 @@ function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean;
             await api.post(`/driver/jobs/${shop.id}/shop/finish`, form);
             Alert.alert('Shopping done', 'The customer has been told their order is on the way.', [{ text: 'Deliver', onPress: onDone }]);
         } catch (e) {
-            Alert.alert('Couldn’t finish', e instanceof ApiError ? e.friendly : '');
+            Alert.alert('Couldn’t finish', e instanceof ApiError && e.status === 0 ? 'The upload didn’t reach Zvino. Move to better signal and tap Done again; your slip photo is kept.' : e instanceof ApiError ? e.friendly : '');
         } finally {
             setBusy(false);
         }
@@ -249,7 +253,7 @@ function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean;
     return (
         <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
             <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} onPress={onClose} />
-            <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 }}>
+            <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 20 + nav.bottom, gap: 14 }}>
                 <Text variant="title">Pay at the till</Text>
                 <Text variant="caption">Expected about ${shop.expected_till_usd.toFixed(2)} at shelf prices.</Text>
                 <View style={{ gap: 6 }}>

@@ -210,6 +210,7 @@ class PlatformFlowTest extends TestCase
 
     public function test_declined_offer_goes_to_next_driver_and_expired_offers_are_swept()
     {
+        Setting::put('delivery.offer_style', 'nearest'); // one driver at a time
         $second = User::create(['name' => 'Tino', 'phone' => '+263772000002', 'role' => 'driver']);
         Driver::create(['user_id' => $second->id, 'status' => 'approved', 'is_online' => true, 'lat' => -17.835, 'lng' => 31.055, 'location_updated_at' => now()]);
         Driver::first()->update(['is_online' => true, 'lat' => -17.8295, 'lng' => 31.0525, 'location_updated_at' => now()]);
@@ -225,6 +226,79 @@ class PlatformFlowTest extends TestCase
         Carbon::setTestNow(now()->addMinutes(2));
         app(DispatchService::class)->sweep();
         $this->assertSame('expired', $order->dispatchOffers()->latest('id')->first()->status);
+    }
+
+    public function test_broadcast_offers_every_nearby_driver_and_the_first_to_accept_wins()
+    {
+        Setting::put('delivery.offer_style', 'broadcast');
+        Setting::put('delivery.boost_pct_per_round', 10);
+        $second = User::create(['name' => 'Tino', 'phone' => '+263772000002', 'role' => 'driver']);
+        $tino = Driver::create(['user_id' => $second->id, 'status' => 'approved', 'is_online' => true, 'lat' => -17.835, 'lng' => 31.055, 'location_updated_at' => now()]);
+        $first = Driver::first();
+        $first->update(['is_online' => true, 'lat' => -17.8295, 'lng' => 31.0525, 'location_updated_at' => now()]);
+
+        $order = $this->placeOrder();
+        app(OrderService::class)->accept($order, 15);
+
+        // Both drivers see the job at the same moment.
+        $offers = $order->dispatchOffers()->get();
+        $this->assertCount(2, $offers);
+        $this->assertTrue($offers->every(fn ($o) => $o->broadcast && $o->round === 1 && $o->status === 'offered'));
+        $this->assertEqualsCanonicalizing([$first->id, $tino->id], $offers->pluck('driver_id')->all());
+
+        // The popup shows the order size, the whole trip and how many drivers are competing.
+        $view = $this->getJson('/api/driver/offers', $this->driverHeaders())->assertOk()->json('0');
+        $this->assertSame(2, $view['competing']);
+        $this->assertArrayHasKey('order_value', $view);
+        $this->assertArrayHasKey('trip_km', $view);
+
+        // One driver passes: no new round while the other is still deciding.
+        app(DispatchService::class)->decline($offers->firstWhere('driver_id', $first->id));
+        $this->assertSame(2, $order->dispatchOffers()->count());
+
+        // Nobody accepts in time: the next round pays more (the driver who passed isn't asked again).
+        Carbon::setTestNow(now()->addMinutes(2));
+        $tino->update(['location_updated_at' => now()]);
+        app(DispatchService::class)->sweep();
+        $round2 = $order->dispatchOffers()->where('round', 2)->get();
+        $this->assertCount(1, $round2);
+        $this->assertSame($tino->id, $round2->first()->driver_id);
+        $this->assertEquals(10, $round2->first()->boost_pct);
+        $this->assertGreaterThan($offers->firstWhere('driver_id', $tino->id)->pay_zig, $round2->first()->pay_zig);
+
+        // First to accept wins; a late accept is refused.
+        $first->update(['location_updated_at' => now()]);
+        $late = $order->dispatchOffers()->create(['driver_id' => $first->id, 'broadcast' => true, 'round' => 2, 'pay_zig' => 10, 'expires_at' => now()->addMinute()]);
+        app(DispatchService::class)->accept($round2->first());
+        $this->assertSame($tino->id, $order->fresh()->driver_id);
+        $this->assertSame('cancelled', $late->fresh()->status);
+        try {
+            app(DispatchService::class)->accept($late->fresh());
+            $this->fail('A second driver must not get the job.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            $this->assertSame(409, $e->getStatusCode());
+        }
+    }
+
+    public function test_admin_can_assign_a_shop_order_to_a_busy_driver_with_the_shopping_fee()
+    {
+        Setting::put('delivery.shopper_fee_zig', 15);
+        $driver = Driver::first();
+        $driver->update(['is_online' => true, 'lat' => -17.8295, 'lng' => 31.0525, 'location_updated_at' => now()]);
+        $order = $this->placeOrder();
+        app(OrderService::class)->accept($order, 15);
+        $order->dispatchOffers()->update(['status' => 'cancelled']);
+        $order->vendor->update(['is_shopper_store' => true]);
+
+        $shopPay = app(DispatchService::class)->payFor($order->fresh(), $driver);
+        $order->vendor->update(['is_shopper_store' => false]);
+        $this->assertEquals(15, round($shopPay - app(DispatchService::class)->payFor($order->fresh(), $driver), 2), 'shopping fee included');
+        $order->vendor->update(['is_shopper_store' => true]);
+
+        $assigned = app(DispatchService::class)->assign($order->fresh(), $driver);
+        $this->assertSame($driver->id, $assigned->driver_id);
+        $this->assertEquals($shopPay, $assigned->driver_pay_zig);
+        $this->assertDatabaseHas('app_notifications', ['user_id' => $driver->user_id, 'type' => 'job_assigned']);
     }
 
     public function test_cash_order_records_cash_held_and_blocks_driver_over_limit()

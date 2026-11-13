@@ -30,8 +30,20 @@ export interface HeatCell { lat: number; lng: number; intensity: number; orders_
 export interface Offer {
     id: number;
     shopping?: { items: number; expected_till_usd: number } | null;
-    /** Joins a run the driver already has from this store. */
-    batch?: { with: number; extra_km: number } | null;
+    /** Stacked onto the run the driver already has. */
+    batch?: { with: number; extra_km: number; extra_min?: number } | null;
+    /** Order size (items subtotal) and the whole trip: driver → store → customer. */
+    order_value?: Money;
+    trip_km?: number;
+    trip_minutes?: number;
+    per_km?: Money | null;
+    /** Pay boost when nobody took the job in earlier rounds. */
+    boost_pct?: number;
+    broadcast?: boolean;
+    round?: number;
+    /** Drivers who can see this job right now; the first to accept gets it. */
+    competing?: number;
+    food_ready?: boolean;
     seconds_left: number;
     pay: Money;
     tip: Money;

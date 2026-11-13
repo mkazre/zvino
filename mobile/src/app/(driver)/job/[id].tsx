@@ -13,6 +13,7 @@ import { SafetyBanner } from '@/features/safety';
 import { VoiceNotePlayer } from '@/features/voice-note';
 import { API_URL } from '@/lib/config';
 import { Image } from 'expo-image';
+import { shrinkPhoto } from '@/lib/photo';
 
 /** One delivery: go to store → pick up → go to customer → deliver (PIN / photo / cash). */
 export default function JobScreen() {
@@ -62,7 +63,7 @@ export default function JobScreen() {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return;
         const r = await ImagePicker.launchCameraAsync({ quality: 0.6 });
-        if (!r.canceled) setPhoto(r.assets[0].uri);
+        if (!r.canceled) setPhoto(await shrinkPhoto(r.assets[0]));
     };
 
     const deliver = async () => {

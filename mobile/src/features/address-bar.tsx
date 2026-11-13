@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocation } from '@/lib/location';
 import { useSession } from '@/lib/session';
 import { Button, Row, Text, useTheme } from '@/ui';
+import { ModalInsets } from '@/lib/insets';
 
 /** Opens the add-address form prefilled with the current GPS point. */
 export function addAddressHere(loc: { lat: number | null; lng: number | null; line?: string | null; suburb?: string | null; city?: string | null } | null) {
@@ -44,6 +45,7 @@ export function AddressSheet({ open, onClose, intro }: { open: boolean; onClose:
     }, [open, reloadAddresses]);
     return (
         <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+            <ModalInsets>
             <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
                 <Row justify="space-between" style={{ padding: 20, paddingBottom: 8 }}>
                     <Text variant="title" style={{ fontSize: 22 }}>Deliver to</Text>
@@ -70,6 +72,7 @@ export function AddressSheet({ open, onClose, intro }: { open: boolean; onClose:
                     )}
                 </ScrollView>
             </SafeAreaView>
+            </ModalInsets>
         </Modal>
     );
 }

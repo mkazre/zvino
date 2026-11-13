@@ -5,6 +5,7 @@ import { api, ApiError } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { Button, Text, useTheme } from '@/ui';
 import { GoogleButton } from './google-signin';
+import { useDeviceInsets } from '@/lib/insets';
 
 const ASKED = 'zvino.profile.asked';
 
@@ -14,6 +15,7 @@ const ASKED = 'zvino.profile.asked';
  */
 export function ProfilePrompt() {
     const t = useTheme();
+    const nav = useDeviceInsets();
     const { me, refresh } = useSession();
     const [open, setOpen] = useState(false);
     const [name, setName] = useState('');
@@ -64,7 +66,7 @@ export function ProfilePrompt() {
         <Modal visible transparent animationType="slide" onRequestClose={later}>
             <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} onPress={later} />
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 22, paddingBottom: 34, gap: 12 }}>
+                <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 22, paddingBottom: 34 + nav.bottom, gap: 12 }}>
                     <Text variant="title">{needsName ? 'Finish your profile' : 'Add your email'}</Text>
                     <Text color="muted">For your receipts, order updates and account recovery.</Text>
                     <GoogleButton label="Use my Google account" onToken={withGoogle} disabled={busy} />

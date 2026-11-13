@@ -8,6 +8,7 @@ import { api, ApiError } from '@/lib/api';
 import { label } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import { Badge, Button, Card, Chip, Input, Row, Screen, Text, useTheme } from '@/ui';
+import { shrinkPhoto } from '@/lib/photo';
 
 /** Driver onboarding: details + documents (ID, licence, selfie…). Admin approves in Drivers. */
 export default function DriverApply() {
@@ -42,7 +43,7 @@ export default function DriverApply() {
         try {
             const f = new FormData();
             f.append('type', type);
-            f.append('file', { uri: r.assets[0].uri, name: `${type}.jpg`, type: 'image/jpeg' } as unknown as Blob);
+            f.append('file', { uri: await shrinkPhoto(r.assets[0]), name: `${type}.jpg`, type: 'image/jpeg' } as unknown as Blob);
             await api.post('/driver/documents', f);
             await load();
         } catch (e) {

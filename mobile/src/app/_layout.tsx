@@ -19,6 +19,7 @@ import { OfflineBanner } from '@/features/offline-banner';
 import { openLink } from '@/lib/links';
 import '@/lib/appearance'; // light mode by default; applies the saved Light/Dark choice
 import '@/features/driver-background'; // registers the background GPS task
+import { DeviceInsetsProvider } from '@/lib/insets';
 
 /**
  * Root navigator for all three apps. Stack.Protected keeps each build to its own screens:
@@ -43,6 +44,7 @@ function RootNavigator() {
     // Android draws apps edge-to-edge: keep every screen (tab bar, basket bar, last cards) above the
     // system navigation bar. Screens below see no bottom inset, so nothing is padded twice.
     return (
+        <DeviceInsetsProvider value={insets}>
         <View style={{ flex: 1, paddingBottom: insets.bottom, backgroundColor: t.bg }}>
         <SafeAreaInsetsContext.Provider value={{ ...insets, bottom: 0 }}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
@@ -72,6 +74,7 @@ function RootNavigator() {
         </Stack>
         </SafeAreaInsetsContext.Provider>
         </View>
+        </DeviceInsetsProvider>
     );
 }
 

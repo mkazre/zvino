@@ -1,27 +1,22 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Switch, Vibration, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { currentPosition, useLocationSharing, type DriverMe, type DriverRoute, type HeatCell, type Job, type Offer } from '@/features/driver';
-import { SafetyBanner } from '@/features/safety';
+import { currentPosition, useLocationSharing, type DriverMe, type DriverRoute, type HeatCell, type Job } from '@/features/driver';
 import { api, ApiError } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { Badge, Button, Card, Loading, Row, Text, useTheme, Logo } from '@/ui';
 import { useT } from '@/lib/i18n';
-import { useChannel } from '@/lib/realtime';
 import { Bell } from '@/features/bell';
 
 export default function Shift() {
     const tr = useT();
     const t = useTheme();
     const [me, setMe] = useState<DriverMe | null>(null);
-    const [offers, setOffers] = useState<Offer[]>([]);
     const [jobs, setJobs] = useState<Job[]>([]);
     const [route, setRoute] = useState<DriverRoute | null>(null);
     const [toggling, setToggling] = useState(false);
-    const [, tick] = useState(0);
 
     const load = useCallback(async () => {
         try {
@@ -31,7 +26,6 @@ export default function Shift() {
                 const js = await api.get<Job[]>('/driver/jobs');
                 setJobs(js);
                 setRoute(js.length > 1 ? await api.get<DriverRoute>('/driver/route').catch(() => null) : null);
-                if (d.is_online) setOffers(await api.get<Offer[]>('/driver/offers'));
             }
         } catch (e) {
             if (e instanceof ApiError && e.status === 403) router.replace('/driver-apply');
@@ -41,50 +35,17 @@ export default function Shift() {
 
     useLocationSharing(!!me?.is_online, me?.location_interval_seconds ?? 10);
 
-    // Offers ring instantly over Pusher when configured (polling below is the fallback).
-    useChannel(me?.is_online ? `driver.${me.id}` : null, 'offer.created', () => { api.get<Offer[]>('/driver/offers').then(setOffers).catch(() => {}); });
-    // Poll for offers while online (Pusher rings instantly when configured).
-    useEffect(() => {
-        if (!me?.is_online) return;
-        const timer = setInterval(async () => {
-            const next = await api.get<Offer[]>('/driver/offers').catch(() => null);
-            if (!next) return;
-            setOffers((prev) => {
-                if (next.some((o) => !prev.find((p) => p.id === o.id))) {
-                    Vibration.vibrate([0, 400, 200, 400]);
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-                }
-                return next;
-            });
-        }, 5000);
-        const countdown = setInterval(() => tick((n) => n + 1), 1000);
-        return () => { clearInterval(timer); clearInterval(countdown); };
-    }, [me?.is_online]);
+    // Job offers pop up from OfferCenter (driver layout) over every screen.
 
     const toggle = async (online: boolean) => {
         setToggling(true);
         try {
             const pos = online ? await currentPosition() : {};
             setMe(await api.post<DriverMe>('/driver/online', { is_online: online, ...pos }));
-            if (!online) setOffers([]);
         } catch (e) {
             Alert.alert('Can’t change status', e instanceof ApiError ? e.friendly : (e as Error).message);
         } finally {
             setToggling(false);
-        }
-    };
-
-    const respond = async (o: Offer, accept: boolean) => {
-        try {
-            if (accept) {
-                const job = await api.post<Job>(`/driver/offers/${o.id}/accept`);
-                router.push(`/job/${job.id}`);
-            } else await api.post(`/driver/offers/${o.id}/decline`);
-            setOffers((xs) => xs.filter((x) => x.id !== o.id));
-            load();
-        } catch (e) {
-            Alert.alert('Offer', e instanceof ApiError ? e.friendly : 'This offer is no longer available.');
-            load();
         }
     };
 
@@ -131,26 +92,7 @@ export default function Shift() {
                     </Card>
                 )}
 
-                {offers.map((o) => {
-                    const left = Math.max(0, o.seconds_left);
-                    return (
-                        <Card key={o.id} style={{ borderWidth: 2, borderColor: t.brand, gap: 10 }}>
-                            <Row justify="space-between"><Row gap={6}><Badge tone="brand">New delivery</Badge>{o.batch ? <Badge tone="gold">{`Adds to your run · +${o.batch.extra_km} km`}</Badge> : null}{o.shopping ? <Badge tone="dark">{`Shop & deliver · ${o.shopping.items} items`}</Badge> : null}</Row><Text variant="label" color={left < 10 ? 'red' : 'muted'}>{left}s</Text></Row>
-                            <Text variant="display">{zig(o.pay.zig)}</Text>
-                            {o.tip.zig > 0 && <Text variant="caption" color="brand">Includes {zig(o.tip.zig)} tip</Text>}
-                            <Row gap={10}><Ionicons name="storefront-outline" size={18} color={t.ink} /><Text variant="label" style={{ flex: 1 }}>{o.store.name}</Text><Text variant="caption">{o.pickup_km ?? '?'} km away</Text></Row>
-                            <Row gap={10}><Ionicons name="location-outline" size={18} color={t.ink} /><Text variant="label" style={{ flex: 1 }}>{o.dropoff_area ?? 'Customer'}</Text><Text variant="caption">{o.dropoff_km ?? '?'} km trip</Text></Row>
-                            {o.collect_cash && <Badge tone="gold">{`Collect ${zig(o.collect_cash.zig)} cash`}</Badge>}
-                            {o.safety && <SafetyBanner s={o.safety} />}
-                            <Row gap={10} style={{ marginTop: 6 }}>
-                                <Button title={tr('Decline')} tone="outline" style={{ flex: 1 }} onPress={() => respond(o, false)} />
-                                <Button title={tr('Accept')} tone="primary" style={{ flex: 2 }} onPress={() => respond(o, true)} />
-                            </Row>
-                        </Card>
-                    );
-                })}
-
-                {me.is_online && offers.length === 0 && jobs.length === 0 && <Heatmap />}
+                {me.is_online && jobs.length === 0 && <Heatmap />}
 
                 {route && route.stops.length > 1 && <RouteCard route={route} jobs={jobs} />}
 

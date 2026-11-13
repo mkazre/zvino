@@ -8,6 +8,7 @@ import { type CartSubstitute } from '@/lib/cart';
 import { zig } from '@/lib/money';
 import { useImg } from '@/lib/prefs';
 import { Row, Text, useTheme } from '@/ui';
+import { ModalInsets } from '@/lib/insets';
 
 interface Option { id: number; name: string; image: string | null; size: string | null; price: { zig: number }; difference: { zig: number } }
 
@@ -28,6 +29,7 @@ export function SubstitutePicker({ itemId, itemName, current, onPick, onClose }:
 
     return (
         <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+            <ModalInsets>
             <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: t.bg }}>
                 <Row justify="space-between" align="flex-start" style={{ padding: 20, paddingBottom: 8 }}>
                     <View style={{ flex: 1, paddingRight: 12 }}>
@@ -77,6 +79,7 @@ export function SubstitutePicker({ itemId, itemName, current, onPick, onClose }:
                     {current ? <Pressable onPress={() => pick(null)}><Text variant="label" color="red">Remove substitute</Text></Pressable> : null}
                 </View>
             </SafeAreaView>
+            </ModalInsets>
         </Modal>
     );
 }

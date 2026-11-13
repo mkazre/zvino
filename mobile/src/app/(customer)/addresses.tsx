@@ -9,6 +9,7 @@ import { VoiceNoteRecorder } from '@/features/voice-note';
 import { api, ApiError } from '@/lib/api';
 import { type SavedAddress, useLocation } from '@/lib/location';
 import { Button, Card, Input, Row, Text, useTheme } from '@/ui';
+import { shrinkPhoto } from '@/lib/photo';
 
 interface Address extends SavedAddress { landmark: string | null; is_default: boolean; voice_note_path: string | null; gate_photo_path: string | null }
 
@@ -76,7 +77,7 @@ export default function Addresses() {
         const r = await ImagePicker.launchCameraAsync({ quality: 0.5, allowsEditing: true });
         if (r.canceled) return;
         const fd = new FormData();
-        fd.append('gate_photo', { uri: r.assets[0].uri, name: 'gate.jpg', type: 'image/jpeg' } as unknown as Blob);
+        fd.append('gate_photo', { uri: await shrinkPhoto(r.assets[0], 1280), name: 'gate.jpg', type: 'image/jpeg' } as unknown as Blob);
         await api.post(`/addresses/${id}/media`, fd).then(load).catch((e) => Alert.alert('Photo', e instanceof ApiError ? e.friendly : 'Upload failed'));
     };
 

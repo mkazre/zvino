@@ -50,7 +50,7 @@ class LiveTrackingTest extends TestCase
         $this->assertCount(3, $plan['legs']);
     }
 
-    public function test_drivers_can_batch_nearby_orders_from_the_same_store_only(): void
+    public function test_busy_drivers_get_orders_that_fit_their_run(): void
     {
         Setting::put('delivery.allow_batching', true);
         Setting::put('delivery.batch_max_detour_km', 4);
@@ -63,11 +63,21 @@ class LiveTrackingTest extends TestCase
 
         $this->assertTrue($dispatch->canBatch($driver, $this->order($vendorId, 2.5)), 'next-door drop-off joins the run');
         $this->assertFalse($dispatch->canBatch($driver, $this->order($vendorId, -6)), 'opposite direction is too big a detour');
-        $other = \App\Models\Vendor::where('id', '!=', $vendorId)->firstOrFail();
-        $this->assertFalse($dispatch->canBatch($driver, $this->order($other->id, 2)), 'different store');
+        // Another store on the way can be stacked too (as Uber Eats / Mr D do); one far away can't.
+        $store = \App\Models\Vendor::findOrFail($vendorId);
+        $near = \App\Models\Vendor::where('id', '!=', $vendorId)->firstOrFail();
+        $near->update(['lat' => $store->lat, 'lng' => $store->lng + 0.004]);
+        $this->assertTrue($dispatch->canBatch($driver, $this->order($near->id, 2)), 'store next door');
+        $near->update(['lat' => $store->lat - 0.06, 'lng' => $store->lng - 0.06]);
+        $this->assertFalse($dispatch->canBatch($driver, $this->order($near->id, 2)), 'store across town');
 
-        // Already collected: no more orders join.
+        // Food already in the car: a pickup elsewhere must be a very small detour, so it doesn't go cold.
         $first->update(['status' => 'picked_up']);
+        $near->update(['lat' => $store->lat, 'lng' => $store->lng - 0.03]);
+        $this->assertFalse($dispatch->canBatch($driver->fresh(), $this->order($near->id, 2)), 'detour while carrying hot food');
+
+        // Full run: nothing more joins.
+        Setting::put('delivery.batch_max_orders', 1);
         $this->assertFalse($dispatch->canBatch($driver->fresh(), $this->order($vendorId, 2.2)));
     }
 

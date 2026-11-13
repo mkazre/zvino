@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { Button, Text, useTheme } from '@/ui';
+import { useDeviceInsets } from '@/lib/insets';
 
 const TOPICS = ['Missing or wrong item', 'Late delivery', 'Payment or refund', 'Quality of my order', 'Something else'];
 
 /** "Send us a message": a support ticket, optionally about an order. */
 export function TicketSheet({ open, onClose, orderId, reference }: { open: boolean; onClose: () => void; orderId?: number; reference?: string }) {
     const t = useTheme();
+    const nav = useDeviceInsets();
     const [topic, setTopic] = useState(TOPICS[0]);
     const [message, setMessage] = useState('');
     const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export function TicketSheet({ open, onClose, orderId, reference }: { open: boole
         <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
             <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} onPress={onClose} />
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 22, paddingBottom: 34, gap: 14 }}>
+                <View style={{ backgroundColor: t.bg, borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 22, paddingBottom: 34 + nav.bottom, gap: 14 }}>
                     <Text variant="title">Send us a message</Text>
                     {reference ? <Text color="muted">About order #{reference}. We usually reply within the hour.</Text> : null}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>

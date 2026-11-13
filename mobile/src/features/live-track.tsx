@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { label } from '@/lib/money';
 import { Text, useTheme } from '@/ui';
+import { ModalInsets } from '@/lib/insets';
 
 const POLL_MS = 4000;
 
@@ -91,6 +92,7 @@ export function LiveTrack<T extends LiveView>({ visible, view, onClose, onUpdate
 
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
+            <ModalInsets>
             <View style={{ flex: 1, backgroundColor: t.bg }}>
                 {mapsReady ? (
                 <MapView ref={map} style={{ flex: 1 }} initialRegion={{ ...start, latitudeDelta: 0.05, longitudeDelta: 0.05 }} showsUserLocation={!!me} showsMyLocationButton={false} toolbarEnabled={false}>
@@ -166,6 +168,7 @@ export function LiveTrack<T extends LiveView>({ visible, view, onClose, onUpdate
                     </View>
                 </SafeAreaView>
             </View>
+            </ModalInsets>
         </Modal>
     );
 }

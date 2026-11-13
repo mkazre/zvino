@@ -11,6 +11,7 @@ import { useSession } from '@/lib/session';
 import { Button, Card, Chip, Row, Text, Toggle, useTheme } from '@/ui';
 import { useT } from '@/lib/i18n';
 import * as ImagePicker from 'expo-image-picker';
+import { shrinkPhoto } from '@/lib/photo';
 
 interface Address { id: number; label: string; line1: string; landmark: string | null; suburb: string | null; city: string; is_default: boolean }
 interface Quote {
@@ -59,7 +60,7 @@ export default function Checkout() {
         setUploading(true);
         try {
             const fd = new FormData();
-            fd.append('photo', { uri: r.assets[0].uri, name: 'prescription.jpg', type: 'image/jpeg' } as unknown as Blob);
+            fd.append('photo', { uri: await shrinkPhoto(r.assets[0]), name: 'prescription.jpg', type: 'image/jpeg' } as unknown as Blob);
             setPrescription((await api.post<{ token: string }>('/prescriptions', fd)).token);
         } catch (e) {
             Alert.alert('Prescription', e instanceof ApiError ? e.friendly : 'Upload failed');

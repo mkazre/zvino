@@ -162,8 +162,19 @@ class DriverController extends Controller
             'items_count' => $o->order->items()->sum('quantity'),
             'safety' => $this->safety($o->order),
             'shopping' => $o->order->vendor->is_shopper_store ? ['items' => (int) $o->order->items()->sum('quantity'), 'expected_till_usd' => \App\Services\ShopperService::expectedTillUsd($o->order)] : null,
-            // Added to a run the driver already has from this store.
-            'batch' => ($n = $driver->activeOrders()->count()) > 0 ? ['with' => $n, 'extra_km' => round(RoutePlanner::detourKm([(float) $o->order->vendor->lat, (float) $o->order->vendor->lng], $driver->activeOrders()->with('address')->get(), $o->order), 1)] : null,
+            // Stacked onto the run the driver already has: how much further it takes them.
+            'batch' => ($n = $driver->activeOrders()->count()) > 0 ? ['with' => $n, 'extra_km' => $extra = $this->dispatch->extraKm($driver, $o->order), 'extra_min' => (int) ceil(\App\Support\DeliveryEta::rideMinutes($extra))] : null,
+            // Popup details: order size, the whole trip, and what it works out to per km.
+            'order_value' => Money::both((float) $o->order->subtotal_zig),
+            'trip_km' => $trip = round((float) $o->pickup_km + (float) $o->dropoff_km, 1),
+            'trip_minutes' => (int) ceil(\App\Support\DeliveryEta::rideMinutes($trip) + ($o->order->vendor->is_shopper_store ? 4 + 1.2 * (int) $o->order->items()->sum('quantity') : 3)),
+            'per_km' => $trip > 0 ? Money::both(($o->pay_zig + $o->order->tip_zig) / $trip) : null,
+            'boost_pct' => $o->boost_pct,
+            'broadcast' => $o->broadcast,
+            'round' => $o->round,
+            // How many drivers can see this job right now (first to accept gets it).
+            'competing' => $o->broadcast ? DispatchOffer::where('order_id', $o->order_id)->where('status', 'offered')->where('expires_at', '>', now())->count() : 1,
+            'food_ready' => in_array($o->order->status, ['ready'], true),
         ]));
     }
 
