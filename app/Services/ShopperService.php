@@ -138,7 +138,9 @@ class ShopperService
             }
             $order = $this->orders->setStatus($order->fresh(), 'picked_up');
             if ($refund > 0 && $order->user) {
-                $this->push->toUser($order->user, 'order_status', 'Your refund', self::money($refund).' for unavailable items is in your Zvino wallet.', ['order_id' => $order->id]);
+                $user = $order->user;
+                $tell = fn () => $this->push->toUser($user, 'order_status', 'Your refund', self::money($refund).' for unavailable items is in your Zvino wallet.', ['order_id' => $order->id]);
+                OrderService::$notifyAfterResponse ? \Illuminate\Support\defer($tell) : $tell();
             }
 
             return $order->fresh();

@@ -251,10 +251,15 @@ class DriverController extends Controller
             $this->driver($request)->ledger()->create(['order_id' => $order->id, 'type' => 'adjustment', 'amount_zig' => -$data['change_to_wallet_zig'], 'description' => "Change kept, credited to customer {$order->reference}"]);
         }
 
-        if ($order->status === 'picked_up') {
-            $order = $this->orders->setStatus($order, 'arriving');
+        OrderService::$notifyAfterResponse = true; // customer messages go out after the driver's phone has its answer
+        try {
+            if ($order->status === 'picked_up') {
+                $order = $this->orders->setStatus($order, 'arriving');
+            }
+            $this->orders->setStatus($order->fresh(), 'delivered');
+        } finally {
+            OrderService::$notifyAfterResponse = false;
         }
-        $this->orders->setStatus($order->fresh(), 'delivered');
 
         return response()->json(['ok' => true, 'earned' => Money::both($order->driver_pay_zig + $order->tip_zig)]);
     }

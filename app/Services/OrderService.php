@@ -25,6 +25,12 @@ use Illuminate\Validation\ValidationException;
  */
 class OrderService
 {
+    /**
+     * Set by driver endpoints: customer messages (push, email, SMS) go out just after the response,
+     * so the driver's phone never waits on a slow mail or SMS server.
+     */
+    public static bool $notifyAfterResponse = false;
+
     public const METHODS = ['ecocash', 'onemoney', 'innbucks', 'card', 'wallet', 'cash', 'company'];
 
     public const TRANSITIONS = [
@@ -598,14 +604,17 @@ class OrderService
                 'prep' => $vars['prep'] ?? $order->prep_minutes,
                 'time' => $order->scheduled_for?->format('D H:i'),
             ]);
-            $this->push->toUser($order->user, 'order_status', $title, $body, ['order_id' => $order->id, 'status' => $status]);
-            app(OrderMailer::class)->statusChanged($order, $status);
+            $tell = function () use ($order, $status, $title, $body) {
+                $this->push->toUser($order->user, 'order_status', $title, $body, ['order_id' => $order->id, 'status' => $status]);
+                app(OrderMailer::class)->statusChanged($order, $status);
 
-            // SMS fallback (#45): customers with no app installed still hear about the key moments.
-            if (Setting::get('orders.sms_fallback') && $order->user->phone && in_array($status, ['accepted', 'picked_up', 'delivered', 'rejected', 'cancelled'], true)
-                && ! $order->user->deviceTokens()->exists()) {
-                app(SmsService::class)->send($order->user->phone, "Zvino {$order->reference}: {$title}. {$body}");
-            }
+                // SMS fallback (#45): customers with no app installed still hear about the key moments.
+                if (Setting::get('orders.sms_fallback') && $order->user->phone && in_array($status, ['accepted', 'picked_up', 'delivered', 'rejected', 'cancelled'], true)
+                    && ! $order->user->deviceTokens()->exists()) {
+                    app(SmsService::class)->send($order->user->phone, "Zvino {$order->reference}: {$title}. {$body}");
+                }
+            };
+            self::$notifyAfterResponse ? \Illuminate\Support\defer($tell) : $tell();
         }
 
         // Admin panel + kitchen: bell, pop-up and sound.

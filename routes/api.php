@@ -147,6 +147,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('jobs/{order}/shop/start', [\App\Http\Controllers\Api\Driver\ShopController::class, 'start']);
         Route::get('jobs/{order}/shop/search', [\App\Http\Controllers\Api\Driver\ShopController::class, 'search'])->middleware('throttle:60,1');
         Route::post('jobs/{order}/shop/items/{line}', [\App\Http\Controllers\Api\Driver\ShopController::class, 'mark']);
+        Route::post('jobs/{order}/shop/slip', [\App\Http\Controllers\Api\Driver\ShopController::class, 'slip'])->middleware('throttle:20,1');
         Route::post('jobs/{order}/shop/finish', [\App\Http\Controllers\Api\Driver\ShopController::class, 'finish'])->middleware('throttle:10,1');
         Route::post('jobs/{order}/pickup', [DriverController::class, 'pickup']);
         Route::post('jobs/{order}/deliver', [DriverController::class, 'deliver']);
