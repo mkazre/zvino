@@ -100,7 +100,7 @@ export function go(link: string | null | undefined) {
     else if (link === 'specials') router.push({ pathname: '/search', params: { filter: 'offers' } });
     else if (p.segment === 'shops' || path === '/shops') router.push('/shops');
     else if (path === '/stores' || path === '/search') router.push({ pathname: '/search', params: { ...(p.q ? { q: p.q } : {}), ...(p.cuisine ? { cuisine: p.cuisine } : {}), ...(p.offers ? { filter: 'offers' } : {}), ...(p.free_delivery ? { filter: 'free_delivery' } : {}), ...(p.sort === 'rating' ? { filter: 'rating' } : {}), ...(p.sort === 'fastest' ? { filter: 'fastest' } : {}) } });
-    else if (path === '/plus') router.push('/plans');
+    else if (path === '/plus') router.push('/plus');
     else if (path === '/hampers') router.push('/hampers');
     else if (path === '/catering') router.push('/catering');
     else router.push('/search');

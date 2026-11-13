@@ -23,7 +23,7 @@ export default function Plus({ plans, current, seo }: { plans: Plan[]; current: 
                     <h1 className="mt-6 text-[48px] leading-[1.02] font-extrabold tracking-[-0.045em] md:text-[72px]">Free delivery.<br />Every single order.</h1>
                     {plan && <p className="mx-auto mt-6 max-w-lg text-lg text-white/65">For just {zig(plan.price_zig)} a {plan.interval}, get free delivery on orders over {zig(plan.min_order_for_free_delivery_zig)} and {plan.service_fee_discount_pct}% off service fees.</p>}
                     {current ? (
-                        <p className="mt-8 inline-flex rounded-full bg-white/10 px-6 py-3 font-semibold">You’re a member until {new Date(current.current_period_end).toLocaleDateString('en-ZW', { dateStyle: 'long' })} 🎉</p>
+                        <p className="mt-8 inline-flex rounded-full bg-white/10 px-6 py-3 font-semibold">You’re a member until {new Date(current.current_period_end).toLocaleDateString('en-ZW', { dateStyle: 'long' })}</p>
                     ) : plan ? (
                         auth?.user ? <Button className="mt-8 h-14 rounded-full bg-brand px-8 text-base text-black hover:bg-[#4fd4a5]" onClick={() => setJoining(plan)}>Join for {zig(plan.price_zig)}/{plan.interval}</Button> : <Button className="mt-8 h-14 rounded-full bg-brand px-8 text-base text-black hover:bg-[#4fd4a5]" asChild><Link href="/signin">Sign in to join</Link></Button>
                     ) : <p className="mt-8 text-white/60">Zvino+ is coming soon.</p>}

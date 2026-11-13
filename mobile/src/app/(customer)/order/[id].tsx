@@ -16,6 +16,7 @@ import { usePrefs } from '@/lib/prefs';
 import { useChannel } from '@/lib/realtime';
 import { useOnReconnect } from '@/lib/network';
 import { LiveTrack } from '@/features/live-track';
+import { mapsReady } from '@/lib/maps';
 import { TicketSheet } from '@/features/ticket-sheet';
 import { ProductThumb } from '@/features/product-thumb';
 
@@ -194,7 +195,7 @@ function Tracking({ v, split, dataLight, reload, cancel, onLive }: { v: OrderVie
                 </Card>
             )}
             {v.delivery_pin && <Card tone="subtle"><Text variant="label">Delivery PIN</Text><Text variant="display" style={{ letterSpacing: 8 }}>{v.delivery_pin}</Text><Text variant="caption">Give this to your driver at the gate.</Text></Card>}
-            {v.fulfilment === 'delivery' && !v.is_done && !dataLight && (dest || shop) && (
+            {mapsReady && v.fulfilment === 'delivery' && !v.is_done && !dataLight && (dest || shop) && (
                 <View style={{ height: 220, borderRadius: 22, overflow: 'hidden' }}>
                     <MapView style={{ flex: 1 }} initialRegion={{ ...(dest ?? shop)!, latitudeDelta: 0.04, longitudeDelta: 0.04 }}>
                         {shop && <Marker coordinate={shop} title={v.store.name} pinColor="#222222" />}

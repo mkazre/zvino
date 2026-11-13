@@ -1,4 +1,4 @@
-import { Avatar, ConfirmProvider, Kbd, LiveDot, Popover } from '@/components/z';
+import { Avatar, Kbd, LiveDot, Popover } from '@/components/z';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
@@ -126,7 +126,7 @@ export default function AdminLayout({ title, children, fullBleed = false }: { ti
     useEffect(() => router.on('navigate', () => setMobileOpen(false)), []);
 
     return (
-        <ConfirmProvider>
+        <>
             <Head title={title} />
             <div className="bg-background flex min-h-screen">
                 {/* Desktop sidebar */}
@@ -155,7 +155,7 @@ export default function AdminLayout({ title, children, fullBleed = false }: { ti
             <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
             <StaffAlerts />
             <Toaster position="bottom-right" toastOptions={{ className: 'font-sans !rounded-xl !border !shadow-(--shadow-pop)' }} />
-        </ConfirmProvider>
+        </>
     );
 }
 

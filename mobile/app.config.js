@@ -76,6 +76,8 @@ module.exports = ({ config }) => ({
   extra: {
     variant: VARIANT,
     apiUrl: API_URL,
+    // Android maps crash without a Google Maps key, so screens only show a map when one was built in.
+    androidMaps: !!process.env.GOOGLE_MAPS_ANDROID_KEY,
     eas: { projectId: process.env.EAS_PROJECT_ID ?? '48ea2f30-35f7-4a9e-92fd-e7943ef7f091' },
   },
 });

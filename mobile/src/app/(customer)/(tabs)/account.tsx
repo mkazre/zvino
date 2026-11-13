@@ -32,15 +32,20 @@ export default function Account() {
                 <Card tone="inverse" style={{ flex: 1 }} onPress={() => router.push('/wallet')}><Text variant="caption" style={{ color: t.onInverseMuted }}>Wallet</Text><Text variant="heading" color="onInverse">{zig(me.wallet_balance_zig)}</Text></Card>
                 <Card tone="gold" style={{ flex: 1 }} onPress={() => router.push('/wallet')}><Text variant="caption" style={{ color: '#6b4e05' }}>{me.tier}</Text><Text variant="heading" style={{ color: '#3d2c03' }}>{me.points} pts</Text></Card>
             </Row>
-            {!me.zvino_plus && (
-                <Card tone="brand" style={{ marginTop: 12 }} onPress={() => Alert.alert('Zvino+', 'Join from the website at zvino.online/plus. In-app sign-up is coming soon.')}>
-                    <Text variant="heading" style={{ color: '#fff' }}>Get free delivery with Zvino+</Text>
-                    <Text variant="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>Plus half-price service fees on every order.</Text>
-                </Card>
-            )}
+            <Card tone="brand" style={{ marginTop: 12 }} onPress={() => router.push('/plus')}>
+                <Row gap={12}>
+                    <Ionicons name="sparkles" size={22} color={t.onBrand} />
+                    <View style={{ flex: 1 }}>
+                        <Text variant="heading" style={{ color: t.onBrand }}>{me.zvino_plus ? 'Zvino+ member' : 'Get free delivery with Zvino+'}</Text>
+                        <Text variant="caption" style={{ color: t.onBrand, opacity: 0.8 }}>{me.zvino_plus ? `Active until ${new Date(me.zvino_plus.current_period_end).toLocaleDateString('en-ZW', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Lower service fees on every order.'}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={t.onBrand} />
+                </Row>
+            </Card>
             <View style={{ marginTop: 16 }}><EmailCard dismissible={false} /></View>
             <View style={{ marginTop: 16 }}>
                 <Item icon="location-outline" title="Addresses" sub="Landmarks, gate photo, voice directions" onPress={() => router.push('/addresses')} />
+                <Item icon="ribbon-outline" title="Rewards & points" sub={`${me.points} pts · ${me.tier}`} onPress={() => router.push('/wallet')} />
                 <Item icon="repeat-outline" title="Regular orders" sub="Weekday lunch, month-end shop" onPress={() => router.push('/plans')} />
                 <Item icon="gift-outline" title="Send groceries home" sub="Hampers for family in Zimbabwe" onPress={() => router.push('/hampers')} />
                 <Item icon="restaurant-outline" title="Catering" sub="Funerals, weddings, gatherings" onPress={() => router.push('/catering')} />

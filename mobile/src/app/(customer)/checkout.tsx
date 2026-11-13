@@ -173,7 +173,7 @@ export default function Checkout() {
                 <Pressable onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={t.ink} /></Pressable>
                 <Text variant="title" style={{ flex: 1, fontSize: 22 }}>{tr('Checkout')}</Text>
             </Row>
-            <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 4, gap: 14, paddingBottom: 140 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingTop: 4, gap: 14, paddingBottom: 28 }}>
                 <Row gap={8}>
                     <Chip label={`${tr('Delivery')}`} active={fulfilment === 'delivery'} onPress={() => setFulfilment('delivery')} />
                     <Chip label={`${tr('Pickup')}`} active={fulfilment === 'pickup'} onPress={() => setFulfilment('pickup')} />
@@ -318,13 +318,13 @@ export default function Checkout() {
                     </Card>
                 )}
             </ScrollView>
-            <SafeAreaView edges={['bottom']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: t.bg, borderTopWidth: 0.5, borderColor: t.border, padding: 16 }}>
+            <View style={{ backgroundColor: t.bg, borderTopWidth: 0.5, borderColor: t.border, padding: 16 }}>
                 <Row justify="space-between" style={{ marginBottom: 10 }}>
                     <Text variant="heading">{tr('Total')}</Text>
                     <View style={{ alignItems: 'flex-end' }}><Text variant="title" style={{ fontSize: 22 }}>{total ? zig(total.zig) : '…'}</Text>{total && <Text variant="caption">{alt(total.zig)} · VAT incl.</Text>}</View>
                 </Row>
                 <Button title={`${tr('Place order')}${total ? ` · ${zig(due)}` : ''}`} loading={placing} disabled={!canPlace} onPress={place} />
-            </SafeAreaView>
+            </View>
         </SafeAreaView>
     );
 }

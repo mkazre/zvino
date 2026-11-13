@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Modal, Pressable, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { mapsReady } from '@/lib/maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { label } from '@/lib/money';
@@ -73,7 +74,7 @@ export function LiveTrack<T extends LiveView>({ visible, view, onClose, onUpdate
     const store = v.store.lat && v.store.lng ? { latitude: v.store.lat, longitude: v.store.lng } : null;
     const everyone = [driver, home, store, me].filter(Boolean) as LatLng[];
 
-    const fit = (animated = true) => everyone.length && map.current?.fitToCoordinates(everyone, { edgePadding: { top: 120, right: 60, bottom: 320, left: 60 }, animated });
+    const fit = (animated = true) => mapsReady && everyone.length && map.current?.fitToCoordinates(everyone, { edgePadding: { top: 120, right: 60, bottom: 320, left: 60 }, animated });
     useEffect(() => {
         if (!visible) { fitted.current = false; return; }
         if (!fitted.current && everyone.length >= 2) {
@@ -91,6 +92,7 @@ export function LiveTrack<T extends LiveView>({ visible, view, onClose, onUpdate
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
             <View style={{ flex: 1, backgroundColor: t.bg }}>
+                {mapsReady ? (
                 <MapView ref={map} style={{ flex: 1 }} initialRegion={{ ...start, latitudeDelta: 0.05, longitudeDelta: 0.05 }} showsUserLocation={!!me} showsMyLocationButton={false} toolbarEnabled={false}>
                     {store && (
                         <Marker coordinate={store} title={v.store.name} anchor={{ x: 0.5, y: 0.5 }}>
@@ -111,6 +113,12 @@ export function LiveTrack<T extends LiveView>({ visible, view, onClose, onUpdate
                         </Marker>
                     )}
                 </MapView>
+                ) : (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingBottom: 260, backgroundColor: t.canvas }}>
+                        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="bicycle" size={34} color={t.brandText} /></View>
+                        <Text variant="label" color="muted">Your order is on its way</Text>
+                    </View>
+                )}
 
                 <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0 }} pointerEvents="box-none">
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 }} pointerEvents="box-none">
@@ -122,7 +130,7 @@ export function LiveTrack<T extends LiveView>({ visible, view, onClose, onUpdate
                     </View>
                 </SafeAreaView>
 
-                <Pressable onPress={() => fit()} accessibilityLabel="Show everyone on the map" style={{ position: 'absolute', right: 16, bottom: 300, width: 44, height: 44, borderRadius: 22, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8 }}><Ionicons name="scan" size={20} color={t.ink} /></Pressable>
+                {mapsReady && <Pressable onPress={() => fit()} accessibilityLabel="Show everyone on the map" style={{ position: 'absolute', right: 16, bottom: 300, width: 44, height: 44, borderRadius: 22, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8 }}><Ionicons name="scan" size={20} color={t.ink} /></Pressable>}
 
                 <SafeAreaView edges={['bottom']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 12 }}>
                     <View style={{ backgroundColor: t.surface, borderRadius: 26, padding: 18, gap: 12, elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 20 }}>

@@ -140,6 +140,8 @@ class LiveTrackingTest extends TestCase
         // Driver collects at 12:11: now + ride from the store to the customer.
         \Illuminate\Support\Carbon::setTestNow('2026-11-12 12:11:00');
         $driver = Driver::where('status', 'approved')->firstOrFail();
+        // No live GPS fix, so the ride is measured from the store (keeps this independent of the real clock).
+        $driver->update(['location_updated_at' => null]);
         $order->update(['driver_id' => $driver->id]);
         $orders->setStatus($order->fresh(), 'picked_up');
         $this->assertSame(now()->addMinutes($ride)->format('H:i'), $order->fresh()->estimated_delivery_at->format('H:i'));
