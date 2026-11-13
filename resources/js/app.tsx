@@ -4,6 +4,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { route as routeFn } from 'ziggy-js';
+import { ConfirmProvider } from './components/z';
 import { initializeTheme } from './hooks/use-appearance';
 import { configureMoney } from './lib/money';
 
@@ -26,7 +27,8 @@ createInertiaApp({
             <App {...props}>
                 {({ Component, key, props: pageProps }) => {
                     configureMoney(pageProps as Parameters<typeof configureMoney>[0]);
-                    return <Component key={key} {...pageProps} />;
+                    // Confirm dialogs sit above every page, so a page can ask "Are you sure?" itself (not only its layout's children).
+                    return <ConfirmProvider><Component key={key} {...pageProps} /></ConfirmProvider>;
                 }}
             </App>,
         );
