@@ -27,7 +27,8 @@ module.exports = ({ config }) => ({
   owner: 'zvinoappss-team',
   slug: 'zvino-o3eewb-rlbmdeotvl15w',
   name: v.name,
-  scheme: v.scheme,
+  // The package id is also a link scheme: Google sign-in returns to <package>:/oauthredirect.
+  scheme: [v.scheme, v.id],
   icon: `./assets/brand/icon-${VARIANT}.png`,
   ios: {
     ...config.ios,
