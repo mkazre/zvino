@@ -109,7 +109,7 @@ class OrderController extends AdminController
             ]),
             'next' => collect(OrderService::TRANSITIONS[$order->status] ?? [])->reject(fn ($s) => in_array($s, ['rejected'], true))->values(),
             'nearbyDrivers' => $order->fulfilment === 'delivery' && ! $order->driver_id
-                ? Driver::available()->with('user:id,name')->get()->map(fn ($d) => ['id' => $d->id, 'name' => $d->user->name, 'km' => $order->vendor->lat ? \App\Support\Geo::km($d->lat, $d->lng, $order->vendor->lat, $order->vendor->lng) : null, 'active' => $d->activeOrders()->count()])->sortBy('km')->values()->take(8)
+                ? Driver::available()->with('user:id,name')->get()->map(fn ($d) => ['id' => $d->id, 'name' => $d->user->name, 'km' => $order->vendor->lat ? \App\Support\Geo::km($d->lat, $d->lng, $order->vendor->lat, $order->vendor->lng) : null, 'active' => $d->activeOrders()->count()])->sortBy('km')->values()->take(12)
                 : [],
             'audit' => AuditLog::where('subject_type', 'order')->where('subject_id', $order->id)->with('user:id,name')->latest('created_at')->get(),
         ]);

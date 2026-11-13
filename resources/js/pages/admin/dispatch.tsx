@@ -4,7 +4,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import { label, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { Link, router } from '@inertiajs/react';
-import { AlertTriangle, Bike, Clock, RefreshCw, Store } from 'lucide-react';
+import { AlertTriangle, Bike, Clock, RefreshCw, ShoppingBasket, Store } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface LiveOrder {
@@ -13,6 +13,8 @@ interface LiveOrder {
     status: string;
     fulfilment: string;
     store: { id: number; name: string; lat: number; lng: number } | null;
+    shop?: boolean;
+    seeing?: number;
     dropoff: { lat: number; lng: number; suburb?: string; line1?: string } | null;
     customer: string | null;
     driver: { id: number; name: string } | null;
@@ -70,12 +72,13 @@ export default function Dispatch(initial: Snapshot & { mapsKey: string | null; z
         ...(sel?.dropoff?.lat ? [{ id: `o${sel.id}`, lat: sel.dropoff.lat, lng: sel.dropoff.lng!, kind: 'dropoff' as const, label: sel.dropoff.suburb ?? 'Drop-off' }] : []),
     ].filter((m) => m.lat && m.lng);
 
-    const freeNear = (o: LiveOrder) =>
+    // Any online driver can be assigned (free or mid-run), nearest to the store first.
+    const onlineNear = (o: LiveOrder) =>
         snap.drivers
-            .filter((d) => !d.stale && d.active === 0)
+            .filter((d) => !d.stale)
             .map((d) => ({ ...d, km: o.store ? Math.round(Math.hypot((d.lat - o.store.lat) * 111, (d.lng - o.store.lng) * 105) * 10) / 10 : null }))
             .sort((a, b) => (a.km ?? 99) - (b.km ?? 99))
-            .slice(0, 5);
+            .slice(0, 10);
 
     return (
         <AdminLayout title="Command centre" fullBleed>
@@ -112,24 +115,26 @@ export default function Dispatch(initial: Snapshot & { mapsKey: string | null; z
                                     </div>
                                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                         {o.alerts.map((a) => <Badge key={a} tone="danger"><AlertTriangle className="size-3" />{ALERT_LABEL[a]}</Badge>)}
-                                        {o.driver ? <Badge tone="success"><Bike className="size-3" />{o.driver.name}</Badge> : o.fulfilment === 'delivery' && o.offers > 0 && <Badge>{o.offers} offer{o.offers > 1 ? 's' : ''} sent</Badge>}
+                                        {o.shop && <Badge tone="info"><ShoppingBasket className="size-3" />Shop order</Badge>}
+                                        {o.driver ? <Badge tone="success"><Bike className="size-3" />{o.driver.name}</Badge> : o.fulfilment === 'delivery' && (o.seeing ? <Badge tone="info">{o.seeing} driver{o.seeing > 1 ? 's' : ''} deciding</Badge> : o.offers > 0 && <Badge>{o.offers} offer{o.offers > 1 ? 's' : ''} sent</Badge>)}
                                     </div>
                                 </button>
                                 {o.id === selected && (
                                     <div className="bg-muted grid gap-2 px-5 pb-4">
                                         {o.fulfilment === 'delivery' && !o.driver && (
                                             <>
-                                                <div className="text-muted-foreground text-xs font-medium">Assign a free driver</div>
-                                                {freeNear(o).length === 0 && <p className="text-muted-foreground text-xs">No free drivers online.</p>}
-                                                {freeNear(o).map((d) => (
+                                                <div className="text-muted-foreground text-xs font-medium">{o.shop ? 'Assign a shopper (any online driver)' : 'Assign any online driver'}</div>
+                                                {onlineNear(o).length === 0 && <p className="text-muted-foreground text-xs">No drivers online.</p>}
+                                                {onlineNear(o).map((d) => (
                                                     <button key={d.id} onClick={async () => (await confirm({ title: `Assign ${d.name} to ${o.reference}?`, confirmLabel: 'Assign' })) && router.post(`/admin/dispatch/${o.id}/assign`, { driver_id: d.id }, { preserveScroll: true })}
                                                         className="bg-surface hover:border-foreground/30 flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm">
                                                         <Avatar name={d.name} size={26} />
                                                         <span className="flex-1 font-medium">{d.name}</span>
+                                                        {d.active > 0 && <Badge tone="warning">Busy · {d.active}</Badge>}
                                                         <span className="text-muted-foreground text-xs">{d.km} km · ★{d.rating}</span>
                                                     </button>
                                                 ))}
-                                                <Button size="sm" variant="outline" onClick={() => router.post(`/admin/dispatch/${o.id}/retry`, {}, { preserveScroll: true })}><RefreshCw /> Offer to nearest again</Button>
+                                                <Button size="sm" variant="outline" onClick={() => router.post(`/admin/dispatch/${o.id}/retry`, {}, { preserveScroll: true })}><RefreshCw /> Send to nearby drivers again</Button>
                                             </>
                                         )}
                                         <Button size="sm" variant="dark" asChild><Link href={`/admin/orders/${o.id}`}>Open order · {zig(o.total_zig)}</Link></Button>
