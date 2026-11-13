@@ -21,15 +21,21 @@ const locationText = {
   merchant: 'Zvino Merchant does not need your location.',
 }[VARIANT];
 
+const PROJECT_ID = process.env.EAS_PROJECT_ID ?? '48ea2f30-35f7-4a9e-92fd-e7943ef7f091';
+
 module.exports = ({ config }) => ({
   ...config,
-  // Expo project: https://expo.dev/accounts/khuphukiles-team/projects/zvino (one project, three app variants)
+  // Expo project: https://expo.dev/accounts/zvinoappss-team/projects/zvino-o3eewb-rlbmdeotvl15w (one project, three app variants)
   owner: 'zvinoappss-team',
   slug: 'zvino-o3eewb-rlbmdeotvl15w',
   name: v.name,
   // The package id is also a link scheme: Google sign-in returns to <package>:/oauthredirect.
   scheme: [v.scheme, v.id],
   icon: `./assets/brand/icon-${VARIANT}.png`,
+  // Over-the-air updates: each variant listens on its own channel (set per build profile in eas.json).
+  // Bump "version" in app.json whenever native code changes, so old installs never get an incompatible update.
+  runtimeVersion: { policy: 'appVersion' },
+  updates: { url: `https://u.expo.dev/${PROJECT_ID}`, checkAutomatically: 'ON_LOAD', fallbackToCacheTimeout: 0 },
   ios: {
     ...config.ios,
     bundleIdentifier: v.id,
@@ -79,6 +85,6 @@ module.exports = ({ config }) => ({
     apiUrl: API_URL,
     // Android maps crash without a Google Maps key, so screens only show a map when one was built in.
     androidMaps: !!process.env.GOOGLE_MAPS_ANDROID_KEY,
-    eas: { projectId: process.env.EAS_PROJECT_ID ?? '48ea2f30-35f7-4a9e-92fd-e7943ef7f091' },
+    eas: { projectId: PROJECT_ID },
   },
 });

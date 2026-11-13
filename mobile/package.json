@@ -36,6 +36,7 @@
     "expo-symbols": "~58.0.4",
     "expo-system-ui": "~58.0.7",
     "expo-task-manager": "~58.0.13",
+    "expo-updates": "~58.0.22",
     "expo-web-browser": "~58.0.7",
     "pusher-js": "^8.6.0",
     "qrcode-generator": "^1.4.4",
@@ -65,7 +66,10 @@
     "customer": "cross-env APP_VARIANT=customer expo start",
     "driver": "cross-env APP_VARIANT=driver expo start",
     "merchant": "cross-env APP_VARIANT=merchant expo start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "update:customer": "cross-env APP_VARIANT=customer EXPO_PUBLIC_API_URL=https://zvino.online SENTRY_DISABLE_AUTO_UPLOAD=true eas update --channel customer-online --environment preview",
+    "update:driver": "cross-env APP_VARIANT=driver EXPO_PUBLIC_API_URL=https://zvino.online SENTRY_DISABLE_AUTO_UPLOAD=true eas update --channel driver-online --environment preview",
+    "update:merchant": "cross-env APP_VARIANT=merchant EXPO_PUBLIC_API_URL=https://zvino.online SENTRY_DISABLE_AUTO_UPLOAD=true eas update --channel merchant-online --environment preview"
   },
   "private": true
 }

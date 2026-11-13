@@ -17,7 +17,8 @@
       "env": {
         "APP_VARIANT": "customer",
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001"
-      }
+      },
+      "channel": "customer-dev"
     },
     "driver-dev": {
       "extends": "base",
@@ -26,7 +27,8 @@
       "env": {
         "APP_VARIANT": "driver",
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001"
-      }
+      },
+      "channel": "driver-dev"
     },
     "merchant-dev": {
       "extends": "base",
@@ -35,28 +37,32 @@
       "env": {
         "APP_VARIANT": "merchant",
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:8001"
-      }
+      },
+      "channel": "merchant-dev"
     },
     "customer": {
       "extends": "base",
       "autoIncrement": true,
       "env": {
         "APP_VARIANT": "customer"
-      }
+      },
+      "channel": "customer"
     },
     "driver": {
       "extends": "base",
       "autoIncrement": true,
       "env": {
         "APP_VARIANT": "driver"
-      }
+      },
+      "channel": "driver"
     },
     "merchant": {
       "extends": "base",
       "autoIncrement": true,
       "env": {
         "APP_VARIANT": "merchant"
-      }
+      },
+      "channel": "merchant"
     },
     "customer-preview": {
       "extends": "base",
@@ -68,7 +74,8 @@
         "APP_VARIANT": "customer",
         "EXPO_PUBLIC_API_URL": "http://192.168.1.55:8001",
         "ALLOW_HTTP": "1"
-      }
+      },
+      "channel": "customer-preview"
     },
     "driver-preview": {
       "extends": "base",
@@ -80,7 +87,8 @@
         "APP_VARIANT": "driver",
         "EXPO_PUBLIC_API_URL": "http://192.168.1.55:8001",
         "ALLOW_HTTP": "1"
-      }
+      },
+      "channel": "driver-preview"
     },
     "merchant-preview": {
       "extends": "base",
@@ -92,7 +100,8 @@
         "APP_VARIANT": "merchant",
         "EXPO_PUBLIC_API_URL": "http://192.168.1.55:8001",
         "ALLOW_HTTP": "1"
-      }
+      },
+      "channel": "merchant-preview"
     },
     "customer-online": {
       "extends": "base",
@@ -102,7 +111,8 @@
       },
       "env": {
         "APP_VARIANT": "customer"
-      }
+      },
+      "channel": "customer-online"
     },
     "driver-online": {
       "extends": "base",
@@ -112,7 +122,8 @@
       },
       "env": {
         "APP_VARIANT": "driver"
-      }
+      },
+      "channel": "driver-online"
     },
     "merchant-online": {
       "extends": "base",
@@ -122,7 +133,8 @@
       },
       "env": {
         "APP_VARIANT": "merchant"
-      }
+      },
+      "channel": "merchant-online"
     }
   },
   "submit": {
