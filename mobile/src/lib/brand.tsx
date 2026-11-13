@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { setBrandColors } from '@/ui/theme';
 import { api } from './api';
 import { setCurrency } from './money';
+import { updateLabel } from './updates';
 
 /** Brand colours + logo from Admin → Settings → Branding, cached for offline launches. */
 interface RemoteBrand { primary: string; primary_dark: string; primary_soft: string; on_primary: string; accent: string; accent_dark: string; accent_soft: string; danger: string; danger_soft: string; logo: string; logo_dark: string; mark: string }
@@ -43,5 +44,5 @@ export function useBrandLogo(inverse: boolean): string | null {
 export const appVersion = () => {
     const v = Constants.expoConfig?.version ?? '1.0.0';
     const b = Constants.expoConfig?.android?.versionCode ?? Constants.expoConfig?.ios?.buildNumber;
-    return b ? `${v} (${b})` : v;
+    return `${b ? `${v} (${b})` : v} · ${updateLabel()}`;
 };

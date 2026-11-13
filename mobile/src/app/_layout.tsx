@@ -20,6 +20,7 @@ import { openLink } from '@/lib/links';
 import '@/lib/appearance'; // light mode by default; applies the saved Light/Dark choice
 import '@/features/driver-background'; // registers the background GPS task
 import { DeviceInsetsProvider } from '@/lib/insets';
+import { useOtaUpdates } from '@/lib/updates';
 
 /**
  * Root navigator for all three apps. Stack.Protected keeps each build to its own screens:
@@ -36,6 +37,7 @@ function RootNavigator() {
         });
         return () => sub.remove();
     }, []);
+    useOtaUpdates();
     const t = useTheme();
     const insets = useSafeAreaInsets();
     if (!ready) return <Loading />;
