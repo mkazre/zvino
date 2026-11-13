@@ -4,7 +4,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { navigateUrl, type Job } from '@/features/driver';
+import { navigateTo, type Job } from '@/features/driver';
 import { api, ApiError } from '@/lib/api';
 import { zig } from '@/lib/money';
 import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
@@ -36,7 +36,11 @@ export default function JobScreen() {
 
     if (!job) return <Loading />;
     const delivering = ['picked_up', 'arriving'].includes(job.status);
-    const target = delivering ? job.dropoff : job.store;
+    // Where "Navigate" goes: the customer once the order is collected, otherwise the store. Works with a
+    // map pin or, if the customer saved no pin, with the written address.
+    const navUrl = delivering
+        ? navigateTo({ lat: job.dropoff?.lat, lng: job.dropoff?.lng, address: job.dropoff ? [job.dropoff.line1, job.dropoff.suburb, job.dropoff.city].filter(Boolean).join(', ') : null })
+        : navigateTo({ lat: job.store.lat, lng: job.store.lng, address: [job.store.name, job.store.address].filter(Boolean).join(', ') });
 
     const pickup = async () => {
         setBusy(true);
@@ -98,7 +102,7 @@ export default function JobScreen() {
                     {delivering && job.dropoff?.landmark && <Text style={{ color: t.onInverseAccent }}>{job.dropoff.landmark}</Text>}
                     {delivering && job.dropoff?.instructions && <Text style={{ color: t.onInverseMuted }}>“{job.dropoff.instructions}”</Text>}
                     <Row gap={10} style={{ marginTop: 10 }}>
-                        {target?.lat && <Button title={tr('Navigate')} tone="primary" size="md" style={{ flex: 1 }} onPress={() => Linking.openURL(navigateUrl(target.lat!, target.lng!))} icon={<Ionicons name="navigate" size={18} color="#fff" />} />}
+                        {navUrl && <Button title={delivering ? 'Navigate to customer' : 'Navigate to store'} tone="primary" size="md" style={{ flex: 1 }} onPress={() => Linking.openURL(navUrl)} icon={<Ionicons name="navigate" size={18} color="#fff" />} />}
                         {(delivering ? job.customer.phone : job.store.phone) && <Button title="Call" tone="soft" size="md" onPress={() => Linking.openURL(`tel:${delivering ? job.customer.phone : job.store.phone}`)} icon={<Ionicons name="call" size={18} color={t.ink} />} />}
                     </Row>
                 </Card>

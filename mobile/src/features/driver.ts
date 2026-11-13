@@ -137,3 +137,10 @@ export async function currentPosition() {
 
 /** Hand off turn-by-turn navigation to Google Maps / Apple Maps. */
 export const navigateUrl = (lat: number, lng: number) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+
+/** Google Maps directions to a pin, or to the written address when there's no pin (Maps searches it). */
+export function navigateTo(place: { lat?: number | string | null; lng?: number | string | null; address?: string | null }): string | null {
+    if (place.lat && place.lng) return navigateUrl(Number(place.lat), Number(place.lng));
+    const q = place.address?.trim();
+    return q ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}&travelmode=driving` : null;
+}
