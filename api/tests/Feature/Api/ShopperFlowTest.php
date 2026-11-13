@@ -135,6 +135,43 @@ class ShopperFlowTest extends TestCase
         }
     }
 
+    public function test_slip_uploads_on_its_own_and_finishing_never_waits_for_it(): void
+    {
+        Storage::fake('local');
+        \App\Models\Setting::put('delivery.require_till_slip', true);
+        Sanctum::actingAs($this->driver->user);
+        $this->postJson($this->url('/start'))->assertOk();
+        foreach ($this->lines as $l) {
+            $this->postJson($this->url("/items/{$l->id}"), ['status' => 'found'])->assertOk();
+        }
+
+        // Photo still uploading: the driver can finish and start the delivery anyway.
+        $this->postJson($this->url('/finish'), ['till_total_usd' => 5, 'paid_with' => 'zvino_card', 'slip_pending' => true])->assertOk();
+        $this->assertSame('picked_up', $this->order->fresh()->status);
+        $this->assertNull($this->order->fresh()->till_slip_path);
+
+        // The slip arrives afterwards and shows on the order; a retake replaces it.
+        $this->post($this->url('/slip'), ['slip' => UploadedFile::fake()->image('slip.jpg')], ['Accept' => 'application/json'])->assertOk()->assertJsonPath('has_slip', true);
+        $first = $this->order->fresh()->till_slip_path;
+        Storage::disk('local')->assertExists($first);
+        $this->post($this->url('/slip'), ['slip' => UploadedFile::fake()->image('again.jpg')], ['Accept' => 'application/json'])->assertOk();
+        Storage::disk('local')->assertMissing($first);
+        Storage::disk('local')->assertExists($this->order->fresh()->till_slip_path);
+    }
+
+    public function test_admin_can_switch_the_till_slip_off(): void
+    {
+        \App\Models\Setting::put('delivery.require_till_slip', false);
+        Sanctum::actingAs($this->driver->user);
+        $this->postJson($this->url('/start'))->assertOk();
+        $this->getJson($this->url())->assertJsonPath('slip_required', false);
+        foreach ($this->lines as $l) {
+            $this->postJson($this->url("/items/{$l->id}"), ['status' => 'found'])->assertOk();
+        }
+        $this->postJson($this->url('/finish'), ['till_total_usd' => 5, 'paid_with' => 'zvino_card'])->assertOk();
+        $this->assertSame('picked_up', $this->order->fresh()->status);
+    }
+
     public function test_background_polling_no_longer_blocks_other_buttons(): void
     {
         $admin = User::where('role', 'super_admin')->firstOrFail();

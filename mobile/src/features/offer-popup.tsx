@@ -9,6 +9,7 @@ import { api, ApiError } from '@/lib/api';
 import { useDeviceInsets } from '@/lib/insets';
 import { fmtUsd, zig } from '@/lib/money';
 import { useChannel } from '@/lib/realtime';
+import { resumeSlipUploads } from '@/lib/slip-upload';
 import { Badge, Row, Text, useTheme } from '@/ui';
 
 const POLL_MS = 5000;
@@ -42,6 +43,7 @@ export function OfferCenter() {
 
     useEffect(() => {
         loadMe();
+        resumeSlipUploads(); // till slips that hadn't finished uploading carry on
         const sub = AppState.addEventListener('change', (s) => { if (s === 'active') { loadMe(); load(); } });
         const meTimer = setInterval(loadMe, 30000);
         return () => { sub.remove(); clearInterval(meTimer); };

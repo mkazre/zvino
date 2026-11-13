@@ -102,7 +102,7 @@ class OrderController extends AdminController
                     'pref' => $order->substitution_pref ?? 'best',
                     'started_at' => $order->shopping_started_at, 'finished_at' => $order->shopping_finished_at,
                     'till_total_usd' => $order->till_total_usd, 'expected_usd' => \App\Services\ShopperService::expectedTillUsd($order),
-                    'paid_with' => $order->till_paid_with, 'has_slip' => (bool) $order->till_slip_path, 'refund_zig' => $order->shopping_refund_zig,
+                    'paid_with' => $order->till_paid_with, 'has_slip' => (bool) $order->till_slip_path, 'slip_required' => (bool) \App\Models\Setting::get('delivery.require_till_slip'), 'refund_zig' => $order->shopping_refund_zig,
                     'lines' => $order->items->map(fn ($l) => ['name' => $l->name, 'quantity' => $l->quantity, 'status' => $l->shop_status, 'found_qty' => $l->found_qty, 'replacement' => $l->replacement, 'refund_zig' => $l->refund_zig, 'substitute' => $l->substitute]),
                     'buffer_zig' => $order->substitution_buffer_zig,
                 ] : null,

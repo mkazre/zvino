@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Setting;
+use App\Services\OrderService;
 use App\Services\ShopperService;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -69,16 +71,45 @@ class ShopController extends Controller
         ]));
     }
 
+    /**
+     * Till slip photo, uploaded on its own as soon as it's taken (with progress and retries in the app),
+     * so finishing the shop never waits on an upload. Can arrive after the order is on its way.
+     */
+    public function slip(Request $request, Order $order)
+    {
+        $this->own($request, $order);
+        $request->validate(['slip' => ['required', 'image', 'max:8192']]);
+        $path = $request->file('slip')->store("till-slips/{$order->id}", 'local'); // private
+        $old = $order->till_slip_path;
+        $order->update(['till_slip_path' => $path]);
+        if ($old && $old !== $path) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($old); // retake replaces the earlier photo
+        }
+
+        return response()->json(['has_slip' => true]);
+    }
+
     public function finish(Request $request, Order $order)
     {
         $this->own($request, $order);
+        $required = (bool) Setting::get('delivery.require_till_slip');
         $data = $request->validate([
             'till_total_usd' => ['required', 'numeric', 'min:0.01', 'max:100000'],
             'paid_with' => ['required', 'in:zvino_card,own_cash'],
-            'slip' => ['required', 'image', 'max:8192'],
-        ], ['slip.required' => 'Take a photo of the till slip.']);
-        $path = $request->file('slip')->store("till-slips/{$order->id}", 'local'); // private
-        $this->shopper->finish($order, $data, $path);
+            'slip' => ['nullable', 'image', 'max:8192'], // older app versions send the photo here
+            'slip_pending' => ['nullable', 'boolean'], // the app is still uploading it in the background
+        ]);
+        $path = $request->file('slip')?->store("till-slips/{$order->id}", 'local') ?? $order->till_slip_path;
+        if ($required && ! $path && ! $request->boolean('slip_pending')) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['slip' => 'Take a photo of the till slip.']);
+        }
+        unset($data['slip'], $data['slip_pending']);
+        OrderService::$notifyAfterResponse = true; // the driver gets the answer straight away
+        try {
+            $this->shopper->finish($order, $data, $path);
+        } finally {
+            OrderService::$notifyAfterResponse = false;
+        }
 
         return response()->json($this->present($order->fresh()));
     }
@@ -108,6 +139,8 @@ class ShopController extends Controller
             'reference' => $order->reference,
             'status' => $order->status,
             'store' => $order->vendor->only('name', 'address'),
+            'slip_required' => (bool) Setting::get('delivery.require_till_slip'),
+            'has_slip' => (bool) $order->till_slip_path,
             'customer' => ['name' => $order->user?->name, 'phone' => $order->user?->phone],
             'substitution_pref' => $order->substitution_pref ?? 'best',
             'notes' => $order->notes,

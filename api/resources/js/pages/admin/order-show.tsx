@@ -5,7 +5,7 @@ import { fmtUsd, label, timeAgo, zig } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { type Order, type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, Bike, Check, MapPin, MessageSquare, Phone, RotateCcw, StickyNote, X } from 'lucide-react';
+import { ArrowLeft, Bike, Check, MapPin, MessageSquare, Phone, Receipt, RotateCcw, StickyNote, X } from 'lucide-react';
 import { useState } from 'react';
 
 type Detail = Order & {
@@ -357,7 +357,7 @@ function CancelModal({ open, onClose, order }: { open: boolean; onClose: () => v
 }
 
 interface ShoppingInfo {
-    pref: string; buffer_zig?: number | null; started_at: string | null; finished_at: string | null; till_total_usd: number | null; expected_usd: number; paid_with: string | null; has_slip: boolean; refund_zig: number | null;
+    pref: string; buffer_zig?: number | null; started_at: string | null; finished_at: string | null; till_total_usd: number | null; expected_usd: number; paid_with: string | null; has_slip: boolean; slip_required?: boolean; refund_zig: number | null;
     lines: { name: string; quantity: number; status: string | null; found_qty: number | null; replacement: { name: string; quantity: number } | null; refund_zig: number | null; substitute?: { name: string } | null }[];
 }
 
@@ -384,7 +384,11 @@ function ShoppingCard({ id, s }: { id: number; s: ShoppingInfo }) {
                 {diff != null && Math.abs(diff) >= 0.01 && <div className={cn('flex justify-between font-semibold', Math.abs(diff) > Math.max(1, s.expected_usd * 0.05) ? 'text-zred' : 'text-muted-foreground')}><span>Difference</span><span className="tabular">{diff > 0 ? '+' : '-'}${Math.abs(diff).toFixed(2)}</span></div>}
                 {s.buffer_zig ? <div className="flex justify-between"><span>Substitute buffer paid by customer</span><span className="tabular">{zig(s.buffer_zig)}</span></div> : null}
                 {s.refund_zig ? <div className="flex justify-between"><span>Refunded to customer’s wallet</span><span className="tabular">{zig(s.refund_zig)}</span></div> : null}
-                {s.has_slip && <a href={`/admin/orders/${id}/till-slip`} target="_blank" rel="noreferrer" className="mt-1 font-semibold underline">🧾 View till slip</a>}
+                {s.has_slip ? (
+                    <a href={`/admin/orders/${id}/till-slip`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1.5 font-semibold underline"><Receipt className="size-4" /> View till slip</a>
+                ) : s.finished_at && s.slip_required ? (
+                    <span className="text-muted-foreground mt-1 inline-flex items-center gap-1.5"><Receipt className="size-4" /> Till slip still uploading from the driver’s phone</span>
+                ) : null}
             </div>
         </Card>
     );

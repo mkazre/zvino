@@ -11,6 +11,7 @@ import { useImg } from '@/lib/prefs';
 import { Badge, Button, Card, Loading, Row, Text, useTheme } from '@/ui';
 import { useDeviceInsets } from '@/lib/insets';
 import { shrinkPhoto } from '@/lib/photo';
+import { queueSlip, retrySlip, useSlipUpload } from '@/lib/slip-upload';
 
 type Status = 'found' | 'partial' | 'missing' | 'replaced';
 interface Line {
@@ -24,6 +25,8 @@ interface Shop {
     id: number; reference: string; status: string; store: { name: string; address: string | null }; customer: { name: string | null; phone: string | null };
     substitution_pref: 'best' | 'contact' | 'refund'; notes: string | null; started: boolean; finished: boolean;
     lines: Line[]; done: number; total: number; expected_till_usd: number; refund: Money;
+    /** Admin can switch the till slip photo off; has_slip once it has reached Zvino. */
+    slip_required?: boolean; has_slip?: boolean;
 }
 interface Option { id: number; name: string; image: string | null; price: Money; size: string | null }
 
@@ -217,14 +220,22 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
     return <Row justify="center" gap={24}>{btn(-1, 'remove')}<Text variant="display">{value}</Text>{btn(1, 'add')}</Row>;
 }
 
-/** Pay at the till: total, slip photo, how it was paid. Then the order is on its way. */
+/**
+ * Pay at the till: total and how it was paid, plus the slip photo (unless switched off in admin).
+ * The photo starts uploading the moment it's taken, with a progress bar and automatic retries, so
+ * "Done" never waits for it; it keeps uploading in the background if the signal is poor.
+ */
 function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean; onClose: () => void; onDone: () => void }) {
     const t = useTheme();
     const nav = useDeviceInsets();
     const [total, setTotal] = useState('');
-    const [slip, setSlip] = useState<string | null>(null);
+    const [taken, setTaken] = useState(false);
     const [paidWith, setPaidWith] = useState<'zvino_card' | 'own_cash'>('zvino_card');
     const [busy, setBusy] = useState(false);
+    const upload = useSlipUpload(shop.id);
+    const needSlip = shop.slip_required !== false;
+    const uploaded = upload.status === 'done' || (!!shop.has_slip && !taken);
+    const hasSlip = taken || !!shop.has_slip;
     const amount = Number(total.replace(',', '.'));
     const off = amount > 0 && Math.abs(amount - shop.expected_till_usd) > Math.max(1, shop.expected_till_usd * 0.1);
 
@@ -232,23 +243,29 @@ function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean;
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return Alert.alert('Camera needed', 'Allow the camera to photograph the till slip.');
         const r = await ImagePicker.launchCameraAsync({ quality: 0.6 });
-        if (!r.canceled) setSlip(await shrinkPhoto(r.assets[0]));
+        if (r.canceled) return;
+        setTaken(true);
+        queueSlip(shop.id, await shrinkPhoto(r.assets[0]));
     };
     const submit = async () => {
         setBusy(true);
+        const pending = needSlip && !uploaded;
         try {
-            const form = new FormData();
-            form.append('till_total_usd', String(amount));
-            form.append('paid_with', paidWith);
-            form.append('slip', { uri: slip!, name: 'till-slip.jpg', type: 'image/jpeg' } as unknown as Blob);
-            await api.post(`/driver/jobs/${shop.id}/shop/finish`, form);
-            Alert.alert('Shopping done', 'The customer has been told their order is on the way.', [{ text: 'Deliver', onPress: onDone }]);
+            await api.post(`/driver/jobs/${shop.id}/shop/finish`, { till_total_usd: amount, paid_with: paidWith, slip_pending: pending });
+            Alert.alert('Shopping done', pending ? 'The customer has been told their order is on the way. Your slip photo keeps uploading in the background.' : 'The customer has been told their order is on the way.', [{ text: 'Deliver', onPress: onDone }]);
         } catch (e) {
-            Alert.alert('Couldn’t finish', e instanceof ApiError && e.status === 0 ? 'The upload didn’t reach Zvino. Move to better signal and tap Done again; your slip photo is kept.' : e instanceof ApiError ? e.friendly : '');
+            Alert.alert('Couldn’t finish', e instanceof ApiError && e.status === 0 ? 'No signal right now. Tap Done again in a moment; everything you entered is kept.' : e instanceof ApiError ? e.friendly : '');
         } finally {
             setBusy(false);
         }
     };
+
+    const pct = Math.round(upload.progress * 100);
+    const slipLabel = uploaded ? 'Slip uploaded · tap to retake'
+        : upload.status === 'uploading' ? `Uploading slip ${pct}%`
+        : upload.status === 'retrying' ? 'Weak signal, retrying · tap to retry now'
+        : taken ? 'Slip photo taken · tap to retake' : 'Photograph the till slip';
+    const tone = uploaded ? t.brand : upload.status === 'retrying' ? t.gold : t.border;
 
     return (
         <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
@@ -270,8 +287,21 @@ function TillSheet({ shop, open, onClose, onDone }: { shop: Shop; open: boolean;
                     ))}
                 </Row>
                 {paidWith === 'own_cash' && <Text variant="caption">You’ll be paid back in your Zvino earnings.</Text>}
-                <Button title={slip ? 'Slip photo taken ✓ · retake' : 'Photograph the till slip'} tone={slip ? 'soft' : 'outline'} onPress={photo} icon={<Ionicons name="camera" size={18} color={t.ink} />} />
-                <Button title="Done, start delivery" tone="primary" loading={busy} disabled={!(amount > 0) || !slip} onPress={submit} />
+                {needSlip && (
+                    <Pressable onPress={upload.status === 'retrying' ? () => retrySlip(shop.id) : photo} accessibilityRole="button"
+                        style={{ borderRadius: 16, borderWidth: 1.5, borderStyle: hasSlip ? 'solid' : 'dashed', borderColor: tone, overflow: 'hidden' }}>
+                        <Row gap={10} style={{ padding: 14 }}>
+                            <Ionicons name={uploaded ? 'checkmark-circle' : upload.status === 'retrying' ? 'refresh' : upload.status === 'uploading' ? 'cloud-upload-outline' : 'camera-outline'} size={20}
+                                color={uploaded ? t.brandText : upload.status === 'retrying' ? t.goldText : t.ink} />
+                            <Text variant="label" style={{ flex: 1 }}>{slipLabel}</Text>
+                        </Row>
+                        {!uploaded && (upload.status === 'uploading' || upload.status === 'retrying') && (
+                            <View style={{ height: 4, backgroundColor: t.subtle }}><View style={{ height: 4, width: `${Math.max(4, pct)}%`, backgroundColor: upload.status === 'retrying' ? t.gold : t.brand }} /></View>
+                        )}
+                    </Pressable>
+                )}
+                <Button title="Done, start delivery" tone="primary" loading={busy} disabled={!(amount > 0) || (needSlip && !hasSlip)} onPress={submit} />
+                {needSlip && hasSlip && !uploaded && <Text variant="caption" style={{ textAlign: 'center' }}>No need to wait for the upload. It carries on in the background.</Text>}
             </View>
         </Modal>
     );

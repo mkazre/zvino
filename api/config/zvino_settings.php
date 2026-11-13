@@ -113,6 +113,7 @@ return [
             'cash_on_delivery_limit_zig' => ['type' => 'money', 'label' => 'Max cash-on-delivery order', 'default' => 1500],
             'driver_cash_limit_zig' => ['type' => 'money', 'label' => 'Max cash a driver may hold', 'default' => 3000],
             'shopper_fee_zig' => ['type' => 'money', 'label' => 'Extra driver pay for shopping an order', 'default' => 15, 'help' => 'Zvino-run stores (e.g. TM Pick n Pay): the driver also does the shopping.'],
+            'require_till_slip' => ['type' => 'bool', 'label' => 'Shoppers photograph the till slip', 'default' => true, 'help' => 'Off: drivers only enter the till total. On: the slip photo uploads in the background and shows on the order.'],
             'shopper_max_replacement_pct' => ['type' => 'int', 'label' => 'Replacements may cost up to (% of the original)', 'default' => 120, 'help' => 'Zvino covers the difference; the customer is never charged more.'],
             'avg_speed_kmh' => ['type' => 'decimal', 'label' => 'Average driving speed (km/h)', 'default' => 25, 'help' => 'Used for delivery times until Zvino has learned the real speed from recent deliveries.'],
             'learn_speed' => ['type' => 'bool', 'label' => 'Learn driving speed from recent deliveries', 'default' => true],
